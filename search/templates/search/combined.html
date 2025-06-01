@@ -1,0 +1,10 @@
+{% if ai_summary %}
+<div class="ai-summary">{{ ai_summary }}</div>
+{% endif %}
+
+<h2>External Search Results:</h2>
+<ul>
+    {% for result in external_results %}
+    <li><a href="{{ result.url }}" target="_blank">{{ result.title }}</a></li>
+    {% endfor %}
+</ul>

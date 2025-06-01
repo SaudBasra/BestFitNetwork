@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BestFit Network Tracking Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- Custom Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3a86ff;
+            --secondary-color: #8338ec;
+            --accent-color: #ff006e;
+            --success-color: #38b000;
+            --warning-color: #ffbe0b;
+            --light-bg: #f8f9fa;
+            --card-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            --transition-speed: 0.35s;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f3f8;
+            color: #333;
+        }
+        
+        .container-fluid {
+            padding: 1.5rem 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .top-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .dashboard-card {
+            transition: all var(--transition-speed) ease;
+            border-radius: 12px;
+            border: none;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .stats-icon {
+            font-size: 2.5rem;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin-bottom: 1rem;
+            background-color: rgba(58, 134, 255, 0.1);
+            color: var(--primary-color);
+        }
+        
+        .stats-card-joined .stats-icon {
+            background-color: rgba(56, 176, 0, 0.1);
+            color: var(--success-color);
+        }
+        
+        .stats-card-conversion .stats-icon {
+            background-color: rgba(255, 0, 110, 0.1);
+            color: var(--accent-color);
+        }
+        
+        .card-title {
+            color: #6c757d;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+        
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 0;
+        }
+        
+        .badge-joined {
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            border-radius: 30px;
+        }
+        
+        .table-header {
+            background-color: white;
+            border-bottom: none;
+        }
+        
+        .filters-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .filters-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #333;
+            margin-bottom: 1.25rem;
+        }
+        
+        .nav-tabs {
+            border-bottom: none;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            color: #6c757d;
+            font-weight: 500;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            background-color: #f0f3f8;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 10px rgba(58, 134, 255, 0.3);
+        }
+        
+        .conversion-progress {
+            height: 10px;
+            margin-top: 1rem;
+            border-radius: 5px;
+            background-color: #e9ecef;
+        }
+        
+        .conversion-progress .progress-bar {
+            border-radius: 5px;
+            background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+        }
+        
+        .action-btn {
+            border-radius: 50px;
+            padding: 0.5rem 1rem;
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .btn-export {
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+        
+        .btn-export:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-refresh {
+            background-color: white;
+            color: var(--secondary-color);
+            border: 1px solid var(--secondary-color);
+        }
+        
+        .btn-refresh:hover {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .table-container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+        
+        table.dataTable {
+            border-collapse: collapse !important;
+        }
+        
+        .table thead th {
+            background-color: #f8f9fa;
+            border-bottom: none;
+            color: #6c757d;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+        
+        .table tbody tr {
+            border-bottom: 1px solid #f0f3f8;
+            transition: background-color 0.2s ease;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            border-radius: 50px;
+            padding: 0.25rem 0.75rem;
+            margin: 0 0.2rem;
+            border: none !important;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: var(--primary-color) !important;
+            color: white !important;
+            box-shadow: 0 4px 10px rgba(58, 134, 255, 0.3);
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #e9ecef !important;
+            color: #333 !important;
+        }
+        
+        .table-action-btn {
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: none;
+            transition: all 0.2s ease;
+            margin-right: 0.25rem;
+        }
+        
+        .btn-view {
+            background-color: rgba(58, 134, 255, 0.1);
+            color: var(--primary-color);
+        }
+        
+        .btn-view:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-status {
+            background-color: rgba(56, 176, 0, 0.1);
+            color: var(--success-color);
+        }
+        
+        .btn-status:hover {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .modal-content {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .modal-title {
+            font-weight: 600;
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .modal-footer {
+            border-top: 1px solid #eee;
+            padding: 1rem 1.5rem;
+        }
+        
+        .section-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f0f3f8;
+        }
+        
+        /* Custom button styles */
+        .btn {
+            border-radius: 50px;
+            padding: 0.5rem 1.25rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 10px rgba(58, 134, 255, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background-color: #2e6fd4;
+            border-color: #2e6fd4;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(58, 134, 255, 0.4);
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+            box-shadow: 0 4px 10px rgba(56, 176, 0, 0.3);
+        }
+        
+        .btn-success:hover {
+            background-color: #2d9500;
+            border-color: #2d9500;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(56, 176, 0, 0.4);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(58, 134, 255, 0.3);
+        }
+        
+        /* Form controls */
+        .form-control, .form-select {
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            border: 1px solid #e1e5eb;
+            box-shadow: none;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(58, 134, 255, 0.1);
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fadeIn {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        /* Different animation delays for cards */
+        .dashboard-card:nth-child(1) { animation-delay: 0.1s; }
+        .dashboard-card:nth-child(2) { animation-delay: 0.2s; }
+        .dashboard-card:nth-child(3) { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="top-header mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="fw-bold mb-0"><i class="fas fa-chart-network me-2"></i>BestFit Network</h1>
+                    <p class="mb-0 mt-2 opacity-75">User Tracking & Facility Engagement Dashboard</p>
+                </div>
+                <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                    <button type="button" class="btn action-btn btn-export me-2" id="export-csv">
+                        <i class="fas fa-file-export me-1"></i> Export Data
+                    </button>
+                    <button type="button" class="btn action-btn btn-refresh" id="refresh-data">
+                        <i class="fas fa-sync-alt me-1"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-4 mb-md-0">
+                <div class="card dashboard-card h-100 fadeIn">
+                    <div class="card-body p-4">
+                        <div class="d-flex flex-column align-items-center text-center">
+                            <div class="stats-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h5 class="card-title">Total Inquiries</h5>
+                            <h3 class="card-value">{{ total_entries }}</h3>
+                            <p class="text-muted mt-2">Tracked user interactions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4 mb-md-0">
+                <div class="card dashboard-card stats-card-joined h-100 fadeIn">
+                    <div class="card-body p-4">
+                        <div class="d-flex flex-column align-items-center text-center">
+                            <div class="stats-icon">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <h5 class="card-title">Joined Facilities</h5>
+                            <h3 class="card-value">{{ joined_facilities }}</h3>
+                            <p class="text-muted mt-2">Successful conversions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card dashboard-card stats-card-conversion h-100 fadeIn">
+                    <div class="card-body p-4">
+                        <div class="d-flex flex-column align-items-center text-center">
+                            <div class="stats-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h5 class="card-title">Conversion Rate</h5>
+                            <h3 class="card-value">
+                                {% if total_entries > 0 %}
+                                    {{ conversion_rate|floatformat:1 }}%
+                                {% else %}
+                                    0.0%
+                                {% endif %}
+                            </h3>
+                            <div class="conversion-progress w-100">
+                                <div class="progress-bar" role="progressbar" 
+                                    style="width: {% if total_entries > 0 %}{{ conversion_rate }}{% else %}0{% endif %}%" 
+                                    aria-valuenow="{% if total_entries > 0 %}{{ conversion_rate }}{% else %}0{% endif %}" 
+                                    aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+            <h5 class="filters-title"><i class="fas fa-filter me-2"></i>Search & Filters</h5>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="filter-facility" class="form-label">Facility Type</label>
+                    <select id="filter-facility" class="form-select">
+                        <option value="">All Facilities</option>
+                        <option value="ALZHEIMER DISEASE">Alzheimer Disease</option>
+                        <option value="ASSISTED LIVING SERVICES">Assisted Living</option>
+                        <option value="INDIVIDUALS WITH INTELLECTUAL DISABILITES">Intellectual Disabilities</option>
+                        <option value="MENTAL ILLNESS">Mental Illness</option>
+                        <option value="RESIDENTIAL FACILITY FOR ELDERLY OR DISABLED PERSONS">Elderly/Disabled Care</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="filter-joined" class="form-label">Joined Status</label>
+                    <select id="filter-joined" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="true">Joined</option>
+                        <option value="false">Not Joined</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="filter-date-from" class="form-label">Date From</label>
+                    <input type="date" id="filter-date-from" class="form-control">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="filter-date-to" class="form-label">Date To</label>
+                    <input type="date" id="filter-date-to" class="form-control">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="filter-search" class="form-label">Quick Search</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" id="filter-search" class="form-control border-start-0" placeholder="Search by name, email, or zip code...">
+                    </div>
+                </div>
+                <div class="col-md-6 text-end align-self-end">
+                    <button id="apply-filters" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i> Apply Filters
+                    </button>
+                    <button id="reset-filters" class="btn btn-outline-secondary">
+                        <i class="fas fa-undo me-1"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs for different views -->
+        <ul class="nav nav-tabs" id="userTrackingTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-content" 
+                        type="button" role="tab" aria-controls="all-content" aria-selected="true">
+                    <i class="fas fa-list me-1"></i> All Records
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="joined-tab" data-bs-toggle="tab" data-bs-target="#joined-content" 
+                        type="button" role="tab" aria-controls="joined-content" aria-selected="false">
+                    <i class="fas fa-check-circle me-1"></i> Joined Facilities
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-content" 
+                        type="button" role="tab" aria-controls="pending-content" aria-selected="false">
+                    <i class="fas fa-clock me-1"></i> Pending
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab content -->
+        <div class="tab-content" id="userTrackingTabContent">
+            <div class="tab-pane fade show active" id="all-content" role="tabpanel" aria-labelledby="all-tab">
+                <div class="table-container">
+                    <div class="card-header table-header d-flex justify-content-between align-items-center p-3">
+                        <h4 class="mb-0 fw-bold"><i class="fas fa-table me-2"></i>User Tracking Records</h4>
+                        <span class="badge bg-primary rounded-pill px-3 py-2">{{ total_entries }} records</span>
+                    </div>
+                    <div class="table-responsive p-3">
+                        <table class="table table-hover" id="tracking-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Facility Type</th>
+                                    <th>Zip Code</th>
+                                    <th>Search Query</th>
+                                    <th>Timestamp</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tracking in user_trackings %}
+                                    <tr data-joined="{{ tracking.joined_facility|lower }}" 
+                                        data-facility="{{ tracking.facility_type_interest }}"
+                                        data-timestamp="{{ tracking.timestamp|date:'Y-m-d' }}">
+                                        <td class="fw-medium">{{ tracking.name }}</td>
+                                        <td>
+                                            <a href="mailto:{{ tracking.email }}" class="text-decoration-none">{{ tracking.email }}</a>
+                                        </td>
+                                        <td>
+                                            <a href="tel:{{ tracking.phone }}" class="text-decoration-none">{{ tracking.phone }}</a>
+                                        </td>
+                                        <td>{{ tracking.facility_type_interest }}</td>
+                                        <td>{{ tracking.zip_code }}</td>
+                                        <td>{{ tracking.search_query }}</td>
+                                        <td>{{ tracking.timestamp|date:"M d, Y H:i" }}</td>
+                                        <td>
+                                            {% if tracking.joined_facility %}
+                                                <span class="badge bg-success badge-joined">Joined</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary badge-joined">Pending</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button type="button" class="table-action-btn btn-view view-details" 
+                                                    data-id="{{ tracking.id }}" data-bs-toggle="modal" data-bs-target="#detailsModal">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="table-action-btn btn-status toggle-status" 
+                                                    data-id="{{ tracking.id }}" data-status="{{ tracking.joined_facility|lower }}">
+                                                {% if tracking.joined_facility %}
+                                                    <i class="fas fa-times"></i>
+                                                {% else %}
+                                                    <i class="fas fa-check"></i>
+                                                {% endif %}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="9" class="text-center py-4">No tracking data available</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-pane fade" id="joined-content" role="tabpanel" aria-labelledby="joined-tab">
+                <div class="table-container">
+                    <div class="card-header table-header">
+                        <h4 class="mb-0 fw-bold p-3"><i class="fas fa-check-double me-2"></i>Joined Facilities</h4>
+                    </div>
+                    <div class="table-responsive p-3">
+                        <table class="table table-hover" id="joined-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Facility Type</th>
+                                    <th>Zip Code</th>
+                                    <th>Timestamp</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-pane fade" id="pending-content" role="tabpanel" aria-labelledby="pending-tab">
+                <div class="table-container">
+                    <div class="card-header table-header">
+                        <h4 class="mb-0 fw-bold p-3"><i class="fas fa-hourglass-half me-2"></i>Pending Inquiries</h4>
+                    </div>
+                    <div class="table-responsive p-3">
+                        <table class="table table-hover" id="pending-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Facility Type</th>
+                                    <th>Zip Code</th>
+                                    <th>Timestamp</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailsModalLabel"><i class="fas fa-user-circle me-2"></i>User Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="section-title"><i class="fas fa-id-card me-2"></i>Personal Information</h6>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="30%">Name:</th>
+                                    <td id="modal-name" class="fw-medium"></td>
+                                </tr>
+                                <tr>
+                                    <th>Email:</th>
+                                    <td id="modal-email"></td>
+                                </tr>
+                                <tr>
+                                    <th>Phone:</th>
+                                    <td id="modal-phone"></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="section-title"><i class="fas fa-search me-2"></i>Inquiry Information</h6>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="30%">Facility Type:</th>
+                                    <td id="modal-facility"></td>
+                                </tr>
+                                <tr>
+                                    <th>Zip Code:</th>
+                                    <td id="modal-zip"></td>
+                                </tr>
+                                <tr>
+                                    <th>Search Query:</th>
+                                    <td id="modal-query"></td>
+                                </tr>
+                                <tr>
+                                    <th>Timestamp:</th>
+                                    <td id="modal-time"></td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td id="modal-status"></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6 class="section-title"><i class="fas fa-sticky-note me-2"></i>Notes</h6>
+                            <textarea id="modal-notes" class="form-control" rows="4" placeholder="Add notes about this user..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" id="save-notes">
+                        <i class="fas fa-save me-1"></i> Save Notes
+                    </button>
+                    <button type="button" class="btn btn-primary" id="toggle-status-modal">
+                        <i class="fas fa-exchange-alt me-1"></i> <span id="toggle-status-text">Mark as Joined</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Required JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    
+    <script>
+        // Initialize DataTables
+        $(document).ready(function() {
+            // Add animation class to elements
+            $('.dashboard-card').addClass('fadeIn');
+            
+            // Create DataTables instance with improved styling
+            const mainTable = $('#tracking-table').DataTable({
+                "order": [[6, "desc"]], // Sort by timestamp by default
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "language": {
+                    "search": "_INPUT_",
+                    "searchPlaceholder": "Quick search...",
+                    "lengthMenu": "Show _MENU_ entries",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+                    "paginate": {
+                        "first": '<i class="fas fa-angle-double-left"></i>',
+                        "last": '<i class="fas fa-angle-double-right"></i>',
+                        "next": '<i class="fas fa-angle-right"></i>',
+                        "previous": '<i class="fas fa-angle-left"></i>'
+                    },
+                },
+                "dom": '<"d-flex justify-content-between align-items-center mb-3"fl>rt<"d-flex justify-content-between align-items-center mt-3"ip>'
+            });
+            
+            // Style the DataTables search input
+            $('.dataTables_filter input').addClass('form-control');
+            $('.dataTables_filter input').css({
+                'width': '250px',
+                'display': 'inline-block',
+                'margin-left': '10px'
+            });
+            
+            // Initialize other tables with the same styling
+            const joinedTable = $('#joined-table').DataTable({
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "language": {
+                    "search": "_INPUT_",
+                    "searchPlaceholder": "Quick search...",
+                    "lengthMenu": "Show _MENU_ entries",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+                    "paginate": {
+                        "first": '<i class="fas fa-angle-double-left"></i>',
+                        "last": '<i class="fas fa-angle-double-right"></i>',
+                        "next": '<i class="fas fa-angle-right"></i>',
+                        "previous": '<i class="fas fa-angle-left"></i>'
+                    },
+                },
+                "dom": '<"d-flex justify-content-between align-items-center mb-3"fl>rt<"d-flex justify-content-between align-items-center mt-3"ip>'
+            });
+            
+            const pendingTable = $('#pending-table').DataTable({
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "language": {
+                    "search": "_INPUT_",
+                    "searchPlaceholder": "Quick search...",
+                    "lengthMenu": "Show _MENU_ entries",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+                    "paginate": {
+                        "first": '<i class="fas fa-angle-double-left"></i>',
+                        "last": '<i class="fas fa-angle-double-right"></i>',
+                        "next": '<i class="fas fa-angle-right"></i>',
+                        "previous": '<i class="fas fa-angle-left"></i>'
+                    },
+                },
+                "dom": '<"d-flex justify-content-between align-items-center mb-3"fl>rt<"d-flex justify-content-between align-items-center mt-3"ip>'
+            });
+            
+            // Style all DataTables search inputs
+            $('.dataTables_filter input').addClass('form-control');
+            $('.dataTables_filter').each(function() {
+                const searchInput = $(this).find('input');
+                searchInput.before('<i class="fas fa-search position-absolute ms-2" style="top:10px; left:10px; color:#6c757d;"></i>');
+                searchInput.addClass('ps-4');
+                searchInput.css({
+                    'width': '250px',
+                    'display': 'inline-block',
+                    'margin-left': '10px'
+                });
+            });
+            
+            // Function to toggle joined status with animation
+            $('.toggle-status').on('click', function() {
+                const id = $(this).data('id');
+                const currentStatus = $(this).data('status') === 'true';
+                const newStatus = !currentStatus;
+                const btn = $(this);
+                
+                btn.html('<i class="fas fa-spinner fa-spin"></i>');
+                
+                // This would normally be an AJAX call to your backend
+                setTimeout(function() {
+                    // Simulate AJAX success
+                    const row = btn.closest('tr');
+                    row.attr('data-joined', newStatus.toString());
+                    
+                    if (newStatus) {
+                        row.find('.badge-joined')
+                           .removeClass('bg-secondary')
+                           .addClass('bg-success')
+                           .text('Joined');
+                        
+                        btn.data('status', 'true')
+                           .html('<i class="fas fa-times"></i>');
+                           
+                        // Add a highlight effect
+                        row.addClass('table-success');
+                        setTimeout(function() {
+                            row.removeClass('table-success');
+                        }, 1500);
+                    } else {
+                        row.find('.badge-joined')
+                           .removeClass('bg-success')
+                           .addClass('bg-secondary')
+                           .text('Pending');
+                        
+                        btn.data('status', 'false')
+                           .html('<i class="fas fa-check"></i>');
+                           
+                        // Add a highlight effect
+                        row.addClass('table-warning');
+                        setTimeout(function() {
+                            row.removeClass('table-warning');
+                        }, 1500);
+                    }
+                    
+                    // Update stats cards (this would be dynamic in a real app)
+                    // In a real app, you would update this with data from your AJAX response
+                    updateStatCards();
+                    
+                }, 600); // Simulate network delay
+                
+                // Prevent default to avoid page refresh
+                return false;
+            });
+            
+            // Function to update stats cards (simulation for demo)
+            function updateStatCards() {
+                // Count joined facilities
+                const totalEntries = $('#tracking-table tbody tr').length;
+                const joinedFacilities = $('#tracking-table tbody tr[data-joined="true"]').length;
+                const conversionRate = totalEntries > 0 ? (joinedFacilities / totalEntries * 100).toFixed(1) : 0;
+                
+                // Animate the number changes
+                animateNumber($('.stats-card-joined .card-value'), joinedFacilities);
+                animateNumber($('.stats-card-conversion .card-value'), conversionRate + '%');
+                
+                // Update progress bar
+                $('.conversion-progress .progress-bar').css('width', conversionRate + '%');
+            }
+            
+            // Function to animate number changes
+            function animateNumber(element, newValue) {
+                $({value: parseInt(element.text())}).animate({value: parseInt(newValue)}, {
+                    duration: 1000,
+                    easing: 'swing',
+                    step: function() {
+                        element.text(Math.floor(this.value));
+                    },
+                    complete: function() {
+                        element.text(newValue);
+                    }
+                });
+            }
+            
+            // For demonstration purposes - populate tabs based on data attributes
+            $('#userTrackingTabs a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                const target = $(e.target).attr('id');
+                
+                if (target === 'joined-tab') {
+                    populateJoinedTable();
+                } else if (target === 'pending-tab') {
+                    populatePendingTable();
+                }
+            });
+            
+            function populateJoinedTable() {
+                joinedTable.clear();
+                
+                $('#tracking-table tbody tr[data-joined="true"]').each(function() {
+                    const rowData = [
+                        $(this).find('td:eq(0)').text(), // Name
+                        $(this).find('td:eq(1)').html(), // Email (keep HTML to preserve link)
+                        $(this).find('td:eq(2)').html(), // Phone (keep HTML to preserve link)
+                        $(this).find('td:eq(3)').text(), // Facility
+                        $(this).find('td:eq(4)').text(), // Zip
+                        $(this).find('td:eq(6)').text(), // Timestamp
+                        $(this).find('td:eq(8)').html()  // Actions
+                    ];
+                    
+                    joinedTable.row.add(rowData);
+                });
+                
+                joinedTable.draw();
+            }
+            
+            function populatePendingTable() {
+                pendingTable.clear();
+                
+                $('#tracking-table tbody tr[data-joined="false"]').each(function() {
+                    const rowData = [
+                        $(this).find('td:eq(0)').text(), // Name
+                        $(this).find('td:eq(1)').html(), // Email
+                        $(this).find('td:eq(2)').html(), // Phone
+                        $(this).find('td:eq(3)').text(), // Facility
+                        $(this).find('td:eq(4)').text(), // Zip
+                        $(this).find('td:eq(6)').text(), // Timestamp
+                        $(this).find('td:eq(8)').html()  // Actions
+                    ];
+                    
+                    pendingTable.row.add(rowData);
+                });
+                
+                pendingTable.draw();
+            }
+            
+            // Apply filters button click with animation
+            $('#apply-filters').on('click', function() {
+                $(this).html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
+                
+                setTimeout(() => {
+                    const facilityFilter = $('#filter-facility').val();
+                    const joinedFilter = $('#filter-joined').val();
+                    const dateFromFilter = $('#filter-date-from').val();
+                    const dateToFilter = $('#filter-date-to').val();
+                    const searchFilter = $('#filter-search').val();
+                    
+                    // Clear all filters first
+                    mainTable.search('').columns().search('').draw();
+                    
+                    // Apply combined search if there's a search term
+                    if (searchFilter) {
+                        mainTable.search(searchFilter).draw();
+                    }
+                    
+                    // Apply column-specific filters
+                    if (facilityFilter) {
+                        mainTable.column(3).search(facilityFilter).draw();
+                    }
+                    
+                    if (joinedFilter !== '') {
+                        // Custom filtering for joined status
+                        $.fn.dataTable.ext.search.push(
+                            function(settings, data, dataIndex) {
+                                const row = $(mainTable.row(dataIndex).node());
+                                const joined = row.attr('data-joined');
+                                return joined === joinedFilter;
+                            }
+                        );
+                        mainTable.draw();
+                        // Remove the custom filter after drawing
+                        $.fn.dataTable.ext.search.pop();
+                    }
+                    
+                    // Date filtering
+                    if (dateFromFilter || dateToFilter) {
+                        $.fn.dataTable.ext.search.push(
+                            function(settings, data, dataIndex) {
+                                const row = $(mainTable.row(dataIndex).node());
+                                const timestamp = row.attr('data-timestamp');
+                                
+                                if (dateFromFilter && dateToFilter) {
+                                    return timestamp >= dateFromFilter && timestamp <= dateToFilter;
+                                } else if (dateFromFilter) {
+                                    return timestamp >= dateFromFilter;
+                                } else if (dateToFilter) {
+                                    return timestamp <= dateToFilter;
+                                }
+                                return true;
+                            }
+                        );
+                        mainTable.draw();
+                        // Remove the custom filter after drawing
+                        $.fn.dataTable.ext.search.pop();
+                    }
+                    
+                    // Restore button text
+                    $('#apply-filters').html('<i class="fas fa-search me-1"></i> Apply Filters');
+                    
+                    // Notify user of applied filters
+                    const filterCount = [facilityFilter, joinedFilter, dateFromFilter, dateToFilter, searchFilter].filter(Boolean).length;
+                    if (filterCount > 0) {
+                        const notification = $('<div class="alert alert-success alert-dismissible fade show position-fixed" style="top: 15px; right: 15px; z-index: 9999;" role="alert">' +
+                            '<i class="fas fa-check-circle me-2"></i> ' + filterCount + ' filter' + (filterCount > 1 ? 's' : '') + ' applied successfully' +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                        '</div>');
+                        $('body').append(notification);
+                        setTimeout(() => notification.alert('close'), 3000);
+                    }
+                }, 500);
+            });
+            
+            // Reset filters with animation
+            $('#reset-filters').on('click', function() {
+                $(this).html('<i class="fas fa-spinner fa-spin me-1"></i> Resetting...');
+                
+                setTimeout(() => {
+                    $('#filter-facility').val('');
+                    $('#filter-joined').val('');
+                    $('#filter-date-from').val('');
+                    $('#filter-date-to').val('');
+                    $('#filter-search').val('');
+                    
+                    mainTable.search('').columns().search('').draw();
+                    
+                    // Restore button text
+                    $('#reset-filters').html('<i class="fas fa-undo me-1"></i> Reset');
+                    
+                    // Show reset notification
+                    const notification = $('<div class="alert alert-info alert-dismissible fade show position-fixed" style="top: 15px; right: 15px; z-index: 9999;" role="alert">' +
+                        '<i class="fas fa-info-circle me-2"></i> All filters have been reset' +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                    '</div>');
+                    $('body').append(notification);
+                    setTimeout(() => notification.alert('close'), 3000);
+                }, 300);
+            });
+            
+            // Export to CSV with animation
+            $('#export-csv').on('click', function() {
+                $(this).html('<i class="fas fa-spinner fa-spin me-1"></i> Exporting...');
+                
+                setTimeout(() => {
+                    // In a real app, this would point to an export endpoint
+                    // For now, we'll simulate a download with a notification
+                    $(this).html('<i class="fas fa-file-export me-1"></i> Export Data');
+                    
+                    const notification = $('<div class="alert alert-primary alert-dismissible fade show position-fixed" style="top: 15px; right: 15px; z-index: 9999;" role="alert">' +
+                        '<i class="fas fa-download me-2"></i> Your export has started. Check your downloads folder' +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                    '</div>');
+                    $('body').append(notification);
+                    setTimeout(() => notification.alert('close'), 4000);
+                }, 800);
+            });
+            
+            // Refresh data with spinning animation
+            $('#refresh-data').on('click', function() {
+                $(this).html('<i class="fas fa-spinner fa-spin me-1"></i> Refreshing...');
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 800);
+            });
+            
+            // View details modal functionality with smooth transitions
+            $('.view-details').on('click', function() {
+                const id = $(this).data('id');
+                const row = $(this).closest('tr');
+                
+                // Show loading state in modal
+                $('#detailsModal .modal-body').html('<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-3x text-primary"></i><p class="mt-3">Loading user details...</p></div>');
+                
+                // Simulate loading
+                setTimeout(() => {
+                    // Restore modal content
+                    $('#detailsModal .modal-body').html($('#detailsModal .modal-body').data('original-content'));
+                    
+                    if (!$('#detailsModal .modal-body').data('original-content')) {
+                        // Store original content on first load
+                        $('#detailsModal .modal-body').data('original-content', $('#detailsModal .modal-body').html());
+                    }
+                    
+                    // Populate modal with row data
+                    $('#modal-name').text(row.find('td:eq(0)').text());
+                    $('#modal-email').text(row.find('td:eq(1)').text());
+                    $('#modal-phone').text(row.find('td:eq(2)').text());
+                    $('#modal-facility').text(row.find('td:eq(3)').text());
+                    $('#modal-zip').text(row.find('td:eq(4)').text());
+                    $('#modal-query').text(row.find('td:eq(5)').text());
+                    $('#modal-time').text(row.find('td:eq(6)').text());
+                    
+                    const isJoined = row.attr('data-joined') === 'true';
+                    $('#modal-status').html(isJoined ? 
+                        '<span class="badge bg-success px-3 py-2">Joined</span>' : 
+                        '<span class="badge bg-secondary px-3 py-2">Pending</span>');
+                    
+                    // Set up the toggle button
+                    $('#toggle-status-modal').data('id', id);
+                    $('#toggle-status-modal').data('status', isJoined);
+                    
+                    if (isJoined) {
+                        $('#toggle-status-text').text('Mark as Pending');
+                        $('#toggle-status-modal').removeClass('btn-primary').addClass('btn-warning');
+                        $('#toggle-status-modal i').removeClass('fa-exchange-alt').addClass('fa-times');
+                    } else {
+                        $('#toggle-status-text').text('Mark as Joined');
+                        $('#toggle-status-modal').removeClass('btn-warning').addClass('btn-primary');
+                        $('#toggle-status-modal i').removeClass('fa-times').addClass('fa-check');
+                    }
+                    
+                    // In a real app, you would load notes from the database
+                    // For now we'll just clear the notes area
+                    $('#modal-notes').val('');
+                }, 600);
+            });
+            
+            // Initialize modal content storage
+            $('#detailsModal .modal-body').data('original-content', $('#detailsModal .modal-body').html());
+            
+            // Handle status toggle from modal
+            $('#toggle-status-modal').on('click', function() {
+                const id = $(this).data('id');
+                $(this).html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
+                
+                setTimeout(() => {
+                    // Find the corresponding table button and trigger its click event
+                    $(`.toggle-status[data-id="${id}"]`).click();
+                    
+                    // Close the modal
+                    $('#detailsModal').modal('hide');
+                }, 600);
+            });
+            
+            // Save notes functionality
+            $('#save-notes').on('click', function() {
+                const id = $('#toggle-status-modal').data('id');
+                const notes = $('#modal-notes').val();
+                
+                $(this).html('<i class="fas fa-spinner fa-spin me-1"></i> Saving...');
+                
+                setTimeout(() => {
+                    // In a real app, this would save to the database via AJAX
+                    $(this).html('<i class="fas fa-save me-1"></i> Save Notes');
+                    
+                    const notification = $('<div class="alert alert-success alert-dismissible fade show position-fixed" style="top: 15px; right: 15px; z-index: 9999;" role="alert">' +
+                        '<i class="fas fa-check-circle me-2"></i> Notes saved successfully' +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                    '</div>');
+                    $('body').append(notification);
+                    setTimeout(() => notification.alert('close'), 3000);
+                }, 800);
+            });
+            
+            // Tooltip initialization
+            $('[data-bs-toggle="tooltip"]').tooltip();
+        });
+    </script>
+</body>
+</html>

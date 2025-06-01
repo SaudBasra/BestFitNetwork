@@ -1,0 +1,15 @@
+<h2>Detailed External Data & Comparisons:</h2>
+<table>
+    <tr>
+        <th>Name</th>
+        <th>Rating</th>
+        <th>Link</th>
+    </tr>
+    {% for result in external_results %}
+    <tr>
+        <td>{{ result.title }}</td>
+        <td>{{ result.rating }}</td>
+        <td><a href="{{ result.url }}" target="_blank">View</a></td>
+    </tr>
+    {% endfor %}
+</table>

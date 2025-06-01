@@ -1,0 +1,256 @@
+{% load tz %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ facility.name }} - Details</title>
+    <link rel="stylesheet" href="{% static 'search/details.css' %}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f8f9;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            border-left: 6px solid #28a745;
+        }
+        h2 {
+            color: #007bff;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e6e6e6;
+            padding-bottom: 10px;
+        }
+        h3 {
+            color: #007bff;
+            border-bottom: 1px solid #e6e6e6;
+            padding-bottom: 8px;
+            margin-top: 25px;
+        }
+        h4 {
+            color: #28a745;
+            margin: 20px 0 10px 0;
+        }
+        .info {
+            text-align: left;
+            font-size: 16px;
+            line-height: 1.6;
+            padding: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dotted #e6e6e6;
+        }
+        .info strong {
+            color: #28a745;
+            min-width: 120px;
+            display: inline-block;
+        }
+        .info-value {
+            text-align: right;
+            flex-grow: 1;
+        }
+        .facility-details {
+            margin-bottom: 25px;
+        }
+        .bed-availability {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            border: 1px solid #e6e6e6;
+        }
+        .bed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .timestamp {
+            font-size: 14px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        .bed-summary {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 15px 0;
+        }
+        .available-beds {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            padding: 10px 20px;
+            border-radius: 50px;
+            background-color: #e6f2ff;
+            display: inline-block;
+        }
+        .bed-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .bed-card {
+            background-color: white;
+            border-radius: 6px;
+            padding: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .bed-card:hover {
+            transform: translateY(-2px);
+        }
+        .bed-number {
+            font-size: 22px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .bed-label {
+            font-size: 14px;
+            color: #28a745;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        .shared-beds .bed-number {
+            color: #fd7e14;
+        }
+        .separate-beds .bed-number {
+            color: #20c997;
+        }
+        .back-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 20px;
+            font-size: 16px;
+            background: rgb(127, 141, 246);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .back-button:hover {
+            background: #0056b3;
+        }
+        .no-data-message {
+            padding: 20px;
+            color: #6c757d;
+            text-align: center;
+            font-style: italic;
+        }
+        @media (max-width: 600px) {
+            .bed-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .info {
+                flex-direction: column;
+                text-align: left;
+            }
+            .info-value {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>{{ facility.name }}</h2>
+        
+        <div class="facility-details">
+            <div class="info">
+                <strong>Inspection Number:</strong>
+                <span class="info-value">{{ facility.inspection_number }}</span>
+            </div>
+            <div class="info">
+                <strong>Type:</strong>
+                <span class="info-value">{{ facility.facility_type }}</span>
+            </div>
+            <div class="info">
+                <strong>Endorsement:</strong>
+                <span class="info-value">{{ facility.endorsement }}</span>
+            </div>
+            <div class="info">
+                <strong>Address:</strong>
+                <span class="info-value">{{ facility.address }}, {{ facility.state }}, {{ facility.county }}</span>
+            </div>
+            <div class="info">
+                <strong>Contact:</strong>
+                <span class="info-value">{{ facility.contact }} ({{ facility.contact_person }})</span>
+            </div>
+            <div class="info">
+                <strong>Bed Count:</strong>
+                <span class="info-value">{{ facility.bed_count }}</span>
+            </div>
+        </div>
+        
+        <!-- Bed Availability Information Section -->
+        <div class="bed-availability">
+            <div class="bed-header">
+                <h3>Bed Availability</h3>
+            </div>
+            
+            {% if facility.bed_data %}
+                <div class="timestamp">
+                    Last updated: 
+                    {% timezone "Asia/Karachi" %}
+                        {{ facility.bed_data.updated_at|date:"l, F d, Y" }} at {{ facility.bed_data.updated_at|time:"h:i A" }}
+                    {% endtimezone %}
+                </div>
+                
+                <div class="bed-summary">
+                    <div class="available-beds">
+                        Available Beds: {{ facility.bed_data.available_beds }}
+                    </div>
+                </div>
+                
+                <h4>Shared Beds</h4>
+                <div class="bed-grid shared-beds">
+                    <div class="bed-card">
+                        <div class="bed-number">{{ facility.bed_data.shared_beds_total }}</div>
+                        <div class="bed-label">Total</div>
+                    </div>
+                    <div class="bed-card">
+                        <div class="bed-number">{{ facility.bed_data.shared_beds_male }}</div>
+                        <div class="bed-label">Male</div>
+                    </div>
+                    <div class="bed-card">
+                        <div class="bed-number">{{ facility.bed_data.shared_beds_female }}</div>
+                        <div class="bed-label">Female</div>
+                    </div>
+                </div>
+                
+                <h4>Separate Beds</h4>
+                <div class="bed-grid separate-beds">
+                    <div class="bed-card">
+                        <div class="bed-number">{{ facility.bed_data.separate_beds_total }}</div>
+                        <div class="bed-label">Total</div>
+                    </div>
+                    <div class="bed-card">
+                        <div class="bed-number">{{ facility.bed_data.separate_beds_male }}</div>
+                        <div class="bed-label">Male</div>
+                    </div>
+                    <div class="bed-card">
+                        <div class="bed-number">{{ facility.bed_data.separate_beds_female }}</div>
+                        <div class="bed-label">Female</div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="no-data-message">
+                    No bed availability information has been updated for this facility.
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Back Button -->
+        <a href="{% url 'home' %}?{{ request.GET.urlencode }}" class="back-button">← Back to Search</a>
+    </div>
+</body>
+</html>
