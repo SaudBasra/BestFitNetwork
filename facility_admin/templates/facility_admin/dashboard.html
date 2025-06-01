@@ -1,0 +1,355 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BestFit Network - Admin Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+        
+        body {
+            background-color: #f8fafc;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary-color) 0%, #1d4ed8 100%);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 4px 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(4px);
+        }
+        
+        .main-content {
+            padding: 24px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            color: var(--secondary-color);
+            font-weight: 500;
+            margin-top: 8px;
+        }
+        
+        .stat-icon {
+            font-size: 2rem;
+            opacity: 0.1;
+            position: absolute;
+            right: 20px;
+            top: 20px;
+        }
+        
+        .quick-actions {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .activity-feed {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .header-title {
+            color: #1e293b;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header-subtitle {
+            color: var(--secondary-color);
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="p-3">
+                    <h4 class="text-white mb-4">
+                        <i class="fas fa-hospital-alt me-2"></i>
+                        BestFit Admin
+                    </h4>
+                    <nav class="nav flex-column">
+                        <a class="nav-link active" href="{% url 'facility_admin:dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                        </a>
+                        <a class="nav-link" href="{% url 'facility_admin:facility_list' %}">
+                            <i class="fas fa-building me-2"></i> All Facilities
+                        </a>
+                        <a class="nav-link" href="{% url 'facility_admin:approval_queue' %}">
+                            <i class="fas fa-clock me-2"></i> Pending Approvals
+                            {% if stats.pending_facilities > 0 %}
+                                <span class="badge bg-warning ms-2">{{ stats.pending_facilities }}</span>
+                            {% endif %}
+                        </a>
+                        <a class="nav-link" href="{% url 'facility_admin:facility_create' %}">
+                            <i class="fas fa-plus me-2"></i> Add Facility
+                        </a>
+                        <a class="nav-link" href="{% url 'facility_admin:bulk_import' %}">
+                            <i class="fas fa-upload me-2"></i> Bulk Import
+                        </a>
+                        <a class="nav-link" href="{% url 'facility_admin:export_facilities' %}">
+                            <i class="fas fa-download me-2"></i> Export Data
+                        </a>
+                        <hr class="text-white-50">
+                        <a class="nav-link" href="{% url 'home' %}" target="_blank">
+                            <i class="fas fa-search me-2"></i> View Search Engine
+                        </a>
+                        <a class="nav-link" href="{% url 'usertracking:dashboard' %}">
+                            <i class="fas fa-chart-line me-2"></i> User Analytics
+                        </a>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="header-title">Search Engine Admin Dashboard</h1>
+                        <p class="header-subtitle">Manage facilities and monitor system activity</p>
+                    </div>
+                    <div>
+                        <span class="text-muted me-3">Welcome, {{ user.get_full_name|default:user.username }}</span>
+                        <a href="{% url 'admin:logout' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-sign-out-alt me-1"></i> Logout
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card position-relative">
+                            <div class="stat-number">{{ stats.total_facilities }}</div>
+                            <div class="stat-label">Total Facilities</div>
+                            <i class="fas fa-building stat-icon"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card position-relative" style="border-left-color: var(--success-color);">
+                            <div class="stat-number" style="color: var(--success-color);">{{ stats.active_facilities }}</div>
+                            <div class="stat-label">Active Facilities</div>
+                            <i class="fas fa-check-circle stat-icon" style="color: var(--success-color);"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card position-relative" style="border-left-color: var(--warning-color);">
+                            <div class="stat-number" style="color: var(--warning-color);">{{ stats.pending_facilities }}</div>
+                            <div class="stat-label">Pending Approval</div>
+                            <i class="fas fa-clock stat-icon" style="color: var(--warning-color);"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card position-relative" style="border-left-color: var(--secondary-color);">
+                            <div class="stat-number" style="color: var(--secondary-color);">{{ stats.inactive_facilities }}</div>
+                            <div class="stat-label">Inactive Facilities</div>
+                            <i class="fas fa-pause-circle stat-icon" style="color: var(--secondary-color);"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <!-- Quick Actions -->
+                    <div class="col-md-6 mb-4">
+                        <div class="quick-actions">
+                            <h5 class="mb-3">Quick Actions</h5>
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'facility_admin:facility_create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i> Add New Facility
+                                </a>
+                                <a href="{% url 'facility_admin:approval_queue' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-clock me-2"></i> Review Pending Facilities
+                                    {% if stats.pending_facilities > 0 %}
+                                        <span class="badge bg-warning ms-2">{{ stats.pending_facilities }}</span>
+                                    {% endif %}
+                                </a>
+                                <a href="{% url 'facility_admin:bulk_import' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-upload me-2"></i> Bulk Import CSV
+                                </a>
+                                <a href="{% url 'facility_admin:export_facilities' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-download me-2"></i> Export Facility Data
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="col-md-6 mb-4">
+                        <div class="activity-feed">
+                            <h5 class="mb-3">Recent Activity</h5>
+                            
+                            {% if recent_submissions %}
+                                <h6 class="text-muted mb-2">Pending Submissions:</h6>
+                                {% for facility in recent_submissions %}
+                                    <div class="activity-item">
+                                        <div class="activity-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning-color);">
+                                            <i class="fas fa-clock"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-medium">{{ facility.name }}</div>
+                                            <div class="text-muted small">
+                                                Submitted {{ facility.created_at|timesince }} ago
+                                                {% if facility.submission_type == 'self_register' %}
+                                                    <span class="badge bg-info ms-1">Self-Registration</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <a href="{% url 'facility_admin:facility_approve' facility.id %}" class="btn btn-sm btn-outline-primary">
+                                            Review
+                                        </a>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                            
+                            {% if recent_changes %}
+                                <h6 class="text-muted mb-2 mt-3">Recent Changes:</h6>
+                                {% for change in recent_changes|slice:":5" %}
+                                    <div class="activity-item">
+                                        <div class="activity-icon" 
+                                             style="background: 
+                                             {% if change.change_type == 'created' %}rgba(16, 185, 129, 0.1); color: var(--success-color);
+                                             {% elif change.change_type == 'approved' %}rgba(59, 130, 246, 0.1); color: var(--primary-color);
+                                             {% elif change.change_type == 'rejected' %}rgba(239, 68, 68, 0.1); color: var(--danger-color);
+                                             {% else %}rgba(100, 116, 139, 0.1); color: var(--secondary-color);{% endif %}">
+                                            {% if change.change_type == 'created' %}
+                                                <i class="fas fa-plus"></i>
+                                            {% elif change.change_type == 'approved' %}
+                                                <i class="fas fa-check"></i>
+                                            {% elif change.change_type == 'rejected' %}
+                                                <i class="fas fa-times"></i>
+                                            {% elif change.change_type == 'updated' %}
+                                                <i class="fas fa-edit"></i>
+                                            {% else %}
+                                                <i class="fas fa-cog"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-medium">{{ change.facility.name }}</div>
+                                            <div class="text-muted small">
+                                                {{ change.get_change_type_display }} by {{ change.changed_by.username|default:"System" }}
+                                                · {{ change.timestamp|timesince }} ago
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                            
+                            {% if not recent_submissions and not recent_changes %}
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                    <div>No recent activity</div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Info -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Tip:</strong> You can use the <a href="{% url 'facility_admin:public_registration' %}" target="_blank">public registration form</a> 
+                            to test the self-registration workflow. New facilities submitted through this form will appear in the pending approvals queue.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,400 @@
+{% extends 'facility_admin/base.html' %}
+{% load static %}
+
+{% block title %}All Facilities - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>All Facilities</h1>
+        <p class="text-muted">Manage and monitor all facilities in the system</p>
+    </div>
+    <div>
+        <a href="{% url 'facility_admin:facility_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i> Add New Facility
+        </a>
+        <a href="{% url 'facility_admin:export_facilities' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-secondary">
+            <i class="fas fa-download me-2"></i> Export
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                {{ form.status.label_tag }}
+                {{ form.status }}
+            </div>
+            <div class="col-md-3">
+                {{ form.facility_type.label_tag }}
+                {{ form.facility_type }}
+            </div>
+            <div class="col-md-3">
+                {{ form.state.label_tag }}
+                {{ form.state }}
+            </div>
+            <div class="col-md-3">
+                {{ form.search.label_tag }}
+                {{ form.search }}
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i> Filter
+                </button>
+                <a href="{% url 'facility_admin:facility_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Facilities Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-building me-2"></i> 
+            Facilities ({{ page_obj.paginator.count }} total)
+        </h5>
+        <div>
+            <button type="button" class="btn btn-sm btn-success" onclick="bulkAction('approve')" disabled id="bulk-approve">
+                <i class="fas fa-check me-1"></i> Bulk Approve
+            </button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="bulkAction('reject')" disabled id="bulk-reject">
+                <i class="fas fa-times me-1"></i> Bulk Reject
+            </button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if facilities %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="select-all" class="form-check-input">
+                            </th>
+                            <th>Image</th>
+                            <th>Facility Details</th>
+                            <th>Type</th>
+                            <th>Location</th>
+                            <th>Beds</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for facility in facilities %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="facility_ids" value="{{ facility.id }}" 
+                                           class="form-check-input facility-checkbox"
+                                           {% if facility.status != 'pending' %}disabled{% endif %}>
+                                </td>
+                                <td>
+                                    <img src="{{ facility.image_url }}" alt="{{ facility.name }}" 
+                                         class="rounded" style="width: 50px; height: 50px; object-fit: cover;">
+                                </td>
+                                <td>
+                                    <div class="fw-medium">{{ facility.name }}</div>
+                                    <div class="text-muted small">{{ facility.inspection_number }}</div>
+                                    {% if facility.submission_type == 'self_register' %}
+                                        <span class="badge bg-info">Self-Registered</span>
+                                    {% elif facility.submission_type == 'bulk_import' %}
+                                        <span class="badge bg-secondary">Bulk Import</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark">{{ facility.facility_type }}</span>
+                                    {% if facility.endorsement %}
+                                        <div class="text-muted small mt-1">{{ facility.endorsement|truncatechars:30 }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div>{{ facility.county }}, {{ facility.state }}</div>
+                                    {% if facility.contact_person %}
+                                        <div class="text-muted small">{{ facility.contact_person }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="fw-medium">{{ facility.bed_count }}</span>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm status-select" 
+                                            data-facility-id="{{ facility.id }}"
+                                            style="min-width: 120px;">
+                                        {% for value, label in facility.STATUS_CHOICES %}
+                                            <option value="{{ value }}" {% if facility.status == value %}selected{% endif %}>
+                                                {{ label }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td>
+                                    <div>{{ facility.created_at|date:"M d, Y" }}</div>
+                                    <div class="text-muted small">{{ facility.created_at|time:"H:i" }}</div>
+                                    {% if facility.submitted_by %}
+                                        <div class="text-muted small">by {{ facility.submitted_by.username }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'facility_admin:facility_detail' facility.id %}" 
+                                           class="btn btn-outline-primary" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'facility_admin:facility_edit' facility.id %}" 
+                                           class="btn btn-outline-secondary" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% if facility.status == 'pending' %}
+                                            <a href="{% url 'facility_admin:facility_approve' facility.id %}" 
+                                               class="btn btn-outline-success" title="Review">
+                                                <i class="fas fa-check"></i>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No facilities found</h5>
+                <p class="text-muted">Try adjusting your filters or add a new facility.</p>
+                <a href="{% url 'facility_admin:facility_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i> Add First Facility
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+    <nav aria-label="Facilities pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">Previous</a>
+                </li>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">Last</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endif %}
+
+<script>
+// Bulk selection functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.getElementById('select-all');
+    const facilityCheckboxes = document.querySelectorAll('.facility-checkbox:not([disabled])');
+    const bulkApprove = document.getElementById('bulk-approve');
+    const bulkReject = document.getElementById('bulk-reject');
+    
+    // Select all functionality
+    selectAll.addEventListener('change', function() {
+        facilityCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateBulkButtons();
+    });
+    
+    // Individual checkbox change
+    facilityCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateBulkButtons);
+    });
+    
+    function updateBulkButtons() {
+        const checkedBoxes = document.querySelectorAll('.facility-checkbox:checked');
+        const hasSelection = checkedBoxes.length > 0;
+        
+        bulkApprove.disabled = !hasSelection;
+        bulkReject.disabled = !hasSelection;
+        
+        // Update select-all checkbox
+        selectAll.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < facilityCheckboxes.length;
+        selectAll.checked = checkedBoxes.length === facilityCheckboxes.length && facilityCheckboxes.length > 0;
+    }
+    
+    // Status change functionality
+    document.querySelectorAll('.status-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const facilityId = this.dataset.facilityId;
+            const newStatus = this.value;
+            
+            fetch(`{% url 'facility_admin:change_status' 0 %}`.replace('0', facilityId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `status=${newStatus}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showToast('Status updated successfully', 'success');
+                    
+                    // Update the row styling based on new status
+                    const row = this.closest('tr');
+                    updateRowStatus(row, newStatus);
+                } else {
+                    showToast('Error updating status: ' + data.error, 'error');
+                    // Revert the select to original value
+                    this.value = this.dataset.originalStatus || 'pending';
+                }
+            })
+            .catch(error => {
+                showToast('Network error occurred', 'error');
+                this.value = this.dataset.originalStatus || 'pending';
+            });
+        });
+        
+        // Store original status
+        select.dataset.originalStatus = select.value;
+    });
+});
+
+function bulkAction(action) {
+    const checkedBoxes = document.querySelectorAll('.facility-checkbox:checked');
+    const facilityIds = Array.from(checkedBoxes).map(cb => cb.value);
+    
+    if (facilityIds.length === 0) {
+        showToast('Please select at least one facility', 'warning');
+        return;
+    }
+    
+    const actionText = action === 'approve' ? 'approve' : 'reject';
+    if (!confirm(`Are you sure you want to ${actionText} ${facilityIds.length} facilities?`)) {
+        return;
+    }
+    
+    // Create form and submit
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "facility_admin:bulk_approve" %}';
+    
+    // Add CSRF token
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = '{{ csrf_token }}';
+    form.appendChild(csrfInput);
+    
+    // Add action
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = action;
+    form.appendChild(actionInput);
+    
+    // Add facility IDs
+    facilityIds.forEach(id => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'facility_ids';
+        input.value = id;
+        form.appendChild(input);
+    });
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function updateRowStatus(row, status) {
+    // Add visual feedback based on status
+    row.classList.remove('table-success', 'table-warning', 'table-danger');
+    
+    if (status === 'active') {
+        row.classList.add('table-success');
+    } else if (status === 'pending') {
+        row.classList.add('table-warning');
+    } else if (status === 'rejected' || status === 'inactive') {
+        row.classList.add('table-danger');
+    }
+    
+    // Remove the styling after a few seconds
+    setTimeout(() => {
+        row.classList.remove('table-success', 'table-warning', 'table-danger');
+    }, 3000);
+}
+
+function showToast(message, type) {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'warning'} alert-dismissible fade show position-fixed`;
+    toast.style.top = '20px';
+    toast.style.right = '20px';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+</script>
+
+<style>
+.table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,.075);
+}
+
+.status-select {
+    border: none;
+    background: transparent;
+    font-size: 0.875rem;
+}
+
+.status-select:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.facility-checkbox:disabled {
+    opacity: 0.5;
+}
+
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,434 @@
+{% extends 'facility_admin/base.html' %}
+{% load static %}
+
+{% block title %}Bulk Import - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>Bulk Import Facilities</h1>
+        <p class="text-muted">Upload CSV files to add multiple facilities at once</p>
+    </div>
+    <div>
+        <a href="{% url 'facility_admin:facility_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Facilities
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Upload Form -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-upload me-2"></i> Upload CSV File
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" id="bulk-import-form">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="{{ form.csv_file.id_for_label }}" class="form-label">
+                            <i class="fas fa-file-csv me-1"></i> CSV File *
+                        </label>
+                        {{ form.csv_file }}
+                        <div class="form-text">
+                            Upload a CSV file with facility data. Maximum file size: 10MB
+                        </div>
+                        {% if form.csv_file.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.csv_file.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Important:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>All imported facilities will be set to <strong>Active</strong> status immediately</li>
+                                <li>Duplicate inspection numbers will be skipped</li>
+                                <li>Invalid rows will be reported after import</li>
+                                <li>Make sure your CSV follows the required format (see template below)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- File Preview Section -->
+                    <div id="file-preview" class="mb-4" style="display: none;">
+                        <h6>File Preview:</h6>
+                        <div id="preview-content" class="border rounded p-3 bg-light">
+                            <!-- Preview will be inserted here -->
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted">
+                            <small><em>* Required: CSV file with proper headers</em></small>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="import-btn">
+                            <i class="fas fa-upload me-2"></i> Import Facilities
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Import History -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i> Recent Imports
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-secondary">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Import history will be available after implementing logging system.
+                    For now, check the facility list to see imported facilities.
+                </div>
+                <a href="{% url 'facility_admin:facility_list' %}?submission_type=bulk_import" class="btn btn-outline-primary">
+                    <i class="fas fa-eye me-2"></i> View Bulk Imported Facilities
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- CSV Template Download -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-download me-2"></i> CSV Template
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">Download a template CSV file to ensure proper formatting</p>
+                <button type="button" class="btn btn-success w-100 mb-3" onclick="downloadTemplate()">
+                    <i class="fas fa-download me-2"></i> Download Template
+                </button>
+                <div class="small text-muted">
+                    The template includes all required columns with sample data to guide your import.
+                </div>
+            </div>
+        </div>
+        
+        <!-- Required Fields -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-list-check me-2"></i> Required Fields
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>Name</span>
+                        <span class="badge bg-danger">Required</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>Type</span>
+                        <span class="badge bg-danger">Required</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>Inspection Number</span>
+                        <span class="badge bg-danger">Required</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>Address</span>
+                        <span class="badge bg-danger">Required</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>State</span>
+                        <span class="badge bg-danger">Required</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>County</span>
+                        <span class="badge bg-danger">Required</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>Bed Count</span>
+                        <span class="badge bg-danger">Required</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Optional Fields -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-list me-2"></i> Optional Fields
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>Endorsement</span>
+                        <span class="badge bg-secondary">Optional</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>Contact</span>
+                        <span class="badge bg-secondary">Optional</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>Contact Person</span>
+                        <span class="badge bg-secondary">Optional</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Validation Rules -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-shield-alt me-2"></i> Validation Rules
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0 small">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Inspection numbers must be unique
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Bed count must be a positive number
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Facility type must match available options
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        All required fields must have values
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-check text-success me-2"></i>
+                        CSV file must have proper headers
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// File upload and preview functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('{{ form.csv_file.id_for_label }}');
+    const form = document.getElementById('bulk-import-form');
+    const importBtn = document.getElementById('import-btn');
+    const previewSection = document.getElementById('file-preview');
+    const previewContent = document.getElementById('preview-content');
+    
+    // File input change handler
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            validateAndPreviewFile(file);
+        } else {
+            previewSection.style.display = 'none';
+        }
+    });
+    
+    // Form submission handler
+    form.addEventListener('submit', function(e) {
+        const file = fileInput.files[0];
+        if (!file) {
+            e.preventDefault();
+            alert('Please select a CSV file to import.');
+            return;
+        }
+        
+        // Show loading state
+        importBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Importing...';
+        importBtn.disabled = true;
+        
+        // Show progress message
+        const progressAlert = document.createElement('div');
+        progressAlert.className = 'alert alert-info mt-3';
+        progressAlert.innerHTML = '<i class="fas fa-info-circle me-2"></i> Processing CSV file... This may take a few moments for large files.';
+        form.appendChild(progressAlert);
+    });
+});
+
+function validateAndPreviewFile(file) {
+    const previewSection = document.getElementById('file-preview');
+    const previewContent = document.getElementById('preview-content');
+    
+    // Check file type
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        previewContent.innerHTML = '<div class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Please select a CSV file.</div>';
+        previewSection.style.display = 'block';
+        return;
+    }
+    
+    // Check file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+        previewContent.innerHTML = '<div class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>File size exceeds 10MB limit.</div>';
+        previewSection.style.display = 'block';
+        return;
+    }
+    
+    // Read and preview file
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const csv = e.target.result;
+        const lines = csv.split('\n');
+        
+        if (lines.length < 2) {
+            previewContent.innerHTML = '<div class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>CSV file appears to be empty or invalid.</div>';
+            previewSection.style.display = 'block';
+            return;
+        }
+        
+        // Parse headers
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        const requiredHeaders = ['Name', 'Type', 'Inspection Number', 'Address', 'State', 'County', 'Bed Count'];
+        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+        
+        let previewHTML = '';
+        
+        if (missingHeaders.length > 0) {
+            previewHTML += `<div class="text-danger mb-3"><i class="fas fa-exclamation-triangle me-2"></i>Missing required columns: ${missingHeaders.join(', ')}</div>`;
+        }
+        
+        // Show file info
+        previewHTML += `
+            <div class="mb-3">
+                <strong>File:</strong> ${file.name}<br>
+                <strong>Size:</strong> ${(file.size / 1024).toFixed(1)} KB<br>
+                <strong>Rows:</strong> ${lines.length - 1} (excluding header)
+            </div>
+        `;
+        
+        // Show headers
+        previewHTML += '<div class="mb-3"><strong>Headers found:</strong><br>';
+        headers.forEach(header => {
+            const isRequired = requiredHeaders.includes(header);
+            const badgeClass = isRequired ? 'bg-success' : 'bg-secondary';
+            previewHTML += `<span class="badge ${badgeClass} me-1">${header}</span>`;
+        });
+        previewHTML += '</div>';
+        
+        // Show first few rows as preview
+        if (lines.length > 1) {
+            previewHTML += '<div><strong>Sample data:</strong></div>';
+            previewHTML += '<div class="table-responsive mt-2">';
+            previewHTML += '<table class="table table-sm table-bordered">';
+            
+            // Header row
+            previewHTML += '<thead class="table-light"><tr>';
+            headers.forEach(header => {
+                previewHTML += `<th class="small">${header}</th>`;
+            });
+            previewHTML += '</tr></thead><tbody>';
+            
+            // Data rows (show first 3)
+            for (let i = 1; i <= Math.min(3, lines.length - 1); i++) {
+                if (lines[i].trim()) {
+                    const cells = lines[i].split(',').map(c => c.trim().replace(/"/g, ''));
+                    previewHTML += '<tr>';
+                    cells.forEach(cell => {
+                        previewHTML += `<td class="small">${cell || '<em>empty</em>'}</td>`;
+                    });
+                    previewHTML += '</tr>';
+                }
+            }
+            
+            previewHTML += '</tbody></table></div>';
+        }
+        
+        previewContent.innerHTML = previewHTML;
+        previewSection.style.display = 'block';
+    };
+    
+    reader.readAsText(file);
+}
+
+function downloadTemplate() {
+    // Create CSV template content
+    const csvContent = `Name,Type,Inspection Number,Address,State,County,Bed Count,Endorsement,Contact,Contact Person
+"Sunrise Senior Living","ASSISTED LIVING SERVICES","ASL001","123 Main Street, Suite 100","California","Los Angeles",50,"Alzheimer Care Specialty","(555) 123-4567","John Smith"
+"Memory Care Center","ALZHEIMER DISEASE","ALZ002","456 Oak Avenue","Florida","Miami-Dade",30,"Memory Care, Dementia Support","(555) 234-5678","Jane Johnson"
+"Golden Years Facility","RESIDENTIAL FACILITY FOR ELDERLY OR DISABLED PERSONS","RES003","789 Pine Road","Texas","Harris",75,"Senior Living, Disabled Care","(555) 345-6789","Bob Wilson"
+"Mental Health Support Home","MENTAL ILLNESS","MHI004","321 Elm Street","New York","Manhattan",20,"Mental Health Services","(555) 456-7890","Sarah Davis"
+"Intellectual Care Services","INDIVIDUALS WITH INTELLECTUAL DISABILITES","IID005","654 Maple Drive","Illinois","Cook",40,"Intellectual Disability Support","(555) 567-8901","Mike Brown"`;
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'facility_import_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    // Show success message
+    const toast = document.createElement('div');
+    toast.className = 'alert alert-success alert-dismissible fade show position-fixed';
+    toast.style.top = '20px';
+    toast.style.right = '20px';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <i class="fas fa-download me-2"></i>Template downloaded successfully!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+</script>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.list-group-item {
+    border: none;
+    padding: 0.5rem 0;
+}
+
+.table-sm th,
+.table-sm td {
+    padding: 0.25rem;
+    font-size: 0.8rem;
+}
+
+#file-preview {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.badge {
+    font-size: 0.7rem;
+}
+
+.alert {
+    border-radius: 8px;
+}
+
+.btn {
+    border-radius: 6px;
+}
+</style>
+{% endblock %}

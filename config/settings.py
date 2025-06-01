@@ -44,10 +44,15 @@ INSTALLED_APPS = [
     'corsheaders',
      'rest_framework',
      'usertracking',
+     'facility_admin', 
 
 
 
 ]
+# Add media files support for images
+import os
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Add this at the top
@@ -64,10 +69,17 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
+
+# Add these authentication settings
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/facility-admin/'
+LOGOUT_REDIRECT_URL = '/'
+
+# Make sure TEMPLATES includes the templates directory
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],  # ✅ Add this
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -75,7 +87,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                
             ],
         },
     },
