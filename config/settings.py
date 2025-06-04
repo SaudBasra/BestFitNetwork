@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-pfz77_xfl(m#33%ednc!b&djs(703ne-mw=3o=z#j5v-zz9)#s
 DEBUG = True
 
 ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ['bestfitnetwork.azurewebsites.net']
+ALLOWED_HOSTS = ['bestfitnetwork.azurewebsites.net','localhost','127.0.0.1']
 
 TIME_ZONE = 'Asia/Karachi'
 USE_TZ = True
@@ -108,9 +108,9 @@ DATABASES = {
 }
 # config/settings.py
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "https://bestfitnetwork.azurewebsites.net",
 ]
+
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -173,3 +173,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Media files (User uploaded files)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://bestfitnetwork.azurewebsites.net"
+]

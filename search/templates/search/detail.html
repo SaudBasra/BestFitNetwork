@@ -250,7 +250,7 @@
         </div>
 
         <!-- Back Button -->
-        <a href="{% url 'home' %}?{{ request.GET.urlencode }}" class="back-button">← Back to Search</a>
+        <a href="{% url 'search:home' %}?{{ request.GET.urlencode }}" class="back-button">← Back to Search</a>
     </div>
 </body>
 </html>
