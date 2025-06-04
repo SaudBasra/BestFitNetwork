@@ -26,6 +26,7 @@ SECRET_KEY = 'django-insecure-pfz77_xfl(m#33%ednc!b&djs(703ne-mw=3o=z#j5v-zz9)#s
 DEBUG = True
 
 ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['bestfitnetwork.azurewebsites.net']
 
 TIME_ZONE = 'Asia/Karachi'
 USE_TZ = True
@@ -55,6 +56,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add on top
     'corsheaders.middleware.CorsMiddleware',  # Add this at the top
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -162,6 +164,11 @@ STATICFILES_DIRS = [
 
 # Directory where static files will be collected for production
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 
 # Media files (User uploaded files)
 MEDIA_URL = '/media/'
