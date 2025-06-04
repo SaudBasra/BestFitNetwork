@@ -150,12 +150,10 @@
                                            class="btn btn-outline-secondary" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        {% if facility.status == 'pending' %}
                                             <a href="{% url 'facility_admin:facility_approve' facility.id %}" 
                                                class="btn btn-outline-success" title="Review">
                                                 <i class="fas fa-check"></i>
                                             </a>
-                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
@@ -175,17 +173,16 @@
         {% endif %}
     </div>
 </div>
-
 <!-- Pagination -->
 {% if page_obj.has_other_pages %}
     <nav aria-label="Facilities pagination" class="mt-4">
         <ul class="pagination justify-content-center">
             {% if page_obj.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page=1{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">First</a>
+                    <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.facility_type %}&facility_type={{ request.GET.facility_type }}{% endif %}{% if request.GET.state %}&state={{ request.GET.state }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">First</a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">Previous</a>
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.facility_type %}&facility_type={{ request.GET.facility_type }}{% endif %}{% if request.GET.state %}&state={{ request.GET.state }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Previous</a>
                 </li>
             {% endif %}
             
@@ -196,23 +193,22 @@
                     </li>
                 {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">{{ num }}</a>
+                        <a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.facility_type %}&facility_type={{ request.GET.facility_type }}{% endif %}{% if request.GET.state %}&state={{ request.GET.state }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ num }}</a>
                     </li>
                 {% endif %}
             {% endfor %}
             
             {% if page_obj.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">Next</a>
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.facility_type %}&facility_type={{ request.GET.facility_type }}{% endif %}{% if request.GET.state %}&state={{ request.GET.state }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Next</a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">Last</a>
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.facility_type %}&facility_type={{ request.GET.facility_type }}{% endif %}{% if request.GET.state %}&state={{ request.GET.state }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Last</a>
                 </li>
             {% endif %}
         </ul>
     </nav>
 {% endif %}
-
 <script>
 // Bulk selection functionality
 document.addEventListener('DOMContentLoaded', function() {

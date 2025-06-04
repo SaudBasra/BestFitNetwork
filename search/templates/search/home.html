@@ -9,6 +9,84 @@
     <link rel="stylesheet" href="{% static 'search/home.css' %}">
 
     <title>BestFit Network - Facility Search</title>
+    <style>
+        /* Additional styles for facility images */
+        .result-card {
+            background: white;
+            padding: 0;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+            border-left: 5px solid #28a745;
+            text-align: left;
+            overflow: hidden;
+        }
+        
+        .result-card:hover {
+            transform: scale(1.03);
+        }
+        
+        .facility-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .result-content {
+            padding: 15px;
+        }
+        
+        .result-name {
+            color: #28a745;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .result-info {
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .result-info strong {
+            color: #333;
+        }
+        
+        .facility-type-badge {
+            background-color: #f8f9fa;
+            color: #495057;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
+            margin-top: 8px;
+        }
+        
+        .bed-availability {
+            background-color: #e8f5e8;
+            color: #28a745;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        
+        .no-bed-data {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+    </style>
     </head>
 <body>
     <div class="header">BestFit Network - Find the Right Facility</div>
@@ -79,40 +157,81 @@
 <div class="results-container">
     {% for facility in page_obj %}
     <div class="result-card" onclick="window.location='{% url 'facility_detail' facility.id %}?{{ request.GET.urlencode }}'">
-        <div class="result-name">{{ facility.name }}</div>
-        <p><strong>Address:</strong> {{ facility.address }}</p>
-        <p><strong>Bed Count:</strong> {{ facility.bed_count }}</p>
-        <p><strong>Available Beds:</strong> 
-            {% if facility.bed_data %}
-                {{ facility.bed_data.available_beds }}
-                <small>(Updated: {{ facility.bed_data.updated_at|date:"M d, Y" }})</small>
-            {% else %}
-                Not updated
+        <!-- Facility Image -->
+        <img src="{{ facility.image_url }}" alt="{{ facility.name }}" class="facility-image" loading="lazy" 
+             onerror="this.src='{% static 'images/default-facility.jpg' %}';">
+        
+        <!-- Facility Content -->
+        <div class="result-content">
+            <div class="result-name">{{ facility.name }}</div>
+            
+            <div class="result-info">
+                <strong>Address:</strong> {{ facility.address|truncatechars:50 }}
+            </div>
+            
+            <div class="result-info">
+                <strong>Location:</strong> {{ facility.county }}, {{ facility.state }}
+            </div>
+            
+            <div class="result-info">
+                <strong>Bed Count:</strong> {{ facility.bed_count }}
+            </div>
+            
+            {% if facility.contact %}
+                <div class="result-info">
+                    <strong>Contact:</strong> {{ facility.contact }}
+                </div>
             {% endif %}
-        </p>
+            
+            <!-- Facility Type Badge -->
+            <span class="facility-type-badge">{{ facility.facility_type }}</span>
+            
+            <!-- Bed Availability Status -->
+            {% if facility.bed_data %}
+                <div class="bed-availability">
+                    <i class="fas fa-bed"></i> {{ facility.bed_data.available_beds }} beds available
+                    <small>(Updated: {{ facility.bed_data.updated_at|date:"M d" }})</small>
+                </div>
+            {% else %}
+                <div class="no-bed-data">
+                    <i class="fas fa-info-circle"></i> Bed availability not updated
+                </div>
+            {% endif %}
+        </div>
     </div>
     {% endfor %}
+</div>
 
-    <!-- Pagination -->
-    <div class="pagination">
-        {% if page_obj.has_previous %}
-            <a href="?page=1&{{ request.GET.urlencode }}">First</a>
-            <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Previous</a>
-        {% else %}
-            <a class="disabled">First</a>
-            <a class="disabled">Previous</a>
-        {% endif %}
-
-        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-
-        {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}">Last</a>
-        {% else %}
-            <a class="disabled">Next</a>
-            <a class="disabled">Last</a>
-        {% endif %}
+<!-- No Results Message -->
+{% if query and not page_obj %}
+    <div class="text-center" style="padding: 50px;">
+        <i class="fas fa-search" style="font-size: 3rem; color: #ccc; margin-bottom: 20px;"></i>
+        <h3 style="color: #666;">No active facilities found</h3>
+        <p style="color: #999;">Try adjusting your search criteria or removing filters.</p>
+        <p style="color: #999; font-size: 14px;">Only approved and active facilities are shown in search results.</p>
     </div>
+{% endif %}
+
+<!-- Pagination -->
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page=1&{{ request.GET.urlencode }}">First</a>
+        <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Previous</a>
+    {% else %}
+        <a class="disabled">First</a>
+        <a class="disabled">Previous</a>
+    {% endif %}
+
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}">Last</a>
+    {% else %}
+        <a class="disabled">Next</a>
+        <a class="disabled">Last</a>
+    {% endif %}
+</div>
 
     <!-- JavaScript -->
     <script>

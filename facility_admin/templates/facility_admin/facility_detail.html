@@ -1,0 +1,481 @@
+{% extends 'facility_admin/base.html' %}
+{% load static %}
+
+{% block title %}{{ facility.name }} - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>{{ facility.name }}</h1>
+        <p class="text-muted">Facility details and change history</p>
+    </div>
+    <div>
+        <a href="{% url 'facility_admin:facility_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to List
+        </a>
+        <a href="{% url 'facility_admin:facility_edit' facility.id %}" class="btn btn-primary">
+            <i class="fas fa-edit me-2"></i> Edit Facility
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Facility Information Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-building me-2"></i> Facility Information
+                </h5>
+                <div>
+                    <span class="badge 
+                        {% if facility.status == 'active' %}bg-success
+                        {% elif facility.status == 'pending' %}bg-warning
+                        {% elif facility.status == 'rejected' %}bg-danger
+                        {% else %}bg-secondary{% endif %} fs-6">
+                        {{ facility.get_status_display }}
+                    </span>
+                    {% if facility.submission_type == 'self_register' %}
+                        <span class="badge bg-info">Self-Registration</span>
+                    {% elif facility.submission_type == 'bulk_import' %}
+                        <span class="badge bg-secondary">Bulk Import</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Facility Image -->
+                    <div class="col-md-4 text-center mb-3">
+                        <img src="{{ facility.image_url }}" alt="{{ facility.name }}" 
+                             class="img-fluid rounded shadow-sm" style="max-height: 250px;">
+                    </div>
+                    
+                    <!-- Basic Information -->
+                    <div class="col-md-8">
+                        <div class="row">
+                            <div class="col-sm-6 mb-3">
+                                <label class="form-label fw-bold">Facility Type</label>
+                                <div class="text-muted">{{ facility.facility_type }}</div>
+                            </div>
+                            
+                            <div class="col-sm-6 mb-3">
+                                <label class="form-label fw-bold">Bed Count</label>
+                                <div class="text-muted">{{ facility.bed_count }} beds</div>
+                            </div>
+                            
+                            <div class="col-sm-6 mb-3">
+                                <label class="form-label fw-bold">Inspection Number</label>
+                                <div class="text-muted">{{ facility.inspection_number }}</div>
+                            </div>
+                            
+                            <div class="col-sm-6 mb-3">
+                                <label class="form-label fw-bold">Created</label>
+                                <div class="text-muted">{{ facility.created_at|date:"M d, Y H:i" }}</div>
+                            </div>
+                            
+                            {% if facility.endorsement %}
+                                <div class="col-12 mb-3">
+                                    <label class="form-label fw-bold">Specializations</label>
+                                    <div class="text-muted">{{ facility.endorsement }}</div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Location Information -->
+                <hr class="my-4">
+                <h6 class="text-primary mb-3">
+                    <i class="fas fa-map-marker-alt me-2"></i> Location Information
+                </h6>
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label fw-bold">Address</label>
+                        <div class="text-muted">{{ facility.address }}</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Location</label>
+                        <div class="text-muted">{{ facility.county }}, {{ facility.state }}</div>
+                    </div>
+                </div>
+                
+                <!-- Contact Information -->
+                {% if facility.contact or facility.contact_person %}
+                    <hr class="my-4">
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-phone me-2"></i> Contact Information
+                    </h6>
+                    <div class="row">
+                        {% if facility.contact %}
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Phone Number</label>
+                                <div class="text-muted">
+                                    <a href="tel:{{ facility.contact }}" class="text-decoration-none">{{ facility.contact }}</a>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if facility.contact_person %}
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Contact Person</label>
+                                <div class="text-muted">{{ facility.contact_person }}</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                <!-- SEO Information -->
+                {% if facility.meta_description or facility.search_keywords %}
+                    <hr class="my-4">
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-search me-2"></i> SEO Information
+                    </h6>
+                    <div class="row">
+                        {% if facility.meta_description %}
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">Meta Description</label>
+                                <div class="text-muted">{{ facility.meta_description }}</div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if facility.search_keywords %}
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">Search Keywords</label>
+                                <div class="text-muted">{{ facility.search_keywords }}</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Submission Details -->
+        {% if submission %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i> Submission Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if submission.submitter_name %}
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Submitter Name</label>
+                                <div class="text-muted">{{ submission.submitter_name }}</div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if submission.submitter_email %}
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Submitter Email</label>
+                                <div class="text-muted">
+                                    <a href="mailto:{{ submission.submitter_email }}" class="text-decoration-none">
+                                        {{ submission.submitter_email }}
+                                    </a>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if submission.submitter_phone %}
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Submitter Phone</label>
+                                <div class="text-muted">
+                                    <a href="tel:{{ submission.submitter_phone }}" class="text-decoration-none">
+                                        {{ submission.submitter_phone }}
+                                    </a>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if submission.submission_notes %}
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">Submission Notes</label>
+                                <div class="bg-light p-3 rounded">
+                                    {{ submission.submission_notes|linebreaks }}
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if submission.admin_notes %}
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">Admin Notes</label>
+                                <div class="bg-light p-3 rounded">
+                                    {{ submission.admin_notes|linebreaks }}
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if submission.rejection_reason %}
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">Rejection Reason</label>
+                                <div class="bg-danger-subtle p-3 rounded">
+                                    {{ submission.rejection_reason|linebreaks }}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Change History -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i> Change History
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if change_logs %}
+                    <div class="timeline">
+                        {% for log in change_logs %}
+                            <div class="timeline-item">
+                                <div class="timeline-marker 
+                                    {% if log.change_type == 'created' %}bg-primary
+                                    {% elif log.change_type == 'approved' %}bg-success
+                                    {% elif log.change_type == 'rejected' %}bg-danger
+                                    {% elif log.change_type == 'updated' %}bg-info
+                                    {% else %}bg-secondary{% endif %}">
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="timeline-title">{{ log.get_change_type_display }}</h6>
+                                            <p class="timeline-description text-muted mb-1">
+                                                {% if log.changed_by %}
+                                                    by {{ log.changed_by.get_full_name|default:log.changed_by.username }}
+                                                {% else %}
+                                                    by Public Registration
+                                                {% endif %}
+                                            </p>
+                                            {% if log.notes %}
+                                                <p class="timeline-notes text-muted mb-1">
+                                                    <em>{{ log.notes }}</em>
+                                                </p>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">{{ log.timestamp|date:"M d, Y H:i" }}</small>
+                                    </div>
+                                    
+                                    {% if log.old_values or log.new_values %}
+                                        <div class="mt-2">
+                                            {% if log.old_values %}
+                                                <details class="mb-2">
+                                                    <summary class="text-muted small">Old Values</summary>
+                                                    <pre class="small bg-light p-2 rounded mt-1">{{ log.old_values|pprint }}</pre>
+                                                </details>
+                                            {% endif %}
+                                            {% if log.new_values %}
+                                                <details>
+                                                    <summary class="text-muted small">New Values</summary>
+                                                    <pre class="small bg-light p-2 rounded mt-1">{{ log.new_values|pprint }}</pre>
+                                                </details>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-history fa-2x mb-2"></i>
+                        <div>No change history available</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Side Panel -->
+    <div class="col-md-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i> Quick Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'facility_admin:facility_edit' facility.id %}" class="btn btn-primary">
+                        <i class="fas fa-edit me-2"></i> Edit Facility
+                    </a>
+                    <a href="{% url 'facility_admin:facility_approve' facility.id %}" class="btn btn-outline-success">
+                        <i class="fas fa-gavel me-2"></i> Review/Approve
+                    </a>
+                    <hr>
+                    <a href="{{ facility.get_absolute_url }}" class="btn btn-outline-info" target="_blank">
+                        <i class="fas fa-external-link-alt me-2"></i> View on Site
+                    </a>
+                    <a href="{% url 'bed_update_view' %}?facility={{ facility.id }}" class="btn btn-outline-warning">
+                        <i class="fas fa-bed me-2"></i> Manage Beds
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Information -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i> Status Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Current Status</label>
+                    <div>
+                        <span class="badge 
+                            {% if facility.status == 'active' %}bg-success
+                            {% elif facility.status == 'pending' %}bg-warning
+                            {% elif facility.status == 'rejected' %}bg-danger
+                            {% else %}bg-secondary{% endif %} fs-6">
+                            {{ facility.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Submission Type</label>
+                    <div class="text-muted">{{ facility.get_submission_type_display }}</div>
+                </div>
+                
+                {% if facility.submitted_by %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Submitted By</label>
+                        <div class="text-muted">{{ facility.submitted_by.get_full_name|default:facility.submitted_by.username }}</div>
+                    </div>
+                {% endif %}
+                
+                {% if facility.approved_by %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Approved By</label>
+                        <div class="text-muted">{{ facility.approved_by.get_full_name|default:facility.approved_by.username }}</div>
+                    </div>
+                {% endif %}
+                
+                {% if facility.approved_at %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Approved At</label>
+                        <div class="text-muted">{{ facility.approved_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Created</label>
+                    <div class="text-muted">{{ facility.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Last Updated</label>
+                    <div class="text-muted">{{ facility.updated_at|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Additional Information -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i> Statistics
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Total Changes</label>
+                    <div class="text-muted">{{ change_logs.count }} recorded changes</div>
+                </div>
+                
+                {% if facility.slug %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">URL Slug</label>
+                        <div class="text-muted small">{{ facility.slug }}</div>
+                    </div>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Facility ID</label>
+                    <div class="text-muted small">#{{ facility.id }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -2rem;
+    top: 0.25rem;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 0 2px #e9ecef;
+}
+
+.timeline-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: -1.75rem;
+    top: 1.25rem;
+    bottom: -2rem;
+    width: 2px;
+    background-color: #e9ecef;
+}
+
+.timeline-title {
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+    color: #374151;
+}
+
+.timeline-description {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+}
+
+.timeline-notes {
+    font-size: 0.9rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.text-primary {
+    color: #2563eb !important;
+}
+
+details summary {
+    cursor: pointer;
+}
+
+details summary:hover {
+    color: #2563eb;
+}
+
+pre {
+    font-size: 0.8rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+</style>
+{% endblock %}

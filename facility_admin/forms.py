@@ -1,6 +1,6 @@
 # facility_admin/forms.py
 from django import forms
-from search.models import Facility, FacilitySubmission
+from search.models import Facility
 from django.core.exceptions import ValidationError
 import csv
 import io

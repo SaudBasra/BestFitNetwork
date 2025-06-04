@@ -7,17 +7,48 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1>Review Facility</h1>
-        <p class="text-muted">Review and approve or reject facility registration</p>
+        <p class="text-muted">Review and manage facility status</p>
     </div>
     <div>
-        <a href="{% url 'facility_admin:approval_queue' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i> Back to Queue
+        <a href="{% url 'facility_admin:approval_queue' %}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-clock me-2"></i> Pending Queue
+        </a>
+        <a href="{% url 'facility_admin:facility_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-list me-2"></i> All Facilities
         </a>
     </div>
 </div>
 
 <div class="row">
     <div class="col-md-8">
+        <!-- Status Alert -->
+        {% if facility.status != 'pending' %}
+            <div class="alert 
+                {% if facility.status == 'active' %}alert-success
+                {% elif facility.status == 'rejected' %}alert-danger
+                {% else %}alert-warning{% endif %} mb-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas 
+                        {% if facility.status == 'active' %}fa-check-circle
+                        {% elif facility.status == 'rejected' %}fa-times-circle
+                        {% else %}fa-info-circle{% endif %} me-2"></i>
+                    <div>
+                        <strong>Current Status: {{ facility.get_status_display }}</strong>
+                        {% if facility.status == 'active' %}
+                            <div class="small">This facility has been approved and is active in the system.</div>
+                        {% elif facility.status == 'rejected' %}
+                            <div class="small">This facility has been rejected.</div>
+                        {% else %}
+                            <div class="small">This facility is {{ facility.status }}.</div>
+                        {% endif %}
+                        {% if facility.approved_by %}
+                            <div class="small">Last reviewed by: {{ facility.approved_by.get_full_name|default:facility.approved_by.username }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
         <!-- Facility Details Card -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -25,9 +56,17 @@
                     <i class="fas fa-building me-2"></i> {{ facility.name }}
                 </h5>
                 <div>
-                    <span class="badge bg-warning fs-6">Pending Approval</span>
+                    <span class="badge 
+                        {% if facility.status == 'active' %}bg-success
+                        {% elif facility.status == 'pending' %}bg-warning
+                        {% elif facility.status == 'rejected' %}bg-danger
+                        {% else %}bg-secondary{% endif %} fs-6">
+                        {{ facility.get_status_display }}
+                    </span>
                     {% if facility.submission_type == 'self_register' %}
                         <span class="badge bg-info">Self-Registration</span>
+                    {% elif facility.submission_type == 'bulk_import' %}
+                        <span class="badge bg-secondary">Bulk Import</span>
                     {% endif %}
                 </div>
             </div>
@@ -121,7 +160,7 @@
                 <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0">
-                            <i class="fas fa-user me-2"></i> Submitter Information
+                            <i class="fas fa-user me-2"></i> Submission Information
                         </h5>
                     </div>
                     <div class="card-body">
@@ -150,10 +189,28 @@
                             </div>
                             
                             {% if submission.submission_notes %}
-                                <div class="col-12">
+                                <div class="col-12 mb-3">
                                     <label class="form-label fw-bold">Additional Notes</label>
                                     <div class="bg-light p-3 rounded">
                                         {{ submission.submission_notes|linebreaks }}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
+                            {% if submission.admin_notes %}
+                                <div class="col-12 mb-3">
+                                    <label class="form-label fw-bold">Previous Admin Notes</label>
+                                    <div class="bg-info-subtle p-3 rounded">
+                                        {{ submission.admin_notes|linebreaks }}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
+                            {% if submission.rejection_reason %}
+                                <div class="col-12 mb-3">
+                                    <label class="form-label fw-bold">Previous Rejection Reason</label>
+                                    <div class="bg-danger-subtle p-3 rounded">
+                                        {{ submission.rejection_reason|linebreaks }}
                                     </div>
                                 </div>
                             {% endif %}
@@ -163,11 +220,12 @@
             {% endwith %}
         {% endif %}
         
-        <!-- Quick Actions -->
+        <!-- Review Actions -->
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="fas fa-gavel me-2"></i> Review Decision
+                    <i class="fas fa-gavel me-2"></i> 
+                    {% if facility.status == 'pending' %}Review Decision{% else %}Change Status{% endif %}
                 </h5>
             </div>
             <div class="card-body">
@@ -177,7 +235,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="{{ form.action.id_for_label }}" class="form-label fw-bold">
-                                Decision *
+                                Action *
                             </label>
                             {{ form.action }}
                             {% if form.action.errors %}
@@ -195,7 +253,7 @@
                             Admin Notes
                         </label>
                         {{ form.admin_notes }}
-                        <div class="form-text">Add any notes about your decision or feedback for the submitter</div>
+                        <div class="form-text">Add any notes about your decision or feedback</div>
                         {% if form.admin_notes.errors %}
                             <div class="text-danger mt-1">
                                 {% for error in form.admin_notes.errors %}
@@ -230,11 +288,11 @@
                     
                     <div class="d-flex justify-content-between align-items-center pt-3">
                         <div class="text-muted">
-                            <small><em>This action cannot be undone</em></small>
+                            <small><em>This will update the facility status</em></small>
                         </div>
                         <div>
-                            <a href="{% url 'facility_admin:approval_queue' %}" class="btn btn-outline-secondary me-2">
-                                Cancel
+                            <a href="{% url 'facility_admin:facility_detail' facility.id %}" class="btn btn-outline-secondary me-2">
+                                View Details
                             </a>
                             <button type="submit" class="btn btn-primary" id="submit-decision">
                                 <i class="fas fa-check me-2"></i> Submit Decision
@@ -257,12 +315,18 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-success" onclick="quickApprove()">
-                        <i class="fas fa-check me-2"></i> Quick Approve
-                    </button>
-                    <button type="button" class="btn btn-danger" onclick="quickReject()">
-                        <i class="fas fa-times me-2"></i> Quick Reject
-                    </button>
+                    {% if facility.status != 'active' %}
+                        <button type="button" class="btn btn-success" onclick="quickApprove()">
+                            <i class="fas fa-check me-2"></i> 
+                            {% if facility.status == 'pending' %}Quick Approve{% else %}Mark as Active{% endif %}
+                        </button>
+                    {% endif %}
+                    {% if facility.status != 'rejected' %}
+                        <button type="button" class="btn btn-danger" onclick="quickReject()">
+                            <i class="fas fa-times me-2"></i> 
+                            {% if facility.status == 'pending' %}Quick Reject{% else %}Mark as Rejected{% endif %}
+                        </button>
+                    {% endif %}
                     <hr>
                     <a href="{% url 'facility_admin:facility_edit' facility.id %}" class="btn btn-outline-primary">
                         <i class="fas fa-edit me-2"></i> Edit Facility
@@ -270,59 +334,6 @@
                     <a href="{% url 'facility_admin:facility_detail' facility.id %}" class="btn btn-outline-info">
                         <i class="fas fa-eye me-2"></i> View Full Details
                     </a>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Validation Checklist -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-clipboard-check me-2"></i> Validation Checklist
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="check-name">
-                    <label class="form-check-label small" for="check-name">
-                        Facility name is appropriate and clear
-                    </label>
-                </div>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="check-license">
-                    <label class="form-check-label small" for="check-license">
-                        License/inspection number is valid
-                    </label>
-                </div>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="check-type">
-                    <label class="form-check-label small" for="check-type">
-                        Facility type matches services offered
-                    </label>
-                </div>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="check-address">
-                    <label class="form-check-label small" for="check-address">
-                        Address is complete and valid
-                    </label>
-                </div>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="check-contact">
-                    <label class="form-check-label small" for="check-contact">
-                        Contact information is professional
-                    </label>
-                </div>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="check-beds">
-                    <label class="form-check-label small" for="check-beds">
-                        Bed count is reasonable
-                    </label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="check-image">
-                    <label class="form-check-label small" for="check-image">
-                        Image is appropriate (if provided)
-                    </label>
                 </div>
             </div>
         </div>
@@ -351,20 +362,78 @@
                         </div>
                     </div>
                     
-                    <div class="timeline-item">
-                        <div class="timeline-marker bg-warning"></div>
-                        <div class="timeline-content">
-                            <h6 class="timeline-title">Pending Review</h6>
-                            <p class="timeline-description small text-muted mb-0">
-                                Awaiting admin approval
-                            </p>
+                    {% if facility.status == 'pending' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-warning"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">Pending Review</h6>
+                                <p class="timeline-description small text-muted mb-0">
+                                    Awaiting admin decision
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    {% elif facility.status == 'active' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">Approved</h6>
+                                <p class="timeline-description small text-muted mb-0">
+                                    {% if facility.approved_at %}{{ facility.approved_at|date:"M d, Y H:i" }}{% endif %}
+                                </p>
+                                {% if facility.approved_by %}
+                                    <p class="small text-muted mb-0">
+                                        by {{ facility.approved_by.get_full_name|default:facility.approved_by.username }}
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% elif facility.status == 'rejected' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-danger"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">Rejected</h6>
+                                <p class="timeline-description small text-muted mb-0">
+                                    Facility was rejected
+                                </p>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>Pending Approvals</h1>
+        <p class="text-muted">Review and approve facility registrations</p>
+    </div>
+    <div>
+        <a href="{% url 'facility_admin:facility_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-list me-2"></i> All Facilities
+        </a>
+    </div>
+</div>
+
+<!-- Pending Facilities -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-clock me-2"></i> 
+            Facilities Awaiting Review ({{ page_obj.paginator.count }} total)
+        </h5>
+        <div>
+            <button type="button" class="btn btn-sm btn-success" onclick="bulkAction('approve')" disabled id="bulk-approve">
+                <i class="fas fa-check me-1"></i> Bulk Approve
+            </button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="bulkAction('reject')" disabled id="bulk-reject">
+                <i class="fas fa-times me-1"></i> Bulk Reject
+            </button>
+        </div>
+    </div>
+
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -402,8 +471,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const confirmMessage = action === 'approve' 
-            ? 'Are you sure you want to approve this facility? It will become immediately visible in search results.'
-            : 'Are you sure you want to reject this facility? The submitter will be notified of the rejection.';
+            ? 'Are you sure you want to approve this facility?'
+            : 'Are you sure you want to reject this facility?';
             
         if (!confirm(confirmMessage)) {
             e.preventDefault();
@@ -426,7 +495,7 @@ function quickApprove() {
     actionSelect.dispatchEvent(new Event('change'));
     
     if (!notesField.value.trim()) {
-        notesField.value = 'Approved - facility meets all requirements.';
+        notesField.value = 'Quick approval - facility meets requirements.';
     }
     
     // Scroll to form
@@ -492,11 +561,6 @@ function quickReject() {
 
 .timeline-description {
     margin-bottom: 0;
-}
-
-.form-check-input:checked {
-    background-color: var(--bs-success);
-    border-color: var(--bs-success);
 }
 
 .card {

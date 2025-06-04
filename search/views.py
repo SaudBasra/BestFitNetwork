@@ -1,3 +1,5 @@
+# search/views.py - Updated to show only active facilities
+
 import json
 import requests
 
@@ -7,13 +9,12 @@ from django.shortcuts import render, get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.http import JsonResponse
-
-from .models import Facility
 from .serializers import FacilitySerializer
 from bedupdates.models import BedAvailability  # Import BedData model
 from .ollama_utils import ollama_chat
 from bs4 import BeautifulSoup
 
+from .models import Facility
 
 # Template Views
 def home(request):
@@ -22,8 +23,8 @@ def home(request):
     selected_facility_types = request.GET.getlist("facility_type")
     sort_by = request.GET.get("sort_by", "name").strip()
 
-    # Start with all facilities
-    facilities = Facility.objects.all()
+    # Start with only active facilities
+    facilities = Facility.objects.filter(status='active')
 
     # Apply search query first
     if query:
@@ -37,7 +38,10 @@ def home(request):
         if selected_facility_types:
             facilities = facilities.filter(endorsement__icontains=selected_facility_types[0])
             for facility_type in selected_facility_types[1:]:
-                facilities = facilities | Facility.objects.filter(endorsement__icontains=facility_type)
+                facilities = facilities | Facility.objects.filter(
+                    endorsement__icontains=facility_type,
+                    status='active'  # Ensure we maintain the active filter
+                )
 
         # Filter by bed count
         if bed_count_filter.isdigit():
@@ -72,8 +76,8 @@ def home(request):
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
     
-    # Get min and max bed counts for filter dropdown
-    bed_counts = Facility.objects.values_list('bed_count', flat=True).distinct().order_by('bed_count')
+    # Get min and max bed counts for filter dropdown (only from active facilities)
+    bed_counts = Facility.objects.filter(status='active').values_list('bed_count', flat=True).distinct().order_by('bed_count')
     
     context = {
         'page_obj': page_obj,  
@@ -87,7 +91,8 @@ def home(request):
     return render(request, "search/home.html", context)
 
 def facility_detail(request, facility_id):  # Template view
-    facility = get_object_or_404(Facility, id=facility_id)
+    # Only show active facilities in public view
+    facility = get_object_or_404(Facility, id=facility_id, status='active')
     
     # Get bed data if available
     try:
@@ -97,28 +102,6 @@ def facility_detail(request, facility_id):  # Template view
         facility.bed_data = None
         
     return render(request, "search/detail.html", {"facility": facility})
-    # Pagination
-    paginator = Paginator(facilities, 15)
-    page_number = request.GET.get("page")
-    try:
-        page_obj = paginator.page(page_number)
-    except PageNotAnInteger:
-        page_obj = paginator.page(1)
-    except EmptyPage:
-        page_obj = paginator.page(paginator.num_pages)
-
-    # Get distinct bed counts for the filter dropdown
-    bed_counts = Facility.objects.values_list("bed_count", flat=True).distinct().order_by("bed_count")
-
-    return render(request, "search/home.html", {
-        "page_obj": page_obj,
-        "query": query,
-        "bed_counts": bed_counts,
-        "sort_by": sort_by,
-        "bed_count_filter": bed_count_filter,
-        "selected_facility_types": selected_facility_types,
-    })
-
 
 def searxnghome(request):
     query = request.GET.get("q", "").strip()
@@ -126,8 +109,8 @@ def searxnghome(request):
     selected_facility_types = request.GET.getlist("facility_type")
     sort_by = request.GET.get("sort_by", "name").strip()
 
-    # Start with all facilities
-    facilities = Facility.objects.all()
+    # Start with only active facilities
+    facilities = Facility.objects.filter(status='active')
 
     # Apply search query first
     if query:
@@ -140,7 +123,10 @@ def searxnghome(request):
         if selected_facility_types:
             facilities = facilities.filter(endorsement__icontains=selected_facility_types[0])
             for facility_type in selected_facility_types[1:]:
-                facilities = facilities | Facility.objects.filter(endorsement__icontains=facility_type)
+                facilities = facilities | Facility.objects.filter(
+                    endorsement__icontains=facility_type,
+                    status='active'  # Ensure we maintain the active filter
+                )
 
         # Filter by bed count
         if bed_count_filter.isdigit():
@@ -165,8 +151,8 @@ def searxnghome(request):
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
 
-    # Get distinct bed counts for the filter dropdown
-    bed_counts = Facility.objects.values_list("bed_count", flat=True).distinct().order_by("bed_count")
+    # Get distinct bed counts for the filter dropdown (only from active facilities)
+    bed_counts = Facility.objects.filter(status='active').values_list("bed_count", flat=True).distinct().order_by("bed_count")
 
     return render(request, "search/searxng_home.html", {
         "page_obj": page_obj,
@@ -176,132 +162,28 @@ def searxnghome(request):
         "bed_count_filter": bed_count_filter,
         "selected_facility_types": selected_facility_types,
     })
-    
-
-# Searxng facility detail view
-#def searxngfacilitydetail(request, facility_id):
- #   facility = get_object_or_404(Facility, id=facility_id)
-  #  return render(request, "search/detail_searxng.html", {"facility": facility})
-# Import necessary modules
-# Import necessary modules
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-import logging
-import random
-from .models import Facility
-
-# Set up logging
-logger = logging.getLogger(__name__)
 
 # Searxng facility detail view
 def searxngfacilitydetail(request, facility_id):
     """
     View function to display the detail page for a specific facility
     """
-    facility = get_object_or_404(Facility, id=facility_id)
+    # Only show active facilities in public view
+    facility = get_object_or_404(Facility, id=facility_id, status='active')
     context = {
         "facility": facility,
         "request": request,  # Pass request to allow template to access GET parameters
     }
     return render(request, "search/detail_searxng.html", context)
 
-# API for fetching insights - simple version for MVP
-@require_http_methods(["GET"])
-def facility_insights_api(request, facility_name):
-    """
-    API endpoint to fetch demo insights about a facility for MVP demo
-    """
-    # Sanitize the query
-    query = facility_name.strip()
-    if not query:
-        return JsonResponse({"error": "Invalid facility name", "results": []})
-    
-    try:
-        # Generate demo insights for the MVP
-        results = generate_demo_insights(facility_name)
-        return JsonResponse({"results": results})
-    
-    except Exception as e:
-        logger.error(f"Error generating insights for {query}: {str(e)}")
-        return JsonResponse({"error": str(e), "results": []})
-
-def generate_demo_insights(facility_name):
-    """
-    Generate realistic-looking demo insights for the MVP with actual URLs
-    """
-    # Get facility name parts for use in generated content
-    words = facility_name.split()
-    name_part = words[0] if words else facility_name
-    
-    # Create search query string for URLs
-    search_query = facility_name.replace(' ', '+')
-    
-    # List of possible care services for randomization
-    care_services = [
-        "Memory Care", "Assisted Living", "Skilled Nursing", 
-        "Rehabilitation Services", "Long-term Care", "Respite Care",
-        "24/7 Nursing Support", "Personal Care Services", "Medication Management"
-    ]
-    
-    # List of possible amenities for randomization
-    amenities = [
-        "Private Rooms", "Semi-Private Rooms", "Dining Services", 
-        "Activity Programs", "Transportation Services", "Therapy Services",
-        "Garden Areas", "Community Spaces", "Family Visitation Areas"
-    ]
-    
-    # Randomly select some services and amenities
-    selected_services = random.sample(care_services, min(3, len(care_services)))
-    selected_amenities = random.sample(amenities, min(3, len(amenities)))
-    
-    # Define templates for demo insights with realistic URLs
-    templates = [
-        {
-            "title": f"{facility_name} - Care Home Overview",
-            "url": f"https://www.google.com/search?q={search_query}+care+home",
-            "snippet": f"{facility_name} provides quality care services in a comfortable environment. They specialize in {', '.join(selected_services[:2])} and other personalized care solutions for residents with varying needs."
-        },
-        {
-            "title": f"About {name_part} Services and Programs",
-            "url": f"https://www.medicare.gov/care-compare/?providerType=NursingHome&redirect=true#{search_query}",
-            "snippet": f"{facility_name} offers comprehensive healthcare services including {', '.join(selected_services)}. Their professional staff is trained to provide excellent care and support to all residents."
-        },
-        {
-            "title": f"{facility_name} Facilities and Amenities",
-            "url": f"https://www.seniorliving.org/nursing-homes/search/?q={search_query}",
-            "snippet": f"Residents at {facility_name} enjoy access to various amenities including {', '.join(selected_amenities)}. The facility is designed to create a comfortable and supportive environment for all residents."
-        },
-        {
-            "title": f"Staff and Care at {name_part}",
-            "url": f"https://www.caring.com/senior-living/assisted-living/search?q={search_query}",
-            "snippet": f"{facility_name} employs qualified healthcare professionals dedicated to providing exceptional care. Their staff includes registered nurses, care assistants, and support personnel available 24/7."
-        },
-        {
-            "title": f"Reviews of {facility_name}",
-            "url": f"https://www.yelp.com/search?find_desc={search_query}+care+home",
-            "snippet": f"Families of residents at {facility_name} have noted the quality of care provided. They particularly appreciate the {random.choice(selected_services).lower()} and the {random.choice(selected_amenities).lower()} available to residents."
-        },
-        {
-            "title": f"{facility_name} Location and Accessibility",
-            "url": f"https://maps.google.com/?q={search_query}+care+home",
-            "snippet": f"Located in a convenient area, {facility_name} is easily accessible to visitors. The facility provides a safe and secure environment for residents while maintaining a welcoming atmosphere for family members."
-        }
-    ]
-    
-    # Return 3-4 random insights for variety
-    num_results = random.randint(3, 4)
-    random.shuffle(templates)
-    return templates[:num_results]
-#..............................................................................
 def ollama_search(request):
     query = request.GET.get("q", "").strip()
     bed_count_filter = request.GET.get("bed_count", "").strip()
     selected_facility_types = request.GET.getlist("facility_type")
     sort_by = request.GET.get("sort_by", "name").strip()
 
-    # Start with all facilities
-    facilities = Facility.objects.all()
+    # Start with only active facilities
+    facilities = Facility.objects.filter(status='active')
     ai_summary = ""
     search_count = 0
 
@@ -353,11 +235,11 @@ def ollama_search(request):
             
             # Create an enhanced prompt for Ollama to generate a professional summary
             summary_prompt = f"""
-            Analyze these healthcare facilities matching the search "{query}":
+            Analyze these active healthcare facilities matching the search "{query}":
             {facility_data}
 
             User query context: "{query}"
-            Total facilities found: {facilities.count()}
+            Total active facilities found: {facilities.count()}
             Bed capacity range: {min_beds} to {max_beds}
             Facility types: {list(facility_types)}
             Endorsements/Specialties: {list(endorsements)}
@@ -393,7 +275,7 @@ def ollama_search(request):
             try:
                 no_results_prompt = f"""
                 A user searched for healthcare facilities with: "{query}"
-                No matching facilities were found in our database.
+                No matching active facilities were found in our database.
                 
                 Analyze the query to determine what type of facility or location they're looking for.
                 
@@ -435,8 +317,8 @@ def ollama_search(request):
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
 
-    # Get distinct bed counts for the filter dropdown
-    bed_counts = Facility.objects.values_list("bed_count", flat=True).distinct().order_by("bed_count")
+    # Get distinct bed counts for the filter dropdown (only from active facilities)
+    bed_counts = Facility.objects.filter(status='active').values_list("bed_count", flat=True).distinct().order_by("bed_count")
 
     return render(request, "search/ollama_search.html", {
         "page_obj": page_obj,
@@ -452,10 +334,13 @@ def ollama_search(request):
 def improved_search(queryset, query):
     """
     Perform an intelligent search that better handles location qualifiers
-    and multiple facility type specifications
+    and multiple facility type specifications - only on active facilities
     """
     from django.db.models import Q, F, Value, IntegerField
     from django.db.models.functions import Greatest
+    
+    # Ensure we only search active facilities
+    queryset = queryset.filter(status='active')
     
     # Clean and normalize query
     query = query.strip()
@@ -564,6 +449,13 @@ def improved_search(queryset, query):
     
     # Apply ranking to sort by relevance
     return apply_relevance_ranking(results, query_components)
+
+# Keep all other helper functions the same (parse_query, apply_relevance_ranking, etc.)
+# [Previous helper functions remain unchanged]
+
+
+
+# Add these helper functions to the end of your search/views.py file
 
 def parse_query(query):
     """
@@ -720,7 +612,7 @@ def generate_fallback_summary(facilities, query, min_beds, max_beds):
     has_facility_type = len(query_components['facility_types']) > 0
     
     # Basic summary
-    summary = f"Found {count} facilities matching your search"
+    summary = f"Found {count} active facilities matching your search"
     
     # Add bed count info if available
     if min_beds is not None and max_beds is not None:
@@ -757,7 +649,7 @@ def generate_no_results_fallback(query):
     facility_types = query_components['facility_types']
     
     # Basic message
-    message = f"No facilities found matching '{query}'."
+    message = f"No active facilities found matching '{query}'."
     
     # Suggest alternatives
     if location_terms and facility_types:
@@ -773,32 +665,3 @@ def generate_no_results_fallback(query):
     message += " You can also clear all filters and try a new search."
     
     return message
-
-def ollama_chat(prompt):
-    """
-    Send a prompt to Ollama and get the response
-    """
-    import requests
-    import json
-    
-    try:
-        # Configure this to match your Ollama setup
-        url = "http://localhost:11434/api/generate"
-        
-        payload = {
-            "model": "mistral",  # Use your preferred model
-            "prompt": prompt,
-            "stream": False,
-            "max_tokens": 500
-        }
-        
-        response = requests.post(url, json=payload, timeout=10)
-        
-        if response.status_code == 200:
-            result = response.json()
-            return result.get("response", "")
-        else:
-            return f"Error: Received status code {response.status_code} from Ollama API"
-            
-    except Exception as e:
-        return f"Exception when calling Ollama API: {str(e)}"

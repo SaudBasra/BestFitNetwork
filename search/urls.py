@@ -1,3 +1,37 @@
+# search/urls.py - Fixed version without missing views
+
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    # Template Views
+    path('', views.home, name='home'),
+    path('facility/<int:facility_id>/', views.facility_detail, name='facility_detail'),
+
+    # Searxng routes
+    path('searxng/', views.searxnghome, name='searxng_home'),
+    path('searxng/facility/<int:facility_id>/', views.searxngfacilitydetail, name='searxngfacilitydetail'),
+    
+    # Remove the problematic line that references missing facility_insights_api
+    # path('searxng/api/facility_insights/<str:facility_name>/', views.facility_insights_api, name='facility_insights_api'),
+
+    # Keep the working facility detail route
+    # path('facility/<int:facility_id>/', views.facility_detail, name='facility_detail'),
+    
+    # Remove duplicate/conflicting routes
+    # path('api/insights/<str:facility_name>/', views.facility_insights_api, name='facility_insights'),
+    # path('facility/<int:facility_id>/', views.facility_detail, name='facility_detail'),
+    # path('api/insights/<str:facility_name>/', views.facility_insights_api, name='facility_insights_api'),
+
+    # Ollama search route
+    path('ollama/', views.ollama_search, name='ollama_search'),
+]
+
+
+
+
+
+"""
 from django.urls import path
 from . import views
 
@@ -37,3 +71,4 @@ urlpatterns = [
    
 ]
 
+"""

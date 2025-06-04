@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 import csv
 import io
 
+# Import all the models from search app
 from search.models import Facility, FacilitySubmission, FacilityChangeLog
 from .forms import (
     FacilityForm, PublicRegistrationForm, BulkImportForm, 
@@ -71,7 +72,7 @@ def facility_list(request):
             )
     
     # Pagination
-    paginator = Paginator(facilities, 20)
+    paginator = Paginator(facilities, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -100,7 +101,7 @@ def facility_create(request):
             facility.approved_at = timezone.now()
             facility.save()
             
-            # Log the creation
+            # Log the creation - NOW FacilityChangeLog is properly imported
             FacilityChangeLog.objects.create(
                 facility=facility,
                 changed_by=request.user,
@@ -180,7 +181,7 @@ def public_registration(request):
             facility.status = 'pending'
             facility.save()
             
-            # Create submission record
+            # Create submission record - NOW FacilitySubmission is properly imported
             submission = FacilitySubmission.objects.create(
                 facility=facility,
                 submitter_name=facility_form.cleaned_data['submitter_name'],
@@ -236,9 +237,10 @@ def approval_queue(request):
 @login_required
 @user_passes_test(is_admin)
 def facility_approve(request, facility_id):
-    """Approve or reject a pending facility"""
+    """Approve or reject a facility - works for any status"""
     
-    facility = get_object_or_404(Facility, id=facility_id, status='pending')
+    # Remove the status='pending' filter to allow reviewing any facility
+    facility = get_object_or_404(Facility, id=facility_id)
     
     if request.method == 'POST':
         form = ApprovalForm(request.POST)
@@ -247,13 +249,15 @@ def facility_approve(request, facility_id):
             admin_notes = form.cleaned_data['admin_notes']
             rejection_reason = form.cleaned_data.get('rejection_reason', '')
             
+            old_status = facility.status  # Store the old status
+            
             if action == 'approve':
                 facility.status = 'active'
                 facility.approved_by = request.user
                 facility.approved_at = timezone.now()
                 facility.save()
                 
-                # Update submission record
+                # Update submission record if it exists
                 try:
                     submission = facility.facilitysubmission
                     submission.admin_notes = admin_notes
@@ -267,7 +271,7 @@ def facility_approve(request, facility_id):
                     facility=facility,
                     changed_by=request.user,
                     change_type='approved',
-                    old_values={'status': 'pending'},
+                    old_values={'status': old_status},
                     new_values={'status': 'active'},
                     notes=admin_notes
                 )
@@ -278,7 +282,7 @@ def facility_approve(request, facility_id):
                 facility.status = 'rejected'
                 facility.save()
                 
-                # Update submission record
+                # Update submission record if it exists
                 try:
                     submission = facility.facilitysubmission
                     submission.admin_notes = admin_notes
@@ -293,14 +297,21 @@ def facility_approve(request, facility_id):
                     facility=facility,
                     changed_by=request.user,
                     change_type='rejected',
-                    old_values={'status': 'pending'},
+                    old_values={'status': old_status},
                     new_values={'status': 'rejected'},
                     notes=f"Rejection reason: {rejection_reason}"
                 )
                 
                 messages.warning(request, f'Facility "{facility.name}" has been rejected.')
             
-            return redirect('facility_admin:approval_queue')
+            # Redirect based on where they came from
+            next_url = request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            elif old_status == 'pending':
+                return redirect('facility_admin:approval_queue')
+            else:
+                return redirect('facility_admin:facility_list')
     else:
         form = ApprovalForm()
     
@@ -308,7 +319,7 @@ def facility_approve(request, facility_id):
         'facility': facility,
         'form': form
     })
-
+    
 
 @login_required
 @user_passes_test(is_admin)

@@ -1,4 +1,4 @@
-# search/models.py - Enhanced Facility Model
+# search/models.py - Complete models with all required classes
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
@@ -139,7 +139,7 @@ class FacilityChangeLog(models.Model):
     ]
     
     facility = models.ForeignKey(Facility, on_delete=models.CASCADE)
-    changed_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    changed_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     change_type = models.CharField(max_length=20, choices=CHANGE_TYPE_CHOICES)
     old_values = models.JSONField(default=dict, blank=True)
     new_values = models.JSONField(default=dict, blank=True)
