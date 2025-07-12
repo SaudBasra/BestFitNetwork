@@ -1,0 +1,791 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Update Facility</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #059669;
+            --primary-light: #10b981;
+            --primary-dark: #047857;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #0ea5e9;
+            --light-bg: #f8fafc;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 4px 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(4px);
+        }
+        
+        .main-content {
+            padding: 24px;
+        }
+        
+        .form-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .info-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .header-title {
+            color: #1e293b;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header-subtitle {
+            color: var(--secondary-color);
+            margin-bottom: 0;
+        }
+        
+        .section-header {
+            color: var(--primary-color);
+            font-weight: 600;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(5, 150, 105, 0.25);
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .current-image {
+            max-height: 200px;
+            width: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .help-text {
+            font-size: 0.875rem;
+            color: var(--secondary-color);
+            margin-top: 4px;
+        }
+        
+        .alert-info-custom {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(59, 130, 246, 0.1));
+            border-left: 4px solid var(--info-color);
+            border-radius: 8px;
+        }
+        
+        .field-icon {
+            color: var(--primary-color);
+            margin-right: 6px;
+        }
+        
+        .readonly-display {
+            background-color: #f8f9fa !important;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #495057;
+            cursor: not-allowed;
+            min-height: calc(1.5em + 0.75rem + 2px);
+            display: flex;
+            align-items: center;
+        }
+        
+        .protected-field {
+            background: linear-gradient(135deg, #fff3cd, #fef3e2);
+            border-left: 4px solid var(--warning-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .nav-divider {
+            border-color: rgba(255,255,255,0.2);
+            margin: 12px 0;
+        }
+        
+        .nav-section-header {
+            margin: 8px 0 4px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="p-3">
+                    <h4 class="text-white mb-4">
+                        <i class="fas fa-user-md me-2"></i>
+                        Facility Staff
+                    </h4>
+
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="{% url 'user_management:facility_dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                        </a>
+                        <a class="nav-link" href="{% url 'user_management:facility_detail_staff' %}">
+                            <i class="fas fa-info-circle me-2"></i> Facility Details
+                        </a>
+                        <a class="nav-link active" href="{% url 'user_management:facility_update_staff' %}">
+                            <i class="fas fa-edit me-2"></i> Update Facility Info
+                        </a>
+                        <a class="nav-link" href="{% url 'search:facility_detail' facility.id %}" target="_blank">
+                            <i class="fas fa-eye me-2"></i> View Public Profile
+                        </a>
+                        <a class="nav-link" href="{% url 'user_management:profile' %}">
+                            <i class="fas fa-user-edit me-2"></i> Update Personal Profile
+                        </a>
+
+                        <!-- Bed Management Section -->
+                        <hr class="nav-divider">
+                        <div class="nav-section-header">
+                            <small class="text-white-50 px-3">BED MANAGEMENT</small>
+                        </div>
+                        <a class="nav-link" href="{% url 'user_management:facility_bed_update_staff' %}">
+                            <i class="fas fa-bed me-2"></i> Update Bed Availability
+                        </a>
+
+                        <!-- Landing Page Management Section -->
+                        <hr class="nav-divider">
+                        <div class="nav-section-header">
+                            <small class="text-white-50 px-3">LANDING PAGE</small>
+                        </div>
+                        <a class="nav-link" href="{% url 'facility_landing:dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-2"></i> Landing Dashboard
+                        </a>
+                        <a class="nav-link" href="{% url 'facility_landing:edit_page' %}">
+                            <i class="fas fa-edit me-2"></i> Edit Content
+                        </a>
+                        <a class="nav-link" href="{% url 'facility_landing:manage_gallery' %}">
+                            <i class="fas fa-images me-2"></i> Photo Gallery
+                        </a>
+                        <a class="nav-link" href="{% url 'facility_landing:manage_testimonials' %}">
+                            <i class="fas fa-quote-left me-2"></i> Testimonials
+                        </a>
+                        <a class="nav-link" href="{% url 'facility_landing:analytics' %}">
+                            <i class="fas fa-chart-line me-2"></i> Analytics
+                        </a>
+                        <a class="nav-link" href="{% url 'facility_landing:public_page' facility.id %}" target="_blank">
+                            <i class="fas fa-external-link-alt me-2"></i> View Public Page
+                        </a>
+
+                        <!-- External Links Section -->
+                        <hr class="nav-divider">
+                        <div class="nav-section-header">
+                            <small class="text-white-50 px-3">EXTERNAL LINKS</small>
+                        </div>
+                        <a class="nav-link" href="{% url 'search:home' %}" target="_blank">
+                            <i class="fas fa-search me-2"></i> Search Engine
+                        </a>
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">
+                            <i class="fas fa-question-circle me-2"></i> Help & Support
+                        </a>
+                    </nav>
+                
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="header-title">{{ title }}</h1>
+                        <p class="header-subtitle">Update your facility information and keep it current for patients and families</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'user_management:facility_detail_staff' %}" class="btn btn-outline-secondary me-2">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Details
+                        </a>
+                        <a href="{% url 'user_management:facility_dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <!-- Information Banner -->
+                <div class="alert alert-info-custom mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle me-3 text-info"></i>
+                        <div>
+                            <strong>Important:</strong> Changes to your facility information will be reviewed and updated in our search engine. 
+                            Critical updates may require administrative approval for accuracy.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-card">
+                            <form method="post" enctype="multipart/form-data" id="facility-form">
+                                {% csrf_token %}
+                                
+                                <!-- Protected Fields Display -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="section-header">
+                                            <i class="fas fa-shield-alt me-2"></i> Protected Information
+                                        </h6>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-id-card field-icon"></i> Inspection Number
+                                        </label>
+                                        <div class="readonly-display">
+                                            {{ facility.inspection_number }}
+                                        </div>
+                                        <div class="help-text text-muted">
+                                            <i class="fas fa-lock me-1"></i> Inspection number cannot be changed by staff. Contact admin if correction needed.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-bed field-icon"></i> Total Bed Count
+                                        </label>
+                                        <div class="readonly-display">
+                                            {{ facility.bed_count }}
+                                        </div>
+                                        <div class="help-text text-muted">
+                                            <i class="fas fa-lock me-1"></i> Bed count cannot be changed by staff. Contact admin for capacity changes.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-tag field-icon"></i> Facility Type
+                                        </label>
+                                        <div class="readonly-display">
+                                            {{ facility.facility_type }}
+                                        </div>
+                                        <div class="help-text text-muted">
+                                            <i class="fas fa-lock me-1"></i> Facility type cannot be changed by staff. Contact admin if correction needed.
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Basic Information -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="section-header">
+                                            <i class="fas fa-info-circle me-2"></i> Basic Information
+                                        </h6>
+                                    </div>
+                                    
+                                    <div class="col-12 mb-3">
+                                        <label for="{{ form.name.id_for_label }}" class="form-label">
+                                            <i class="fas fa-hospital field-icon"></i> Facility Name *
+                                        </label>
+                                        {{ form.name }}
+                                        {% if form.name.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in form.name.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-12 mb-3">
+                                        <label for="{{ form.endorsement.id_for_label }}" class="form-label">
+                                            <i class="fas fa-certificate field-icon"></i> Endorsement/Specialization
+                                        </label>
+                                        {{ form.endorsement }}
+                                        {% if form.endorsement.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in form.endorsement.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Location Information -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="section-header">
+                                            <i class="fas fa-map-marker-alt me-2"></i> Location Information
+                                        </h6>
+                                    </div>
+                                    
+                                    <div class="col-12 mb-3">
+                                        <label for="{{ form.address.id_for_label }}" class="form-label">
+                                            <i class="fas fa-address-card field-icon"></i> Street Address *
+                                        </label>
+                                        {{ form.address }}
+                                        {% if form.address.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in form.address.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.state.id_for_label }}" class="form-label">
+                                            <i class="fas fa-flag field-icon"></i> State *
+                                        </label>
+                                        {{ form.state }}
+                                        {% if form.state.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in form.state.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.county.id_for_label }}" class="form-label">
+                                            <i class="fas fa-city field-icon"></i> County *
+                                        </label>
+                                        {{ form.county }}
+                                        {% if form.county.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in form.county.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Contact Information -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="section-header">
+                                            <i class="fas fa-phone me-2"></i> Contact Information
+                                        </h6>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.contact.id_for_label }}" class="form-label">
+                                            <i class="fas fa-phone field-icon"></i> Main Phone Number
+                                        </label>
+                                        {{ form.contact }}
+                                        {% if form.contact.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in form.contact.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.contact_person.id_for_label }}" class="form-label">
+                                            <i class="fas fa-user field-icon"></i> Contact Person
+                                        </label>
+                                        {{ form.contact_person }}
+                                        {% if form.contact_person.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in form.contact_person.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Facility Image -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="section-header">
+                                            <i class="fas fa-image me-2"></i> Facility Image
+                                        </h6>
+                                    </div>
+                                    
+                                    <div class="col-12 mb-3">
+                                        <label for="{{ form.image.id_for_label }}" class="form-label">
+                                            <i class="fas fa-image field-icon"></i> Facility Image
+                                        </label>
+                                        {{ form.image }}
+                                        {% if form.image.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in form.image.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                        <div class="help-text text-muted">
+                                            Upload a high-quality image of your facility. Recommended formats: JPG, PNG, WebP (max 5MB).
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- SEO & Marketing -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="section-header">
+                                            <i class="fas fa-search me-2"></i> Search Engine Optimization
+                                        </h6>
+                                    </div>
+                                    
+                                    <div class="col-12 mb-3">
+                                        <label for="{{ form.meta_description.id_for_label }}" class="form-label">
+                                            <i class="fas fa-file-text field-icon"></i> Facility Description
+                                        </label>
+                                        {{ form.meta_description }}
+                                        {% if form.meta_description.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in form.meta_description.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                        <div id="char-counter" class="help-text text-end">0/160 characters</div>
+                                    </div>
+                                    
+                                    <div class="col-12 mb-3">
+                                        <label for="{{ form.search_keywords.id_for_label }}" class="form-label">
+                                            <i class="fas fa-tags field-icon"></i> Search Keywords
+                                        </label>
+                                        {{ form.search_keywords }}
+                                        {% if form.search_keywords.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in form.search_keywords.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                        <div class="help-text text-muted">
+                                            Enter keywords separated by commas to help patients find your facility.
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Form Actions -->
+                                <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                                    <div class="text-muted">
+                                        <small><em>* Required fields</em></small>
+                                    </div>
+                                    <div>
+                                        <a href="{% url 'user_management:facility_detail_staff' %}" class="btn btn-outline-secondary me-2">
+                                            <i class="fas fa-times me-1"></i> Cancel
+                                        </a>
+                                        <button type="submit" class="btn btn-primary" id="submit-btn">
+                                            <i class="fas fa-save me-1"></i> {{ submit_text }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- Side Panel -->
+                    <div class="col-md-4">
+                        <!-- Current Image Preview -->
+                        {% if facility.image %}
+                            <div class="info-card">
+                                <h6 class="section-header">
+                                    <i class="fas fa-image me-2"></i> Current Image
+                                </h6>
+                                <div class="text-center">
+                                    <img src="{{ facility.image.url }}" alt="{{ facility.name }}" 
+                                         class="current-image" id="current-image">
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Update Guidelines -->
+                        <div class="info-card">
+                            <h6 class="section-header">
+                                <i class="fas fa-lightbulb me-2"></i> Update Guidelines
+                            </h6>
+                            
+                            <div class="mb-3">
+                                <strong>Protected Fields:</strong>
+                                <ul class="list-unstyled mt-2 small text-muted">
+                                    <li>• <i class="fas fa-lock text-warning me-1"></i> Inspection number - Admin only</li>
+                                    <li>• <i class="fas fa-lock text-warning me-1"></i> Total bed count - Admin only</li>
+                                    <li>• Contact support for these changes</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <strong>Required Information:</strong>
+                                <ul class="list-unstyled mt-2 small text-muted">
+                                    <li>• Facility name and type</li>
+                                    <li>• Complete address</li>
+                                    <li>• State and county</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <strong>Image Guidelines:</strong>
+                                <ul class="list-unstyled mt-2 small text-muted">
+                                    <li>• High-quality exterior or interior photos</li>
+                                    <li>• Professional appearance preferred</li>
+                                    <li>• Maximum file size: 5MB</li>
+                                    <li>• Formats: JPG, PNG, WebP</li>
+                                </ul>
+                            </div>
+                            
+                            <div>
+                                <strong>Search Optimization:</strong>
+                                <ul class="list-unstyled mt-2 small text-muted">
+                                    <li>• Include location in description</li>
+                                    <li>• Mention key services and specialties</li>
+                                    <li>• Use clear, patient-friendly language</li>
+                                    <li>• Keep descriptions concise but informative</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Current Status -->
+                        {% if facility %}
+                            <div class="info-card">
+                                <h6 class="section-header">
+                                    <i class="fas fa-info-circle me-2"></i> Current Status
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <div class="fw-bold">Facility Status</div>
+                                    <span class="badge 
+                                        {% if facility.status == 'active' %}bg-success
+                                        {% elif facility.status == 'pending' %}bg-warning
+                                        {% elif facility.status == 'rejected' %}bg-danger
+                                        {% else %}bg-secondary{% endif %} fs-6">
+                                        {{ facility.get_status_display }}
+                                    </span>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="fw-bold">Last Updated</div>
+                                    <div class="text-muted small">{{ facility.updated_at|date:"M d, Y g:i A" }}</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="fw-bold">Profile Created</div>
+                                    <div class="text-muted small">{{ facility.created_at|date:"M d, Y" }}</div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Help & Support -->
+                        <div class="info-card">
+                            <h6 class="section-header">
+                                <i class="fas fa-question-circle me-2"></i> Need Help?
+                            </h6>
+                            <p class="small text-muted mb-3">
+                                Having trouble updating your information? Our support team is here to help.
+                            </p>
+                            
+                            <div class="d-grid gap-2">
+                                <a href="mailto:support@bestfitnetwork.com" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-envelope me-1"></i> Email Support
+                                </a>
+                                <a href="tel:1-800-237-8348" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-phone me-1"></i> Call Support
+                                </a>
+                            </div>
+                            
+                            <div class="mt-3 small text-muted">
+                                <div><strong>Support Hours:</strong></div>
+                                <div>Monday - Friday: 8 AM - 6 PM EST</div>
+                                <div>Emergency Support: 24/7</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Character counter for meta description
+            const metaDescription = document.getElementById('{{ form.meta_description.id_for_label }}');
+            const charCounter = document.getElementById('char-counter');
+            
+            function updateCharCount() {
+                if (metaDescription) {
+                    const length = metaDescription.value.length;
+                    const remaining = 160 - length;
+                    charCounter.textContent = `${length}/160 characters`;
+                    
+                    if (remaining < 0) {
+                        charCounter.className = 'help-text text-end text-danger';
+                    } else if (remaining < 20) {
+                        charCounter.className = 'help-text text-end text-warning';
+                    } else {
+                        charCounter.className = 'help-text text-end text-muted';
+                    }
+                }
+            }
+            
+            if (metaDescription) {
+                metaDescription.addEventListener('input', updateCharCount);
+                updateCharCount(); // Initial count
+            }
+            
+            // Image preview functionality
+            const imageInput = document.getElementById('{{ form.image.id_for_label }}');
+            const currentImage = document.getElementById('current-image');
+            
+            if (imageInput && currentImage) {
+                imageInput.addEventListener('change', function(e) {
+                    if (e.target.files && e.target.files[0]) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            currentImage.src = e.target.result;
+                        };
+                        reader.readAsDataURL(e.target.files[0]);
+                    }
+                });
+            }
+            
+            // Form submission handling
+            const form = document.getElementById('facility-form');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            form.addEventListener('submit', function(e) {
+                // Show loading state
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Updating...';
+                submitBtn.disabled = true;
+                
+                // Re-enable if form has validation errors (will be handled by server)
+                setTimeout(function() {
+                    if (document.querySelector('.text-danger')) {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }
+                }, 1000);
+            });
+            
+            // Form validation helpers
+            const requiredFields = document.querySelectorAll('[required]');
+            
+            requiredFields.forEach(field => {
+                field.addEventListener('blur', function() {
+                    if (!this.value.trim()) {
+                        this.classList.add('is-invalid');
+                    } else {
+                        this.classList.remove('is-invalid');
+                    }
+                });
+                
+                field.addEventListener('input', function() {
+                    if (this.classList.contains('is-invalid') && this.value.trim()) {
+                        this.classList.remove('is-invalid');
+                    }
+                });
+            });
+            
+            // Navigation highlighting
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.sidebar .nav-link');
+            
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        });
+        
+        // Auto-hide success messages
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-success, .alert-info');
+            alerts.forEach(alert => {
+                if (alert.classList.contains('show')) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

@@ -41,19 +41,26 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'search',  # Add this line
+    'facility_landing',
     'bedupdates',  # Add this line
     'corsheaders',
      'rest_framework',
      'usertracking',
      'facility_admin', 
+     'user_management',
 
-
-
+     
 ]
+
+
 # Add media files support for images
 import os
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+
+#AUTH_USER_MODEL = 'user_management.CustomUser'
 
 MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add on top
@@ -72,11 +79,16 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'config.urls'
 
 
-# Add these authentication settings
-LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/facility-admin/'
-LOGOUT_REDIRECT_URL = '/'
+# Authentication backends - IMPORTANT: Order matters!
+AUTHENTICATION_BACKENDS = [
+    'user_management.backends.FacilityAuthenticationBackend',  # Custom facility backend
+    'django.contrib.auth.backends.ModelBackend',  # Default Django backend
+]
 
+# URLs
+LOGIN_URL = '/user-management/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
 # Make sure TEMPLATES includes the templates directory
 TEMPLATES = [
     {
@@ -173,6 +185,13 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Media files (User uploaded files)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+
+# Session Configuration
+SESSION_COOKIE_AGE = 3600  # 1 hour
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_SAVE_EVERY_REQUEST = True
 
 CSRF_TRUSTED_ORIGINS = [
     "https://bestfitnetwork.azurewebsites.net"

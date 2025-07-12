@@ -1,0 +1,963 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ facility.name }} - Staff Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #059669;
+            --primary-light: #10b981;
+            --primary-dark: #047857;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #0ea5e9;
+            --light-bg: #f8fafc;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 4px 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(4px);
+        }
+        
+        .main-content {
+            padding: 24px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card.total { border-left-color: var(--info-color); }
+        .stat-card.available { border-left-color: var(--success-color); }
+        .stat-card.occupied { border-left-color: var(--warning-color); }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-number.total { color: var(--info-color); }
+        .stat-number.available { color: var(--success-color); }
+        .stat-number.occupied { color: var(--warning-color); }
+        
+        .stat-label {
+            color: var(--secondary-color);
+            font-weight: 500;
+            margin-top: 8px;
+        }
+        
+        .stat-icon {
+            font-size: 2rem;
+            opacity: 0.1;
+            position: absolute;
+            right: 20px;
+            top: 20px;
+        }
+        
+        .quick-actions, .facility-info-card, .recent-activity, .help-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .facility-info-card { border-left: 4px solid var(--primary-color); }
+        .help-section { border-left: 4px solid var(--info-color); }
+        
+        .welcome-banner {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .header-title {
+            color: #1e293b;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header-subtitle {
+            color: var(--secondary-color);
+            margin-bottom: 0;
+        }
+        
+        .activity-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 14px;
+        }
+        
+        .badge-coming-soon {
+            background: linear-gradient(45deg, var(--warning-color), #d97706);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(5, 150, 105, 0.25);
+        }
+        
+        .modal-header.bg-primary {
+            background: var(--primary-color) !important;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="p-3">
+                    <h4 class="text-white mb-4">
+                        <i class="fas fa-user-md me-2"></i>
+                        Facility Staff
+                    </h4>
+
+                    <nav class="nav flex-column">
+                        <a class="nav-link active" href="{% url 'user_management:facility_dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                        </a>
+                        <a class="nav-link" href="{% url 'user_management:facility_detail_staff' %}">
+                            <i class="fas fa-info-circle me-2"></i> Facility Details
+                        </a>
+                        <a class="nav-link" href="{% url 'user_management:facility_update_staff' %}">
+                            <i class="fas fa-edit me-2"></i> Update Facility Info
+                        </a>
+                        <a class="nav-link" href="{% url 'search:facility_detail' facility.id %}" target="_blank">
+                            <i class="fas fa-eye me-2"></i> View Public Profile
+                        </a>
+                        <a class="nav-link" href="{% url 'user_management:profile' %}">
+                            <i class="fas fa-user-edit me-2"></i> Update Personal Profile
+                        </a>
+
+
+
+<!-- Bed Management Section -->
+<hr class="nav-divider">
+<div class="nav-section-header">
+    <small class="text-white-50 px-3">BED MANAGEMENT</small>
+</div>
+<a class="nav-link" href="{% url 'user_management:facility_bed_update_staff' %}">
+    <i class="fas fa-bed me-2"></i> Update Bed Availability
+</a>
+
+
+<!-- Landing Page Management Section -->
+<hr class="nav-divider">
+<div class="nav-section-header">
+    <small class="text-white-50 px-3">LANDING PAGE</small>
+</div>
+<a class="nav-link" href="{% url 'facility_landing:dashboard' %}">
+    <i class="fas fa-tachometer-alt me-2"></i> Landing Dashboard
+</a>
+<a class="nav-link" href="{% url 'facility_landing:edit_page' %}">
+    <i class="fas fa-edit me-2"></i> Edit Content
+</a>
+<a class="nav-link" href="{% url 'facility_landing:manage_gallery' %}">
+    <i class="fas fa-images me-2"></i> Photo Gallery
+</a>
+<a class="nav-link" href="{% url 'facility_landing:manage_testimonials' %}">
+    <i class="fas fa-quote-left me-2"></i> Testimonials
+</a>
+<a class="nav-link" href="{% url 'facility_landing:analytics' %}">
+    <i class="fas fa-chart-line me-2"></i> Analytics
+</a>
+<a class="nav-link" href="{% url 'facility_landing:public_page' facility.id %}" target="_blank">
+    <i class="fas fa-external-link-alt me-2"></i> View Public Page
+</a>
+
+                        <!-- External Links Section -->
+                        <hr class="nav-divider">
+                        <div class="nav-section-header">
+                            <small class="text-white-50 px-3">EXTERNAL LINKS</small>
+                        </div>
+                        <a class="nav-link" href="{% url 'search:home' %}" target="_blank">
+                            <i class="fas fa-search me-2"></i> Search Engine
+                        </a>
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">
+                            <i class="fas fa-question-circle me-2"></i> Help & Support
+                        </a>
+                    </nav>
+                                    </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="header-title">{{ facility.name }} - Staff Dashboard</h1>
+                        <p class="header-subtitle">Manage your facility information and monitor bed availability</p>
+                    </div>
+                    <div>
+                        <span class="text-muted me-3">Welcome, {{ user.get_full_name|default:user.username }}</span>
+                        <a href="{% url 'user_management:logout' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-sign-out-alt me-1"></i> Logout
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <!-- Welcome Banner -->
+                <div class="welcome-banner">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h4 class="mb-1">
+                                <i class="fas fa-hospital me-2"></i>
+                                {{ facility.name }}
+                            </h4>
+                            <p class="mb-0 opacity-90">
+                                Inspection #{{ facility.inspection_number }} • {{ facility.facility_type }} • {{ facility.state }}, {{ facility.county }}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="text-white-50">
+                                <small>Last updated: {{ facility.updated_at|date:"M d, Y g:i A" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bed Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card total">
+                            <div class="stat-number total">{{ total_beds }}</div>
+                            <div class="stat-label">Total Beds</div>
+                            <i class="fas fa-bed stat-icon" style="color: var(--info-color);"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card available">
+                            <div class="stat-number available">{{ available_beds }}</div>
+                            <div class="stat-label">Available Beds</div>
+                            <i class="fas fa-check-circle stat-icon" style="color: var(--success-color);"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card occupied">
+                            <div class="stat-number occupied">{{ occupied_beds }}</div>
+                            <div class="stat-label">Occupied Beds</div>
+                            <i class="fas fa-user-injured stat-icon" style="color: var(--warning-color);"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    
+                    <!-- Quick Actions -->
+                    <div class="col-md-6 mb-4">
+                        <div class="quick-actions">
+                            <h5 class="mb-3">
+                                <i class="fas fa-bolt me-2 text-primary"></i>
+                                Quick Actions
+                            </h5>
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'user_management:facility_detail_staff' %}" class="btn btn-primary">
+                                    <i class="fas fa-info-circle me-2"></i> View Facility Details
+                                </a>
+                                <a href="{% url 'user_management:facility_update_staff' %}" class="btn btn-primary">
+                                    <i class="fas fa-edit me-2"></i> Update Facility Info
+                                </a>
+                                <a href="{% url 'user_management:facility_bed_update_staff' %}" class="btn btn-primary">
+                                    <i class="fas fa-bed me-2"></i> Update Bed Availability
+                                </a>
+                                <a href="{% url 'search:facility_detail' facility.id %}" target="_blank" class="btn btn-outline-primary">
+                                    <i class="fas fa-eye me-2"></i> View Public Profile
+                                </a>
+                                <a href="{% url 'user_management:profile' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-user-edit me-2"></i> Edit Personal Profile
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Facility Information Summary -->
+                    <div class="col-md-6 mb-4">
+                        <div class="facility-info-card">
+                            <h5 class="mb-3">
+                                <i class="fas fa-info-circle me-2 text-primary"></i>
+                                Facility Information
+                            </h5>
+                            <div class="row">
+                                <div class="col-12 mb-2">
+                                    <strong>Address:</strong>
+                                    <div class="text-muted">{{ facility.address|default:"Not specified" }}</div>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <strong>Phone:</strong>
+                                    <div class="text-muted">{{ facility.phone|default:"Not provided" }}</div>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <strong>Type:</strong>
+                                    <div class="text-muted">{{ facility.facility_type }}</div>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <strong>Status:</strong>
+                                    <span class="badge bg-{% if facility.is_active %}success{% else %}warning{% endif %}">
+                                        {% if facility.is_active %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <strong>Approval:</strong>
+                                    <span class="badge bg-{% if facility.is_approved %}success{% else %}warning{% endif %}">
+                                        {% if facility.is_approved %}Approved{% else %}Pending{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <a href="#" onclick="alert('Feature coming soon!')" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit me-1"></i> Update Information
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <!-- Recent Activity -->
+                    <div class="col-md-8 mb-4">
+                        <div class="recent-activity">
+                            <h5 class="mb-3">
+                                <i class="fas fa-history me-2 text-primary"></i>
+                                Recent Activity
+                            </h5>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success-color);">
+                                    <i class="fas fa-sign-in-alt"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-medium">Login Activity</div>
+                                    <div class="text-muted small">
+                                        Last login: {{ user.last_login|date:"M d, Y g:i A"|default:"First login" }}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--info-color);">
+                                    <i class="fas fa-bed"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-medium">Bed Availability</div>
+                                    <div class="text-muted small">
+                                        Current: {{ available_beds }}/{{ total_beds }} available
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning-color);">
+                                    <i class="fas fa-database"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-medium">Profile Update</div>
+                                    <div class="text-muted small">
+                                        Last updated: {{ facility.updated_at|timesince }} ago
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success-color);">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-medium">Security Status</div>
+                                    <div class="text-muted small">
+                                        Secure connection verified
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Help & Support Summary -->
+                    <div class="col-md-4 mb-4">
+                        <div class="help-section">
+                            <h5 class="mb-3">
+                                <i class="fas fa-headset me-2" style="color: var(--info-color);"></i>
+                                Help & Support
+                            </h5>
+                            <p class="text-muted mb-3">
+                                Need assistance with your facility dashboard or have questions about updating information?
+                            </p>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-phone text-primary me-2"></i>
+                                    <span class="fw-medium">1-800-BESTFIT</span>
+                                </div>
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-envelope text-primary me-2"></i>
+                                    <span class="fw-medium">support@bestfitnetwork.com</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-clock text-primary me-2"></i>
+                                    <span class="small text-muted">Mon-Fri: 8 AM - 6 PM EST</span>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#helpModal">
+                                    <i class="fas fa-question-circle me-1"></i> View Help Center
+                                </button>
+                                <a href="mailto:support@bestfitnetwork.com" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-envelope me-1"></i> Contact Support
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- System Status -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>System Status:</strong> All systems operational. Your facility data is synchronized and secure.
+                                    Last sync: {{ facility.updated_at|date:"M d, Y g:i A" }}
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i> Online
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-question-circle me-2"></i>
+                        BestFit Network - Facility Staff Help Center
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Navigation Tabs -->
+                    <ul class="nav nav-tabs mb-4" id="helpTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="getting-started-tab" data-bs-toggle="tab" data-bs-target="#getting-started" type="button" role="tab">
+                                <i class="fas fa-play me-1"></i> Getting Started
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab">
+                                <i class="fas fa-tachometer-alt me-1"></i> Dashboard Guide
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab">
+                                <i class="fas fa-shield-alt me-1"></i> Security & Access
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="troubleshooting-tab" data-bs-toggle="tab" data-bs-target="#troubleshooting" type="button" role="tab">
+                                <i class="fas fa-tools me-1"></i> Troubleshooting
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="helpTabContent">
+                        <!-- Getting Started -->
+                        <div class="tab-pane fade show active" id="getting-started" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-rocket me-2 text-primary"></i>Welcome to Your Dashboard</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>View Public Profile:</strong> See how your facility appears to patients searching for care</li>
+                                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Update Bed Availability:</strong> Keep real-time bed counts current for accurate patient placement</li>
+                                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Manage Facility Info:</strong> Update contact details, services, and facility information</li>
+                                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Personal Profile:</strong> Maintain your staff contact information and credentials</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-lightbulb me-2 text-warning"></i>Quick Tips</h6>
+                                    <div class="alert alert-light">
+                                        <ul class="mb-0">
+                                            <li>Update bed availability at least twice daily</li>
+                                            <li>Review your public profile monthly for accuracy</li>
+                                            <li>Keep contact information current for emergency coordination</li>
+                                            <li>Use the search engine link to test patient experience</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Dashboard Guide -->
+                        <div class="tab-pane fade" id="dashboard" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-bed me-2 text-primary"></i>Bed Management</h6>
+                                    <p><strong>Total Beds:</strong> The maximum capacity of your facility as registered in our system.</p>
+                                    <p><strong>Available Beds:</strong> Current number of beds ready for new patient admissions.</p>
+                                    <p><strong>Occupied Beds:</strong> Automatically calculated (Total - Available).</p>
+                                    
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>Important:</strong> Available beds cannot exceed total beds or be negative numbers.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-cog me-2 text-primary"></i>Feature Overview</h6>
+                                    <div class="list-group list-group-flush">
+                                        <div class="list-group-item d-flex align-items-center">
+                                            <i class="fas fa-eye text-info me-2"></i>
+                                            <strong>Public Profile:</strong> Opens your facility's search engine listing
+                                        </div>
+                                        <div class="list-group-item d-flex align-items-center">
+                                            <i class="fas fa-user-edit text-success me-2"></i>
+                                            <strong>Personal Profile:</strong> Update your staff information and credentials
+                                        </div>
+                                        <div class="list-group-item d-flex align-items-center">
+                                            <i class="fas fa-building-columns text-primary me-2"></i>
+                                            <strong>Facility Info:</strong> Manage facility details, services, and contact information
+                                        </div>
+                                        <div class="list-group-item d-flex align-items-center">
+                                            <i class="fas fa-globe text-warning me-2"></i>
+                                            <strong>Landing Page:</strong> <span class="badge bg-warning">Coming Soon</span> Custom facility website
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Security -->
+                        <div class="tab-pane fade" id="security" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-key me-2 text-primary"></i>Login Credentials</h6>
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <p><strong>Username Format:</strong> Facility Inspection Number</p>
+                                            <p><strong>Initial Password:</strong> bestfit#123</p>
+                                            <p><strong>Account Type:</strong> Facility Staff Access</p>
+                                            <div class="alert alert-info mb-0">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                Your account is linked to inspection number: <strong>{{ facility.inspection_number }}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-shield-alt me-2 text-success"></i>Data Protection</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><i class="fas fa-lock text-success me-2"></i>All data transmitted using SSL encryption</li>
+                                        <li class="mb-2"><i class="fas fa-database text-success me-2"></i>Automatic secure backups every 24 hours</li>
+                                        <li class="mb-2"><i class="fas fa-user-shield text-success me-2"></i>Access logging for security monitoring</li>
+                                        <li class="mb-2"><i class="fas fa-clock text-success me-2"></i>Session timeout after 2 hours of inactivity</li>
+                                    </ul>
+                                    
+                                    <div class="alert alert-success">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        <strong>HIPAA Compliant:</strong> All patient data handling meets healthcare privacy standards
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Troubleshooting -->
+                        <div class="tab-pane fade" id="troubleshooting" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-exclamation-circle me-2 text-danger"></i>Common Issues</h6>
+                                    
+                                    <div class="accordion" id="troubleshootingAccordion">
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#login-issues">
+                                                    Cannot Login
+                                                </button>
+                                            </h2>
+                                            <div id="login-issues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                                <div class="accordion-body">
+                                                    <ul>
+                                                        <li>Verify you're using your facility's inspection number as username</li>
+                                                        <li>Default password is "bestfit#123" (case-sensitive)</li>
+                                                        <li>Clear browser cache and cookies</li>
+                                                        <li>Try using an incognito/private browser window</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bed-update-issues">
+                                                    Bed Count Problems
+                                                </button>
+                                            </h2>
+                                            <div id="bed-update-issues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                                <div class="accordion-body">
+                                                    <ul>
+                                                        <li>Available beds cannot exceed total bed capacity</li>
+                                                        <li>Negative numbers are not allowed</li>
+                                                        <li>Changes may take up to 5 minutes to appear in search results</li>
+                                                        <li>Contact support if total bed count needs adjustment</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#profile-issues">
+                                                    Profile Update Issues
+                                                </button>
+                                            </h2>
+                                            <div id="profile-issues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                                <div class="accordion-body">
+                                                    <ul>
+                                                        <li>Ensure all required fields are completed</li>
+                                                        <li>Phone numbers should include area code</li>
+                                                        <li>Email addresses must be valid format</li>
+                                                        <li>Changes require admin approval for security</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-phone me-2 text-success"></i>Emergency Support</h6>
+                                    <div class="card border-danger">
+                                        <div class="card-header bg-danger text-white">
+                                            <strong>Critical Issues - Call Immediately</strong>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul class="mb-3">
+                                                <li>System completely inaccessible</li>
+                                                <li>Data appears incorrect or corrupted</li>
+                                                <li>Security breach suspected</li>
+                                                <li>Urgent bed availability update needed</li>
+                                            </ul>
+                                            <div class="d-grid">
+                                                <a href="tel:1-800-237-8348" class="btn btn-danger">
+                                                    <i class="fas fa-phone me-2"></i>
+                                                    Call 1-800-BESTFIT (237-8348)
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <h6><i class="fas fa-envelope me-2 text-primary"></i>Non-Emergency Support</h6>
+                                        <p class="small text-muted">For general questions, training requests, or feature suggestions:</p>
+                                        <div class="d-grid gap-2">
+                                            <a href="mailto:support@bestfitnetwork.com" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-envelope me-1"></i> Email Support
+                                            </a>
+                                            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                                                <i class="fas fa-print me-1"></i> Print This Help Guide
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Information Footer -->
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>Support Hours & Contact</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Phone Support:</strong></p>
+                                    <p class="text-muted">Monday - Friday: 8:00 AM - 6:00 PM EST<br>
+                                    Saturday: 9:00 AM - 2:00 PM EST<br>
+                                    Emergency support: 24/7</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Email Support:</strong></p>
+                                    <p class="text-muted">Response within 4 hours during business hours<br>
+                                    Emergency issues: Within 1 hour<br>
+                                    support@bestfitnetwork.com</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="badge bg-success p-3">
+                                    <i class="fas fa-headset fa-2x mb-2"></i><br>
+                                    <strong>99.9% Uptime</strong><br>
+                                    <small>Guaranteed Service</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="tel:1-800-237-8348" class="btn btn-primary">
+                        <i class="fas fa-phone me-2"></i>Call Support Now
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Coming Soon Feature Alert
+        function showComingSoon() {
+            const modalHTML = `
+                <div class="modal fade" id="comingSoonModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-warning text-dark">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-clock me-2"></i>
+                                    Feature Coming Soon
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="text-center">
+                                    <i class="fas fa-globe fa-3x text-warning mb-3"></i>
+                                    <h5>Custom Landing Page</h5>
+                                    <p class="text-muted">
+                                        We're working on a feature that will allow you to create and customize 
+                                        a dedicated landing page for your facility. This will include:
+                                    </p>
+                                    <ul class="text-start">
+                                        <li>Custom facility branding and colors</li>
+                                        <li>Photo gallery and virtual tours</li>
+                                        <li>Detailed service descriptions</li>
+                                        <li>Staff profiles and credentials</li>
+                                        <li>Patient testimonials and reviews</li>
+                                        <li>Direct contact and admission forms</li>
+                                    </ul>
+                                    <div class="alert alert-info">
+                                        <strong>Expected Launch:</strong> Q2 2025<br>
+                                        <strong>Beta Testing:</strong> Sign up for early access
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <a href="mailto:beta@bestfitnetwork.com?subject=Landing Page Beta Interest" class="btn btn-warning">
+                                    <i class="fas fa-envelope me-1"></i>Join Beta List
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if present
+            const existingModal = document.getElementById('comingSoonModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            const modalElement = document.getElementById('comingSoonModal');
+            const modalInstance = new bootstrap.Modal(modalElement);
+            modalInstance.show();
+            
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                modalElement.remove();
+            });
+        }
+        
+        // Auto-hide alerts after 5 seconds
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-success, .alert-info');
+            alerts.forEach(alert => {
+                if (alert.classList.contains('show')) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            });
+        }, 5000);
+        
+        // Enhanced navigation highlighting
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.sidebar .nav-link');
+            
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        });
+        
+        // Keyboard shortcuts for quick actions
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + B for bed update
+            if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                e.preventDefault();
+                const bedLink = document.querySelector('a[href*="update_beds"]');
+                if (bedLink) bedLink.click();
+            }
+            
+            // Ctrl/Cmd + P for public profile
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                const profileLink = document.querySelector('a[href*="facility_detail"]');
+                if (profileLink) profileLink.click();
+            }
+            
+            // Ctrl/Cmd + H for help
+            if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+                e.preventDefault();
+                const helpButton = document.querySelector('[data-bs-target="#helpModal"]');
+                if (helpButton) helpButton.click();
+            }
+        });
+        
+        // Add loading states for external links
+        document.querySelectorAll('a[target="_blank"]').forEach(link => {
+            link.addEventListener('click', function() {
+                const icon = this.querySelector('i');
+                if (icon) {
+                    const originalClass = icon.className;
+                    icon.className = 'fas fa-spinner fa-spin me-2';
+                    setTimeout(() => {
+                        icon.className = originalClass;
+                    }, 2000);
+                }
+            });
+        });
+        
+        // Performance monitoring
+        window.addEventListener('load', function() {
+            console.log('Facility Dashboard loaded successfully');
+        });
+        
+        // Error handling
+        window.addEventListener('error', function(e) {
+            console.error('Dashboard error:', e.error);
+        });
+    </script>
+</body>
+</html>

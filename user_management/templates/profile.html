@@ -1,0 +1,349 @@
+<!-- templates/user_management/profile.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - BestFit Network</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8fafc;
+        }
+        .profile-header {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            padding: 2rem 0;
+        }
+        .profile-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: none;
+        }
+        .btn-update {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            color: white;
+            border-radius: 10px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+        }
+        .btn-update:hover {
+            color: white;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark profile-header">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-hospital-alt me-2"></i>
+                BestFit Network
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user me-1"></i>
+                        {{ user.get_full_name }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        {% if user.user_type == 'facility_staff' %}
+                        <li><a class="dropdown-item" href="{% url 'user_management:facility_dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a></li>
+                        {% endif %}
+                        <li><a class="dropdown-item" href="{% url 'search:home' %}">
+                            <i class="fas fa-search me-2"></i>Search Engine
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'user_management:logout' %}">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Profile Header -->
+    <div class="profile-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-0">
+                        <i class="fas fa-user-edit me-3"></i>
+                        My Profile
+                    </h1>
+                    <p class="mb-0 opacity-75">Manage your account information</p>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-end">
+                        <span class="badge bg-light text-dark fs-6">
+                            {{ user.user_profile.get_user_type_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="container my-5">
+        <!-- Alerts -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <div class="row">
+            <!-- Profile Information -->
+            <div class="col-lg-8">
+                <div class="card profile-card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user me-2"></i>
+                            Personal Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="first_name" class="form-label">
+                                        <i class="fas fa-user me-1"></i>First Name
+                                    </label>
+                                    <input type="text" class="form-control" id="first_name" 
+                                           name="first_name" value="{{ user.first_name }}" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="last_name" class="form-label">
+                                        <i class="fas fa-user me-1"></i>Last Name
+                                    </label>
+                                    <input type="text" class="form-control" id="last_name" 
+                                           name="last_name" value="{{ user.last_name }}" required>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="email" class="form-label">
+                                        <i class="fas fa-envelope me-1"></i>Email Address
+                                    </label>
+                                    <input type="email" class="form-control" id="email" 
+                                           name="email" value="{{ user.email }}" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="phone_number" class="form-label">
+                                        <i class="fas fa-phone me-1"></i>Phone Number
+                                    </label>
+                                    <input type="text" class="form-control" id="phone_number" 
+                                           name="phone_number" value="{{ profile.phone_number|default:'' }}">
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="job_title" class="form-label">
+                                        <i class="fas fa-briefcase me-1"></i>Job Title
+                                    </label>
+                                    <input type="text" class="form-control" id="job_title" 
+                                           name="job_title" value="{{ profile.job_title|default:'' }}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-id-badge me-1"></i>Username
+                                    </label>
+                                    <input type="text" class="form-control" value="{{ user.username }}" 
+                                           readonly style="background-color: #f8f9fa;">
+                                    <div class="form-text">Username cannot be changed</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="bio" class="form-label">
+                                    <i class="fas fa-user-edit me-1"></i>Bio
+                                </label>
+                                <textarea class="form-control" id="bio" name="bio" rows="3"
+                                          placeholder="Tell us about yourself...">{{ profile.bio|default:'' }}</textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-update">
+                                <i class="fas fa-save me-2"></i>
+                                Update Profile
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Account Summary -->
+            <div class="col-lg-4">
+                <div class="card profile-card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Account Summary
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <strong>Account Type:</strong><br>
+                                <span class="badge bg-primary">{{ user.user_profile.get_user_type_display }}</span>
+                            </li>
+                            
+                            {% if user.user_profile.facility %}
+                            <li class="mb-2">
+                                <strong>Facility:</strong><br>
+                                {{ user.user_profile.facility.name }}
+                            </li>
+                            <li class="mb-2">
+                                <strong>Inspection #:</strong><br>
+                                {{ user.user_profile.facility.inspection_number }}
+                            </li>
+                            {% endif %}
+                            
+                            <li class="mb-2">
+                                <strong>Member Since:</strong><br>
+                                {{ user.date_joined|date:"M d, Y" }}
+                            </li>
+                            
+                            <li class="mb-2">
+                                <strong>Last Login:</strong><br>
+                                {{ user.last_login|date:"M d, Y g:i A"|default:"Never" }}
+                            </li>
+                            
+                            <li class="mb-2">
+                                <strong>Account Status:</strong><br>
+                                {% if user.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Account Actions -->
+                <div class="card profile-card mt-3">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cogs me-2"></i>
+                            Account Actions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            {% if user.user_profile.user_type == 'facility_staff' %}
+                            <a href="{% url 'user_management:facility_dashboard' %}" 
+                               class="btn btn-outline-primary">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Go to Dashboard
+                            </a>
+                            {% endif %}
+                            
+                            <button type="button" class="btn btn-outline-warning" 
+                                    data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                <i class="fas fa-key me-2"></i>
+                                Change Password
+                            </button>
+                            
+                            <a href="{% url 'user_management:logout' %}" class="btn btn-outline-danger">
+                                <i class="fas fa-sign-out-alt me-2"></i>
+                                Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-key me-2"></i>
+                        Password Information
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% if user.user_profile.user_type == 'facility_staff' %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Facility Staff Login:</strong><br>
+                        Your login uses your facility's inspection number and contact person name.
+                        Current password: <code>bestfit#123</code>
+                    </div>
+                    <p>
+                        To change your facility password, please contact the system administrator at:
+                        <strong>support@bestfitnetwork.com</strong>
+                    </p>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Password change functionality will be available in the next update.
+                        For now, please contact your system administrator.
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    {% if user.user_profile.user_type == 'facility_staff' %}
+                    <a href="mailto:support@bestfitnetwork.com" class="btn btn-primary">
+                        <i class="fas fa-envelope me-2"></i>Contact Support
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Auto-hide alerts after 5 seconds
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert:not(.alert-info)');
+            alerts.forEach(alert => {
+                if (alert.classList.contains('show')) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            });
+        }, 5000);
+        
+        // Form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const firstName = document.getElementById('first_name').value.trim();
+            const lastName = document.getElementById('last_name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            if (!firstName || !lastName || !email) {
+                e.preventDefault();
+                alert('Please fill in all required fields (First Name, Last Name, Email)');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>

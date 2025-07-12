@@ -35,7 +35,8 @@
                         </label>
                         {{ form.csv_file }}
                         <div class="form-text">
-                            Upload a CSV file with facility data. Maximum file size: 10MB
+                            Upload a CSV file with facility data. Maximum file size: 10MB. 
+                            <strong>Important:</strong> Ensure your CSV has proper comma separation between columns.
                         </div>
                         {% if form.csv_file.errors %}
                             <div class="text-danger mt-1">
@@ -55,7 +56,23 @@
                                 <li>Duplicate inspection numbers will be skipped</li>
                                 <li>Invalid rows will be reported after import</li>
                                 <li>Make sure your CSV follows the required format (see template below)</li>
+                                <li><strong>CSV columns must be properly separated by commas</strong></li>
                             </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- CSV Format Issues Alert -->
+                    <div class="alert alert-warning" id="format-warning" style="display: none;">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Common CSV Issues:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Headers appear concatenated (all in one column)</li>
+                            <li>Missing comma separators between fields</li>
+                            <li>Incorrect encoding (save as UTF-8)</li>
+                            <li>Extra spaces or quotes around field names</li>
+                        </ul>
+                        <div class="mt-2">
+                            <strong>Solution:</strong> Download our template and copy your data into it, or ensure your CSV software exports with proper comma separation.
                         </div>
                     </div>
                     
@@ -108,12 +125,12 @@
                 </h6>
             </div>
             <div class="card-body">
-                <p class="text-muted mb-3">Download a template CSV file to ensure proper formatting</p>
+                <p class="text-muted mb-3">Download a properly formatted template CSV file to avoid import issues</p>
                 <button type="button" class="btn btn-success w-100 mb-3" onclick="downloadTemplate()">
                     <i class="fas fa-download me-2"></i> Download Template
                 </button>
                 <div class="small text-muted">
-                    The template includes all required columns with sample data to guide your import.
+                    The template includes all required columns with sample data and proper comma separation.
                 </div>
             </div>
         </div>
@@ -203,15 +220,15 @@
                     </li>
                     <li class="mb-2">
                         <i class="fas fa-check text-success me-2"></i>
-                        Facility type must match available options
+                        All required fields must have values
                     </li>
                     <li class="mb-2">
                         <i class="fas fa-check text-success me-2"></i>
-                        All required fields must have values
+                        CSV file must have proper comma-separated headers
                     </li>
                     <li class="mb-0">
                         <i class="fas fa-check text-success me-2"></i>
-                        CSV file must have proper headers
+                        File encoding should be UTF-8
                     </li>
                 </ul>
             </div>
@@ -220,13 +237,14 @@
 </div>
 
 <script>
-// File upload and preview functionality
+// Enhanced file upload and preview functionality
 document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('{{ form.csv_file.id_for_label }}');
     const form = document.getElementById('bulk-import-form');
     const importBtn = document.getElementById('import-btn');
     const previewSection = document.getElementById('file-preview');
     const previewContent = document.getElementById('preview-content');
+    const formatWarning = document.getElementById('format-warning');
     
     // File input change handler
     fileInput.addEventListener('change', function(e) {
@@ -235,6 +253,7 @@ document.addEventListener('DOMContentLoaded', function() {
             validateAndPreviewFile(file);
         } else {
             previewSection.style.display = 'none';
+            formatWarning.style.display = 'none';
         }
     });
     
@@ -259,9 +278,44 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// Improved CSV parsing function
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+        
+        if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+                // Escaped quote
+                current += '"';
+                i++; // Skip next quote
+            } else {
+                // Toggle quote state
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            // End of field
+            result.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    
+    // Add the last field
+    result.push(current.trim());
+    
+    return result;
+}
+
 function validateAndPreviewFile(file) {
     const previewSection = document.getElementById('file-preview');
     const previewContent = document.getElementById('preview-content');
+    const formatWarning = document.getElementById('format-warning');
     
     // Check file type
     if (!file.name.toLowerCase().endsWith('.csv')) {
@@ -281,7 +335,7 @@ function validateAndPreviewFile(file) {
     const reader = new FileReader();
     reader.onload = function(e) {
         const csv = e.target.result;
-        const lines = csv.split('\n');
+        const lines = csv.split('\n').filter(line => line.trim()); // Remove empty lines
         
         if (lines.length < 2) {
             previewContent.innerHTML = '<div class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>CSV file appears to be empty or invalid.</div>';
@@ -289,15 +343,55 @@ function validateAndPreviewFile(file) {
             return;
         }
         
-        // Parse headers
-        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        // Parse headers using improved CSV parser
+        const headers = parseCSVLine(lines[0]);
         const requiredHeaders = ['Name', 'Type', 'Inspection Number', 'Address', 'State', 'County', 'Bed Count'];
-        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
         
         let previewHTML = '';
+        let hasFormatIssue = false;
         
-        if (missingHeaders.length > 0) {
-            previewHTML += `<div class="text-danger mb-3"><i class="fas fa-exclamation-triangle me-2"></i>Missing required columns: ${missingHeaders.join(', ')}</div>`;
+        // Check for concatenated headers (common issue)
+        if (headers.length === 1 && headers[0].length > 50) {
+            hasFormatIssue = true;
+            formatWarning.style.display = 'block';
+            previewHTML += `<div class="text-danger mb-3">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Format Issue Detected:</strong> Headers appear to be concatenated into one field. 
+                This usually means your CSV doesn't have proper comma separation.
+            </div>`;
+        } else {
+            formatWarning.style.display = 'none';
+        }
+        
+        // Case-insensitive header matching with improved logic
+        const foundHeaders = [];
+        const missingHeaders = [];
+        
+        for (let required of requiredHeaders) {
+            let found = false;
+            for (let header of headers) {
+                // Normalize headers for comparison
+                const normalizedHeader = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const normalizedRequired = required.toLowerCase().replace(/[^a-z0-9]/g, '');
+                
+                if (normalizedHeader === normalizedRequired || 
+                    normalizedHeader.includes(normalizedRequired) ||
+                    normalizedRequired.includes(normalizedHeader)) {
+                    found = true;
+                    foundHeaders.push(header);
+                    break;
+                }
+            }
+            if (!found) {
+                missingHeaders.push(required);
+            }
+        }
+        
+        if (missingHeaders.length > 0 && !hasFormatIssue) {
+            previewHTML += `<div class="text-warning mb-3">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Potentially missing required columns: ${missingHeaders.join(', ')}
+            </div>`;
         }
         
         // Show file info
@@ -305,21 +399,28 @@ function validateAndPreviewFile(file) {
             <div class="mb-3">
                 <strong>File:</strong> ${file.name}<br>
                 <strong>Size:</strong> ${(file.size / 1024).toFixed(1)} KB<br>
-                <strong>Rows:</strong> ${lines.length - 1} (excluding header)
+                <strong>Rows:</strong> ${lines.length - 1} (excluding header)<br>
+                <strong>Columns detected:</strong> ${headers.length}
             </div>
         `;
         
         // Show headers
         previewHTML += '<div class="mb-3"><strong>Headers found:</strong><br>';
         headers.forEach(header => {
-            const isRequired = requiredHeaders.includes(header);
+            const normalizedHeader = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const isRequired = requiredHeaders.some(req => {
+                const normalizedRequired = req.toLowerCase().replace(/[^a-z0-9]/g, '');
+                return normalizedHeader === normalizedRequired || 
+                       normalizedHeader.includes(normalizedRequired) ||
+                       normalizedRequired.includes(normalizedHeader);
+            });
             const badgeClass = isRequired ? 'bg-success' : 'bg-secondary';
-            previewHTML += `<span class="badge ${badgeClass} me-1">${header}</span>`;
+            previewHTML += `<span class="badge ${badgeClass} me-1 mb-1">${header}</span>`;
         });
         previewHTML += '</div>';
         
-        // Show first few rows as preview
-        if (lines.length > 1) {
+        // Show first few rows as preview (only if format looks good)
+        if (!hasFormatIssue && lines.length > 1) {
             previewHTML += '<div><strong>Sample data:</strong></div>';
             previewHTML += '<div class="table-responsive mt-2">';
             previewHTML += '<table class="table table-sm table-bordered">';
@@ -327,23 +428,49 @@ function validateAndPreviewFile(file) {
             // Header row
             previewHTML += '<thead class="table-light"><tr>';
             headers.forEach(header => {
-                previewHTML += `<th class="small">${header}</th>`;
+                previewHTML += `<th class="small" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;">${header}</th>`;
             });
             previewHTML += '</tr></thead><tbody>';
             
             // Data rows (show first 3)
             for (let i = 1; i <= Math.min(3, lines.length - 1); i++) {
                 if (lines[i].trim()) {
-                    const cells = lines[i].split(',').map(c => c.trim().replace(/"/g, ''));
+                    const cells = parseCSVLine(lines[i]);
                     previewHTML += '<tr>';
-                    cells.forEach(cell => {
-                        previewHTML += `<td class="small">${cell || '<em>empty</em>'}</td>`;
-                    });
+                    
+                    // Ensure we have the right number of cells
+                    for (let j = 0; j < headers.length; j++) {
+                        const cell = cells[j] || '';
+                        const displayCell = cell || '<em class="text-muted">empty</em>';
+                        previewHTML += `<td class="small" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${cell}">${displayCell}</td>`;
+                    }
                     previewHTML += '</tr>';
                 }
             }
             
             previewHTML += '</tbody></table></div>';
+        }
+        
+        // Add helpful suggestions
+        if (hasFormatIssue) {
+            previewHTML += `
+                <div class="alert alert-info mt-3">
+                    <strong>How to fix:</strong>
+                    <ol class="mb-0">
+                        <li>Download our template file</li>
+                        <li>Copy your data into the template</li>
+                        <li>Save as CSV with comma separation</li>
+                        <li>Or re-export your data ensuring proper CSV format</li>
+                    </ol>
+                </div>
+            `;
+        } else if (missingHeaders.length === 0) {
+            previewHTML += `
+                <div class="alert alert-success mt-3">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Great!</strong> Your CSV format looks correct and all required columns are present.
+                </div>
+            `;
         }
         
         previewContent.innerHTML = previewHTML;
@@ -354,16 +481,16 @@ function validateAndPreviewFile(file) {
 }
 
 function downloadTemplate() {
-    // Create CSV template content
-    const csvContent = `Name,Type,Inspection Number,Address,State,County,Bed Count,Endorsement,Contact,Contact Person
-"Sunrise Senior Living","ASSISTED LIVING SERVICES","ASL001","123 Main Street, Suite 100","California","Los Angeles",50,"Alzheimer Care Specialty","(555) 123-4567","John Smith"
-"Memory Care Center","ALZHEIMER DISEASE","ALZ002","456 Oak Avenue","Florida","Miami-Dade",30,"Memory Care, Dementia Support","(555) 234-5678","Jane Johnson"
-"Golden Years Facility","RESIDENTIAL FACILITY FOR ELDERLY OR DISABLED PERSONS","RES003","789 Pine Road","Texas","Harris",75,"Senior Living, Disabled Care","(555) 345-6789","Bob Wilson"
-"Mental Health Support Home","MENTAL ILLNESS","MHI004","321 Elm Street","New York","Manhattan",20,"Mental Health Services","(555) 456-7890","Sarah Davis"
-"Intellectual Care Services","INDIVIDUALS WITH INTELLECTUAL DISABILITES","IID005","654 Maple Drive","Illinois","Cook",40,"Intellectual Disability Support","(555) 567-8901","Mike Brown"`;
+    // Create CSV template content with proper comma separation
+    const csvContent = `"Name","Type","Inspection Number","Address","State","County","Bed Count","Endorsement","Contact","Contact Person"
+"Sunrise Senior Living","ASSISTED LIVING SERVICES","ASL001","123 Main Street, Suite 100","California","Los Angeles","50","Alzheimer Care Specialty","(555) 123-4567","John Smith"
+"Memory Care Center","ALZHEIMER DISEASE","ALZ002","456 Oak Avenue","Florida","Miami-Dade","30","Memory Care, Dementia Support","(555) 234-5678","Jane Johnson"
+"Golden Years Facility","RESIDENTIAL FACILITY FOR ELDERLY OR DISABLED PERSONS","RES003","789 Pine Road","Texas","Harris","75","Senior Living, Disabled Care","(555) 345-6789","Bob Wilson"
+"Mental Health Support Home","MENTAL ILLNESS","MHI004","321 Elm Street","New York","Manhattan","20","Mental Health Services","(555) 456-7890","Sarah Davis"
+"Intellectual Care Services","INDIVIDUALS WITH INTELLECTUAL DISABILITES","IID005","654 Maple Drive","Illinois","Cook","40","Intellectual Disability Support","(555) 567-8901","Mike Brown"`;
     
     // Create and download file
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -380,7 +507,7 @@ function downloadTemplate() {
     toast.style.right = '20px';
     toast.style.zIndex = '9999';
     toast.innerHTML = `
-        <i class="fas fa-download me-2"></i>Template downloaded successfully!
+        <i class="fas fa-download me-2"></i>Template downloaded successfully! Use this format for your CSV.
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     document.body.appendChild(toast);
@@ -408,6 +535,10 @@ function downloadTemplate() {
 .table-sm td {
     padding: 0.25rem;
     font-size: 0.8rem;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 #file-preview {
@@ -429,6 +560,15 @@ function downloadTemplate() {
 
 .btn {
     border-radius: 6px;
+}
+
+#format-warning {
+    animation: slideIn 0.3s ease-in;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
 }
 </style>
 {% endblock %}

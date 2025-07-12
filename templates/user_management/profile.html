@@ -1,0 +1,898 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - BestFit Network</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #059669;
+            --primary-light: #10b981;
+            --primary-dark: #047857;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #0ea5e9;
+            --light-bg: #f8fafc;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 4px 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(4px);
+        }
+        
+        .main-content {
+            padding: 24px;
+        }
+        
+        .profile-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .account-summary-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--info-color);
+        }
+        
+        .welcome-banner {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .header-title {
+            color: #1e293b;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header-subtitle {
+            color: var(--secondary-color);
+            margin-bottom: 0;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(5, 150, 105, 0.25);
+        }
+        
+        .modal-header.bg-primary {
+            background: var(--primary-color) !important;
+        }
+        
+        .profile-info-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .profile-info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .profile-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 14px;
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--primary-color);
+        }
+        
+        .action-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--warning-color);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="p-3">
+                    <h4 class="text-white mb-4">
+                        <i class="fas fa-user-md me-2"></i>
+                        Facility Staff
+                    </h4>
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="{% url 'user_management:facility_dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                        </a>
+
+
+<!-- NEW -->
+{% if user.user_profile.facility and user.user_profile.facility.id %}
+<a class="nav-link" href="{% url 'search:facility_detail' user.user_profile.facility.id %}" target="_blank">
+    <i class="fas fa-eye me-2"></i> View Public Profile
+</a>
+{% else %}
+<a class="nav-link" href="#" onclick="alert('No facility associated with your account. Please contact support.')">
+    <i class="fas fa-eye me-2"></i> View Public Profile
+    <span class="badge bg-warning ms-2" style="font-size: 0.7rem;">N/A</span>
+</a>
+{% endif %}
+
+                   
+<nav class="nav flex-column">
+    <a class="nav-link active" href="{% url 'user_management:facility_dashboard' %}">
+        <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+    </a>
+    <a class="nav-link" href="{% url 'user_management:facility_detail_staff' %}">
+        <i class="fas fa-info-circle me-2"></i> Facility Details
+    </a>
+    <a class="nav-link" href="{% url 'user_management:facility_update_staff' %}">
+        <i class="fas fa-edit me-2"></i> Update Facility Info
+    </a>
+
+    <a class="nav-link" href="{% url 'user_management:profile' %}">
+        <i class="fas fa-user-edit me-2"></i> Update Personal Profile
+    </a>
+
+
+
+<!-- Bed Management Section -->
+<hr class="nav-divider">
+<div class="nav-section-header">
+<small class="text-white-50 px-3">BED MANAGEMENT</small>
+</div>
+<a class="nav-link" href="{% url 'user_management:facility_bed_update_staff' %}">
+<i class="fas fa-bed me-2"></i> Update Bed Availability
+</a>
+
+
+<!-- Landing Page Management Section -->
+<hr class="nav-divider">
+<div class="nav-section-header">
+<small class="text-white-50 px-3">LANDING PAGE</small>
+</div>
+<a class="nav-link" href="{% url 'facility_landing:dashboard' %}">
+<i class="fas fa-tachometer-alt me-2"></i> Landing Dashboard
+</a>
+<a class="nav-link" href="{% url 'facility_landing:edit_page' %}">
+<i class="fas fa-edit me-2"></i> Edit Content
+</a>
+<a class="nav-link" href="{% url 'facility_landing:manage_gallery' %}">
+<i class="fas fa-images me-2"></i> Photo Gallery
+</a>
+<a class="nav-link" href="{% url 'facility_landing:manage_testimonials' %}">
+<i class="fas fa-quote-left me-2"></i> Testimonials
+</a>
+<a class="nav-link" href="{% url 'facility_landing:analytics' %}">
+<i class="fas fa-chart-line me-2"></i> Analytics
+</a>
+
+
+    <!-- External Links Section -->
+    <hr class="nav-divider">
+    <div class="nav-section-header">
+        <small class="text-white-50 px-3">EXTERNAL LINKS</small>
+    </div>
+    <a class="nav-link" href="{% url 'search:home' %}" target="_blank">
+        <i class="fas fa-search me-2"></i> Search Engine
+    </a>
+    <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">
+        <i class="fas fa-question-circle me-2"></i> Help & Support
+    </a>
+</nav>
+
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="header-title">Personal Profile Management</h1>
+                        <p class="header-subtitle">Update your personal information and account settings</p>
+                    </div>
+                    <div>
+                        <span class="text-muted me-3">Welcome, {{ user.get_full_name|default:user.username }}</span>
+                        <a href="{% url 'user_management:logout' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-sign-out-alt me-1"></i> Logout
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <!-- Welcome Banner -->
+                {% if user.user_profile.facility %}
+                <div class="welcome-banner">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h4 class="mb-1">
+                                <i class="fas fa-user-circle me-2"></i>
+                                {{ user.get_full_name|default:user.username }}
+                            </h4>
+                            <p class="mb-0 opacity-90">
+                                {{ user.user_profile.get_user_type_display }} at {{ user.user_profile.facility.name }}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="text-white-50">
+                                <small>Member since: {{ user.date_joined|date:"M d, Y" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="row">
+                    <!-- Profile Form -->
+                    <div class="col-lg-8 mb-4">
+                        <div class="profile-card">
+                            <h5 class="mb-4">
+                                <i class="fas fa-user-edit me-2 text-primary"></i>
+                                Personal Information
+                            </h5>
+                            
+                            <form method="post">
+                                {% csrf_token %}
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="first_name" class="form-label">
+                                            <i class="fas fa-user me-1 text-primary"></i>First Name *
+                                        </label>
+                                        <input type="text" class="form-control" id="first_name" 
+                                               name="first_name" value="{{ user.first_name }}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="last_name" class="form-label">
+                                            <i class="fas fa-user me-1 text-primary"></i>Last Name *
+                                        </label>
+                                        <input type="text" class="form-control" id="last_name" 
+                                               name="last_name" value="{{ user.last_name }}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="email" class="form-label">
+                                            <i class="fas fa-envelope me-1 text-primary"></i>Email Address *
+                                        </label>
+                                        <input type="email" class="form-control" id="email" 
+                                               name="email" value="{{ user.email }}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="phone_number" class="form-label">
+                                            <i class="fas fa-phone me-1 text-primary"></i>Phone Number
+                                        </label>
+                                        <input type="text" class="form-control" id="phone_number" 
+                                               name="phone_number" value="{{ profile.phone_number|default:'' }}"
+                                               placeholder="(555) 123-4567">
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="job_title" class="form-label">
+                                            <i class="fas fa-briefcase me-1 text-primary"></i>Job Title/Position
+                                        </label>
+                                        <input type="text" class="form-control" id="job_title" 
+                                               name="job_title" value="{{ profile.job_title|default:'' }}"
+                                               placeholder="e.g., Nurse Manager, Administrator">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-id-badge me-1 text-secondary"></i>Username
+                                        </label>
+                                        <input type="text" class="form-control" value="{{ user.username }}" 
+                                               readonly style="background-color: #f8f9fa;">
+                                        <div class="form-text">Username cannot be changed</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label for="bio" class="form-label">
+                                        <i class="fas fa-user-edit me-1 text-primary"></i>Professional Bio
+                                    </label>
+                                    <textarea class="form-control" id="bio" name="bio" rows="4"
+                                              placeholder="Tell us about your professional background and role...">{{ profile.bio|default:'' }}</textarea>
+                                    <div class="form-text">Optional: Brief description of your role and experience</div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'user_management:facility_dashboard' %}" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Update Profile
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- Account Summary -->
+                    <div class="col-lg-4 mb-4">
+                        <div class="account-summary-card">
+                            <h5 class="mb-4">
+                                <i class="fas fa-info-circle me-2" style="color: var(--info-color);"></i>
+                                Account Summary
+                            </h5>
+                            
+                            <div class="profile-info-item">
+                                <div class="profile-icon">
+                                    <i class="fas fa-user-tag"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-medium">Account Type</div>
+                                    <div class="text-muted small">
+                                        <span class="badge bg-primary">{{ user.user_profile.get_user_type_display }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if user.user_profile.facility %}
+                            <div class="profile-info-item">
+                                <div class="profile-icon">
+                                    <i class="fas fa-hospital"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-medium">Facility</div>
+                                    <div class="text-muted small">{{ user.user_profile.facility.name }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="profile-info-item">
+                                <div class="profile-icon">
+                                    <i class="fas fa-hashtag"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-medium">Inspection Number</div>
+                                    <div class="text-muted small">{{ user.user_profile.facility.inspection_number }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="profile-info-item">
+                                <div class="profile-icon">
+                                    <i class="fas fa-calendar-plus"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-medium">Member Since</div>
+                                    <div class="text-muted small">{{ user.date_joined|date:"M d, Y" }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="profile-info-item">
+                                <div class="profile-icon">
+                                    <i class="fas fa-sign-in-alt"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-medium">Last Login</div>
+                                    <div class="text-muted small">{{ user.last_login|date:"M d, Y g:i A"|default:"First login" }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="profile-info-item">
+                                <div class="profile-icon">
+                                    <i class="fas fa-shield-check"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-medium">Account Status</div>
+                                    <div class="text-muted small">
+                                        {% if user.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Actions -->
+                        <div class="action-card mt-4">
+                            <h5 class="mb-3">
+                                <i class="fas fa-bolt me-2" style="color: var(--warning-color);"></i>
+                                Quick Actions
+                            </h5>
+                            
+                            <div class="d-grid gap-2">
+                                {% if user.user_profile.user_type == 'facility_staff' %}
+                                <a href="{% url 'user_management:facility_dashboard' %}" 
+                                   class="btn btn-outline-primary">
+                                    <i class="fas fa-tachometer-alt me-2"></i>
+                                    Go to Dashboard
+                                </a>
+                                {% endif %}
+                                
+                                <button type="button" class="btn btn-outline-warning" 
+                                        data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                    <i class="fas fa-key me-2"></i>
+                                    Password Information
+                                </button>
+                                
+                                <a href="{% url 'search:home' %}" target="_blank" class="btn btn-outline-info">
+                                    <i class="fas fa-search me-2"></i>
+                                    Search Engine
+                                </a>
+                                
+                                <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#helpModal">
+                                    <i class="fas fa-question-circle me-2"></i>
+                                    Help & Support
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-key me-2"></i>
+                        Password Information
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% if user.user_profile.user_type == 'facility_staff' %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Facility Staff Login Credentials:</strong>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Username:</strong><br>
+                            <code>{{ user.username }}</code></p>
+                            <p><strong>Password:</strong><br>
+                            <code>bestfit#123</code></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Login Format:</strong><br>
+                            Facility Inspection Number</p>
+                            <p><strong>Account Type:</strong><br>
+                            Facility Staff Access</p>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Password Changes:</strong> To update your facility password, please contact our support team.
+                    </div>
+                    
+                    <p class="mb-0">
+                        <strong>Need assistance?</strong> Contact us at:
+                        <a href="mailto:support@bestfitnetwork.com">support@bestfitnetwork.com</a>
+                        or call <strong>1-800-BESTFIT (237-8348)</strong>
+                    </p>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Password change functionality will be available in the next update.
+                        For now, please contact your system administrator.
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    {% if user.user_profile.user_type == 'facility_staff' %}
+                    <a href="mailto:support@bestfitnetwork.com?subject=Password Change Request" class="btn btn-primary">
+                        <i class="fas fa-envelope me-2"></i>Contact Support
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help Modal (Simplified) -->
+    <div class="modal fade" id="helpModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-question-circle me-2"></i>
+                        Profile Help & Support
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-user-edit me-2 text-primary"></i>Profile Management</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Update Information:</strong> Keep your contact details current for facility coordination</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Professional Details:</strong> Add your job title and professional bio</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Required Fields:</strong> First name, last name, and email are mandatory</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-shield-alt me-2 text-success"></i>Account Security</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><i class="fas fa-lock text-success me-2"></i>Your username is your facility's inspection number</li>
+                                <li class="mb-2"><i class="fas fa-key text-success me-2"></i>Default password: bestfit#123</li>
+                                <li class="mb-2"><i class="fas fa-phone text-success me-2"></i>Contact support for password changes</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-headset me-2 text-info"></i>Need Help?</h6>
+                            <p><strong>BestFit Network Support:</strong></p>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-envelope me-2"></i>support@bestfitnetwork.com</li>
+                                <li><i class="fas fa-phone me-2"></i>1-800-BESTFIT (237-8348)</li>
+                                <li><i class="fas fa-clock me-2"></i>Monday-Friday: 8 AM - 6 PM EST</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-lightbulb me-2 text-warning"></i>Tips</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-star text-warning me-2"></i>Complete your profile for better facility coordination</li>
+                                <li><i class="fas fa-star text-warning me-2"></i>Keep contact information updated</li>
+                                <li><i class="fas fa-star text-warning me-2"></i>Use professional email for important notifications</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="mailto:support@bestfitnetwork.com" class="btn btn-primary">
+                        <i class="fas fa-envelope me-2"></i>Contact Support
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Coming Soon Feature Alert (from dashboard)
+        function showComingSoon() {
+            const modalHTML = `
+                <div class="modal fade" id="comingSoonModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-warning text-dark">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-clock me-2"></i>
+                                    Feature Coming Soon
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="text-center">
+                                    <i class="fas fa-globe fa-3x text-warning mb-3"></i>
+                                    <h5>Custom Landing Page</h5>
+                                    <p class="text-muted">
+                                        We're working on a feature that will allow you to create and customize 
+                                        a dedicated landing page for your facility.
+                                    </p>
+                                    <div class="alert alert-info">
+                                        <strong>Expected Launch:</strong> Q2 2025<br>
+                                        <strong>Beta Testing:</strong> Sign up for early access
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <a href="mailto:beta@bestfitnetwork.com?subject=Landing Page Beta Interest" class="btn btn-warning">
+                                    <i class="fas fa-envelope me-1"></i>Join Beta List
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if present
+            const existingModal = document.getElementById('comingSoonModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            const modalElement = document.getElementById('comingSoonModal');
+            const modalInstance = new bootstrap.Modal(modalElement);
+            modalInstance.show();
+            
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                modalElement.remove();
+            });
+        }
+        
+        // Auto-hide alerts after 5 seconds
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-success, .alert-info');
+            alerts.forEach(alert => {
+                if (alert.classList.contains('show')) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            });
+        }, 5000);
+        
+        // Form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const firstName = document.getElementById('first_name').value.trim();
+            const lastName = document.getElementById('last_name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            if (!firstName || !lastName || !email) {
+                e.preventDefault();
+                alert('Please fill in all required fields (First Name, Last Name, Email)');
+                return false;
+            }
+            
+            // Email validation
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(email)) {
+                e.preventDefault();
+                alert('Please enter a valid email address');
+                return false;
+            }
+            
+            // Phone number validation (if provided)
+            const phone = document.getElementById('phone_number').value.trim();
+            if (phone && phone.length < 10) {
+                e.preventDefault();
+                alert('Please enter a valid phone number (at least 10 digits)');
+                return false;
+            }
+        });
+        
+        // Real-time form validation
+        document.getElementById('email').addEventListener('blur', function() {
+            const email = this.value.trim();
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (email && !emailPattern.test(email)) {
+                this.classList.add('is-invalid');
+                this.setCustomValidity('Please enter a valid email address');
+            } else {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+                this.setCustomValidity('');
+            }
+        });
+        
+        document.getElementById('phone_number').addEventListener('input', function() {
+            let value = this.value.replace(/\D/g, ''); // Remove non-digits
+            
+            // Format phone number as (XXX) XXX-XXXX
+            if (value.length >= 6) {
+                value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)}`;
+            } else if (value.length >= 3) {
+                value = `(${value.slice(0, 3)}) ${value.slice(3)}`;
+            }
+            
+            this.value = value;
+            
+            // Validation
+            const cleanValue = value.replace(/\D/g, '');
+            if (cleanValue.length > 0 && cleanValue.length < 10) {
+                this.classList.add('is-invalid');
+                this.setCustomValidity('Phone number must be at least 10 digits');
+            } else {
+                this.classList.remove('is-invalid');
+                if (cleanValue.length >= 10) {
+                    this.classList.add('is-valid');
+                }
+                this.setCustomValidity('');
+            }
+        });
+        
+        // Enhanced navigation highlighting
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.sidebar .nav-link');
+            
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        });
+        
+        // Character counter for bio
+        const bioTextarea = document.getElementById('bio');
+        if (bioTextarea) {
+            const maxLength = 500;
+            const counterDiv = document.createElement('div');
+            counterDiv.className = 'text-muted small text-end mt-1';
+            bioTextarea.parentNode.appendChild(counterDiv);
+            
+            function updateCounter() {
+                const remaining = maxLength - bioTextarea.value.length;
+                counterDiv.textContent = `${bioTextarea.value.length}/${maxLength} characters`;
+                
+                if (remaining < 50) {
+                    counterDiv.className = 'text-warning small text-end mt-1';
+                } else if (remaining < 0) {
+                    counterDiv.className = 'text-danger small text-end mt-1';
+                } else {
+                    counterDiv.className = 'text-muted small text-end mt-1';
+                }
+            }
+            
+            bioTextarea.addEventListener('input', updateCounter);
+            bioTextarea.setAttribute('maxlength', maxLength);
+            updateCounter();
+        }
+        
+        // Profile completion indicator
+        function checkProfileCompletion() {
+            const requiredFields = ['first_name', 'last_name', 'email'];
+            const optionalFields = ['phone_number', 'job_title', 'bio'];
+            
+            let requiredComplete = 0;
+            let optionalComplete = 0;
+            
+            requiredFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field && field.value.trim()) {
+                    requiredComplete++;
+                }
+            });
+            
+            optionalFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field && field.value.trim()) {
+                    optionalComplete++;
+                }
+            });
+            
+            const totalCompletion = ((requiredComplete / requiredFields.length) * 70) + 
+                                  ((optionalComplete / optionalFields.length) * 30);
+            
+            // Add completion indicator to account summary
+            const accountSummary = document.querySelector('.account-summary-card');
+            if (accountSummary && !document.getElementById('completion-indicator')) {
+                const completionHTML = `
+                    <div id="completion-indicator" class="profile-info-item">
+                        <div class="profile-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-medium">Profile Completion</div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-success" style="width: ${totalCompletion}%"></div>
+                            </div>
+                            <div class="text-muted small">${Math.round(totalCompletion)}% complete</div>
+                        </div>
+                    </div>
+                `;
+                accountSummary.insertAdjacentHTML('beforeend', completionHTML);
+            }
+        }
+        
+        // Check completion on page load and field changes
+        document.addEventListener('DOMContentLoaded', checkProfileCompletion);
+        document.querySelectorAll('input, textarea').forEach(field => {
+            field.addEventListener('input', checkProfileCompletion);
+        });
+        
+        // Add loading state to form submission
+        document.querySelector('form').addEventListener('submit', function() {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+            submitBtn.disabled = true;
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + S to save
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                document.querySelector('form').submit();
+            }
+            
+            // Ctrl/Cmd + D for dashboard
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                e.preventDefault();
+                const dashboardLink = document.querySelector('a[href*="facility_dashboard"]');
+                if (dashboardLink) dashboardLink.click();
+            }
+        });
+        
+        // Performance monitoring
+        window.addEventListener('load', function() {
+            console.log('Profile page loaded successfully');
+        });
+        
+        // Error handling
+        window.addEventListener('error', function(e) {
+            console.error('Profile page error:', e.error);
+        });
+    </script>
+</body>
+</html>

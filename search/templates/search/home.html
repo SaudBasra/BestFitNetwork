@@ -5,11 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
- 
     <link rel="stylesheet" href="{% static 'search/home.css' %}">
-
-    <title>BestFit Network - Facility Search</title>
+    <title>BestFit Network - AI-Enhanced Facility Search</title>
     <style>
+        /* Enhanced CSS combining user tracking form with facility images */
+
         /* Additional styles for facility images */
         .result-card {
             background: white;
@@ -86,160 +86,481 @@
             display: inline-block;
             margin-top: 5px;
         }
+
+        /* Results preview section */
+        .results-preview {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .results-header h3 {
+            color: #2c5282;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .results-subtext {
+            color: #666;
+            margin: 5px 0 0;
+            font-size: 14px;
+        }
+
+        /* Modal style user tracking form */
+        .user-tracking-modal {
+            background-color: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            margin: 15px auto 25px;
+            max-width: 800px;
+            border: 1px solid #dbe1e8;
+            overflow: hidden;
+            display: none; /* Initially hidden */
+        }
+
+        .modal-content {
+            padding: 0;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #4a89dc, #3a70bd);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-header i {
+            font-size: 20px;
+            margin-right: 10px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Form grid layout */
+        .form-grid {
+            display: flex;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+
+        .form-column {
+            flex: 1;
+            min-width: 250px;
+            padding: 0 10px;
+        }
+
+        .form-field {
+            margin-bottom: 15px;
+        }
+
+        .form-field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 5px;
+        }
+
+        .form-field input,
+        .form-field select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border 0.2s;
+        }
+
+        .form-field input:focus,
+        .form-field select:focus {
+            border-color: #4a89dc;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(74, 137, 220, 0.1);
+        }
+
+        .form-submit {
+            margin-top: 23px;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #4a89dc, #3a70bd);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-submit i {
+            margin-left: 8px;
+        }
+
+        .btn-submit:hover {
+            background: linear-gradient(135deg, #3a70bd, #2c5282);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Form messages */
+        #form-messages {
+            padding: 0 20px;
+        }
+
+        .error-message {
+            color: #e53e3e;
+            font-size: 13px;
+            padding: 5px 0;
+        }
+
+        .success-message {
+            color: #38a169;
+            font-size: 14px;
+            padding: 5px 0;
+            font-weight: 600;
+        }
+
+        /* Privacy note */
+        .privacy-note {
+            font-size: 12px;
+            color: #718096;
+            text-align: center;
+            padding: 0 20px 15px;
+            margin: 0;
+        }
+
+        .privacy-note i {
+            margin-right: 5px;
+            color: #4a89dc;
+        }
+
+        /* Enhanced blur effect for results */
+        .results-blurred {
+            filter: blur(5px);
+            pointer-events: none;
+            user-select: none;
+            position: relative;
+        }
+
+        .results-blurred::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.3);
+            z-index: 1;
+        }
+
+        /* Make sure AI summary remains visible */
+        .ai-insights {
+            margin-bottom: 25px;
+            z-index: 10;
+            position: relative;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .ai-insights-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .ai-insights-header i {
+            color: #4a89dc;
+            font-size: 20px;
+            margin-right: 10px;
+        }
+
+        .ai-insights-header h3 {
+            color: #2c5282;
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .ai-insights-content {
+            color: #495057;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        /* Tracking status indicator */
+        .tracking-status {
+            background-color: #e8f5e8;
+            color: #2d5016;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin: 10px 0;
+            text-align: center;
+            border: 1px solid #c3e6c3;
+        }
+
+        .tracking-status i {
+            margin-right: 8px;
+            color: #28a745;
+        }
     </style>
-    </head>
+</head>
 <body>
-    <div class="header">BestFit Network - Find the Right Facility</div>
-<!-- Search Bar -->
-<form method="GET" action="" class="search-container">
-    <input id="search-box" class="search-box" type="text" name="q" placeholder="Search by city, state, or postal code" value="{{ query }}">
-    <button type="submit" class="search-button">Search</button>
-</form>
+    <div class="header">BestFit Network - AI-Enhanced Facility Search</div>
+    
+    <!-- Search Bar -->
+    <form method="GET" action="" class="search-container">
+        <input id="search-box" class="search-box" type="text" name="q" placeholder="Search by city, state, or postal code" value="{{ query }}">
+        <button type="submit" class="search-button">Search</button>
+    </form>
 
-<!-- Facility Type Icons -->
-<div class="facility-type-icons">
-    <div class="icon-container {% if 'ALZHEIMER DISEASE' in selected_facility_types %}selected{% endif %}" onclick="toggleFacilityType('ALZHEIMER DISEASE')">
-        <i class="fas fa-brain"></i>
-        <span>Alzheimer Disease</span>
-    </div>
-    <div class="icon-container {% if 'ASSISTED LIVING SERVICES' in selected_facility_types %}selected{% endif %}" onclick="toggleFacilityType('ASSISTED LIVING SERVICES')">
-        <i class="fas fa-wheelchair"></i>
-        <span>Assisted Living</span>
-    </div>
-    <div class="icon-container {% if 'INDIVIDUALS WITH INTELLECTUAL DISABILITES' in selected_facility_types %}selected{% endif %}" onclick="toggleFacilityType('INDIVIDUALS WITH INTELLECTUAL DISABILITES')">
-        <i class="fas fa-home"></i>
-        <span>Intellectual Disabilities</span>
-    </div>
-    <div class="icon-container {% if 'MENTAL ILLNESS' in selected_facility_types %}selected{% endif %}" onclick="toggleFacilityType('MENTAL ILLNESS')">
-        <i class="fas fa-head-side-virus"></i>
-        <span>Mental Illness</span>
-    </div>
-    <div class="icon-container {% if 'RESIDENTIAL FACILITY FOR ELDERLY OR DISABLED PERSONS' in selected_facility_types %}selected{% endif %}" onclick="toggleFacilityType('RESIDENTIAL FACILITY FOR ELDERLY OR DISABLED PERSONS')">
-        <i class="fas fa-user-friends"></i>
-        <span>Elderly/Disabled Care</span>
-    </div>
-    <div class="icon-container" onclick="clearFilters()">
-        <i class="fas fa-times-circle"></i>
-        <span>Clear Filters</span>
-    </div>
-</div>
-
-<!-- Filters -->
-<form method="GET" action="" class="filters" id="filters-form">
-    <input type="hidden" name="q" value="{{ query }}">
-    <input type="hidden" name="bed_count" id="bed_count_input" value="{{ bed_count_filter }}">
-    <input type="hidden" name="sort_by" id="sort_by_input" value="{{ sort_by }}">
-    <div id="facility-type-inputs">
-        {% for type in selected_facility_types %}
-            <input type="hidden" name="facility_type" value="{{ type }}">
-        {% endfor %}
-    </div>
-
-    <!-- Bed Count Filter -->
-    <select name="bed_count" onchange="updateBedCount(this.value)">
-        <option value="">Filter by Bed Count</option>
-        {% for count in bed_counts %}
-            <option value="{{ count }}" {% if count|stringformat:"s" == bed_count_filter %}selected{% endif %}>
-                {{ count }} Beds
-            </option>
-        {% endfor %}
-    </select>
-
-    <!-- Sort By Filter -->
-    <select name="sort_by" onchange="updateSortBy(this.value)">
-        <option value="name" {% if sort_by == "name" %}selected{% endif %}>Sort by Name</option>
-        <option value="bed_count" {% if sort_by == "bed_count" %}selected{% endif %}>Sort by Bed Count (Asc)</option>
-        <option value="-bed_count" {% if sort_by == "-bed_count" %}selected{% endif %}>Sort by Bed Count (Desc)</option>
-    </select>
-</form>
-
-<!-- Search Results -->
-<div class="results-container">
-    {% for facility in page_obj %}
-    <div class="result-card" onclick="window.location='{% url 'search:facility_detail' facility.id %}?{{ request.GET.urlencode }}'">
-        <!-- Facility Image -->
-        <img src="{{ facility.image_url }}" alt="{{ facility.name }}" class="facility-image" loading="lazy" 
-             onerror="this.src='{% static 'images/default-facility.jpg' %}';">
-        
-        <!-- Facility Content -->
-        <div class="result-content">
-            <div class="result-name">{{ facility.name }}</div>
-            
-            <div class="result-info">
-                <strong>Address:</strong> {{ facility.address|truncatechars:50 }}
-            </div>
-            
-            <div class="result-info">
-                <strong>Location:</strong> {{ facility.county }}, {{ facility.state }}
-            </div>
-            
-            <div class="result-info">
-                <strong>Bed Count:</strong> {{ facility.bed_count }}
-            </div>
-            
-            {% if facility.contact %}
-                <div class="result-info">
-                    <strong>Contact:</strong> {{ facility.contact }}
-                </div>
-            {% endif %}
-            
-            <!-- Facility Type Badge -->
-            <span class="facility-type-badge">{{ facility.facility_type }}</span>
-            
-            <!-- Bed Availability Status -->
-            {% if facility.bed_data %}
-                <div class="bed-availability">
-                    <i class="fas fa-bed"></i> {{ facility.bed_data.available_beds }} beds available
-                    <small>(Updated: {{ facility.bed_data.updated_at|date:"M d" }})</small>
-                </div>
-            {% else %}
-                <div class="no-bed-data">
-                    <i class="fas fa-info-circle"></i> Bed availability not updated
-                </div>
-            {% endif %}
+    <!-- Facility Type Icons -->
+    <div class="facility-type-icons">
+        <div class="icon-container {% if 'ALZHEIMER DISEASE' in selected_facility_types %}selected{% endif %}" onclick="toggleFacilityType('ALZHEIMER DISEASE')">
+            <i class="fas fa-brain"></i>
+            <span>Alzheimer Disease</span>
+        </div>
+        <div class="icon-container {% if 'ASSISTED LIVING SERVICES' in selected_facility_types %}selected{% endif %}" onclick="toggleFacilityType('ASSISTED LIVING SERVICES')">
+            <i class="fas fa-wheelchair"></i>
+            <span>Assisted Living</span>
+        </div>
+        <div class="icon-container {% if 'INDIVIDUALS WITH INTELLECTUAL DISABILITES' in selected_facility_types %}selected{% endif %}" onclick="toggleFacilityType('INDIVIDUALS WITH INTELLECTUAL DISABILITES')">
+            <i class="fas fa-home"></i>
+            <span>Intellectual Disabilities</span>
+        </div>
+        <div class="icon-container {% if 'MENTAL ILLNESS' in selected_facility_types %}selected{% endif %}" onclick="toggleFacilityType('MENTAL ILLNESS')">
+            <i class="fas fa-head-side-virus"></i>
+            <span>Mental Illness</span>
+        </div>
+        <div class="icon-container {% if 'RESIDENTIAL FACILITY FOR ELDERLY OR DISABLED PERSONS' in selected_facility_types %}selected{% endif %}" onclick="toggleFacilityType('RESIDENTIAL FACILITY FOR ELDERLY OR DISABLED PERSONS')">
+            <i class="fas fa-user-friends"></i>
+            <span>Elderly/Disabled Care</span>
+        </div>
+        <div class="icon-container" onclick="clearFilters()">
+            <i class="fas fa-times-circle"></i>
+            <span>Clear Filters</span>
         </div>
     </div>
-    {% endfor %}
-</div>
 
-<!-- No Results Message -->
-{% if query and not page_obj %}
-    <div class="text-center" style="padding: 50px;">
-        <i class="fas fa-search" style="font-size: 3rem; color: #ccc; margin-bottom: 20px;"></i>
-        <h3 style="color: #666;">No active facilities found</h3>
-        <p style="color: #999;">Try adjusting your search criteria or removing filters.</p>
-        <p style="color: #999; font-size: 14px;">Only approved and active facilities are shown in search results.</p>
+    <!-- Filters -->
+    <form method="GET" action="" class="filters" id="filters-form">
+        <input type="hidden" name="q" value="{{ query }}">
+        <input type="hidden" name="bed_count" id="bed_count_input" value="{{ bed_count_filter }}">
+        <input type="hidden" name="sort_by" id="sort_by_input" value="{{ sort_by }}">
+        <div id="facility-type-inputs">
+            {% for type in selected_facility_types %}
+                <input type="hidden" name="facility_type" value="{{ type }}">
+            {% endfor %}
+        </div>
+
+        <!-- Bed Count Filter -->
+        <select name="bed_count" onchange="updateBedCount(this.value)">
+            <option value="">Filter by Bed Count</option>
+            {% for count in bed_counts %}
+                <option value="{{ count }}" {% if count|stringformat:"s" == bed_count_filter %}selected{% endif %}>
+                    {{ count }} Beds
+                </option>
+            {% endfor %}
+        </select>
+
+        <!-- Sort By Filter -->
+        <select name="sort_by" onchange="updateSortBy(this.value)">
+            <option value="name" {% if sort_by == "name" %}selected{% endif %}>Sort by Name</option>
+            <option value="bed_count" {% if sort_by == "bed_count" %}selected{% endif %}>Sort by Bed Count (Asc)</option>
+            <option value="-bed_count" {% if sort_by == "-bed_count" %}selected{% endif %}>Sort by Bed Count (Desc)</option>
+        </select>
+    </form>
+
+    <!-- Keep AI Summary always visible -->
+    {% if query and ai_summary %}
+    <div class="ai-insights">
+        <div class="ai-insights-header">
+            <i class="fas fa-robot"></i>
+            <h3>AI-Powered Search Insights</h3>
+        </div>
+        <div class="ai-insights-content">
+            {{ ai_summary }}
+        </div>
     </div>
-{% endif %}
-
-<!-- Pagination -->
-<div class="pagination">
-    {% if page_obj.has_previous %}
-        <a href="?page=1&{{ request.GET.urlencode }}">First</a>
-        <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Previous</a>
-    {% else %}
-        <a class="disabled">First</a>
-        <a class="disabled">Previous</a>
     {% endif %}
 
-    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <!-- Tracking Status Indicator (when user is tracked) -->
+    <div id="tracking-status" class="tracking-status" style="display: none;">
+        <i class="fas fa-check-circle"></i>
+        Thank you for your information! You can now browse all facilities freely.
+    </div>
 
-    {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
-        <a href="?page={{ page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}">Last</a>
-    {% else %}
-        <a class="disabled">Next</a>
-        <a class="disabled">Last</a>
+    <!-- User Tracking Modal (compact overlay) -->
+    {% if page_obj %}
+    <div class="results-preview">
+        <div class="results-header">
+            <h3><i class="fas fa-list-alt"></i> Search Results ({{ page_obj.paginator.count }} facilities found)</h3>
+            <p class="results-subtext" id="results-subtext">Complete the quick form below to view detailed results with facility images</p>
+        </div>
+    </div>
+
+    <div id="user-tracking-overlay" class="user-tracking-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <i class="fas fa-unlock-alt"></i>
+                <h3>Unlock Detailed Results</h3>
+            </div>
+            
+            <form id="user-tracking-form">
+                {% csrf_token %}
+                <div class="form-grid">
+                    <div class="form-column">
+                        <div class="form-field">
+                            <label for="name">Your Name</label>
+                            <input type="text" id="name" name="name" placeholder="Enter your name" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="phone">Phone Number</label>
+                            <input type="tel" id="phone" name="phone" placeholder="Enter your phone" required>
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-field">
+                            <label for="facility_type_interest">Facility Type of Interest</label>
+                            <select id="facility_type_interest" name="facility_type_interest" required>
+                                <option value="">Select type</option>
+                                <option value="ALZHEIMER DISEASE">Alzheimer Disease</option>
+                                <option value="ASSISTED LIVING SERVICES">Assisted Living</option>
+                                <option value="INDIVIDUALS WITH INTELLECTUAL DISABILITES">Intellectual Disabilities</option>
+                                <option value="MENTAL ILLNESS">Mental Illness</option>
+                                <option value="RESIDENTIAL FACILITY FOR ELDERLY OR DISABLED PERSONS">Elderly/Disabled Care</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="zip_code">Zip Code of Interest</label>
+                            <input type="text" id="zip_code" name="zip_code" placeholder="Enter zip code" required>
+                        </div>
+                        <input type="hidden" name="search_query" value="{{ query }}">
+                        <div class="form-submit">
+                            <button type="submit" class="btn-submit">Unlock Results <i class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div id="form-messages"></div>
+                <p class="privacy-note"><i class="fas fa-shield-alt"></i> Your information helps us improve recommendations and follow up on your facility search.</p>
+            </form>
+        </div>
+    </div>
     {% endif %}
-</div>
+
+    <!-- Search Results (conditionally blurred) -->
+    {% if page_obj %}
+    <div class="results-container" id="results-container">
+        {% for facility in page_obj %}
+        <div class="result-card" onclick="window.location='{% url 'search:facility_detail' facility.id %}?{{ request.GET.urlencode }}'">
+            <!-- Facility Image -->
+            <img src="{{ facility.image_url }}" alt="{{ facility.name }}" class="facility-image" loading="lazy" 
+                 onerror="this.src='{% static 'images/default-facility.jpg' %}';">
+            
+            <!-- Facility Content -->
+            <div class="result-content">
+                <div class="result-name">{{ facility.name }}</div>
+                
+                <div class="result-info">
+                    <strong>Address:</strong> {{ facility.address|truncatechars:50 }}
+                </div>
+                
+                <div class="result-info">
+                    <strong>Location:</strong> {{ facility.county }}, {{ facility.state }}
+                </div>
+                
+                <div class="result-info">
+                    <strong>Bed Count:</strong> {{ facility.bed_count }}
+                </div>
+                
+                {% if facility.contact %}
+                    <div class="result-info">
+                        <strong>Contact:</strong> {{ facility.contact }}
+                    </div>
+                {% endif %}
+                
+                <!-- Facility Type Badge -->
+                <span class="facility-type-badge">{{ facility.facility_type }}</span>
+                
+                <!-- Bed Availability Status -->
+                {% if facility.bed_data %}
+                    <div class="bed-availability">
+                        <i class="fas fa-bed"></i> {{ facility.bed_data.available_beds }} beds available
+                        <small>(Updated: {{ facility.bed_data.updated_at|date:"M d" }})</small>
+                    </div>
+                {% else %}
+                    <div class="no-bed-data">
+                        <i class="fas fa-info-circle"></i> Bed availability not updated
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- No Results Message -->
+    {% if query and not page_obj %}
+        <div class="text-center" style="padding: 50px;">
+            <i class="fas fa-search" style="font-size: 3rem; color: #ccc; margin-bottom: 20px;"></i>
+            <h3 style="color: #666;">No active facilities found</h3>
+            <p style="color: #999;">Try adjusting your search criteria or removing filters.</p>
+            <p style="color: #999; font-size: 14px;">Only approved and active facilities are shown in search results.</p>
+        </div>
+    {% endif %}
+
+    <!-- Pagination (conditionally blurred) -->
+    {% if page_obj %}
+    <div class="pagination" id="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page=1&{{ request.GET.urlencode }}">First</a>
+            <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Previous</a>
+        {% else %}
+            <a class="disabled">First</a>
+            <a class="disabled">Previous</a>
+        {% endif %}
+
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}">Last</a>
+        {% else %}
+            <a class="disabled">Next</a>
+            <a class="disabled">Last</a>
+        {% endif %}
+    </div>
+    {% endif %}
 
     <!-- JavaScript -->
     <script>
-        // JavaScript to Show/Hide Filters
+        // Enhanced JavaScript for the User Tracking Form with 30-minute interval
+
         document.addEventListener("DOMContentLoaded", function () {
             const searchBox = document.getElementById("search-box");
             const filters = document.getElementById("filters-form");
-    
+
             // Show/hide filters based on search input
             searchBox.addEventListener("input", function () {
                 if (searchBox.value.trim()) {
@@ -248,14 +569,237 @@
                     filters.style.display = "none";
                 }
             });
+            
+            // Check tracking status and show/hide form accordingly
+            checkTrackingStatus();
+            
+            // User Tracking Form Submission with improved UX
+            const userTrackingForm = document.getElementById("user-tracking-form");
+            if (userTrackingForm) {
+                const formFields = userTrackingForm.querySelectorAll('input, select');
+                const formMessages = document.getElementById("form-messages");
+                const submitButton = userTrackingForm.querySelector('.btn-submit');
+                
+                // Add input validation styles
+                formFields.forEach(field => {
+                    field.addEventListener('input', function() {
+                        if (field.value.trim() !== '') {
+                            field.classList.add('valid');
+                            field.classList.remove('invalid');
+                        } else {
+                            field.classList.remove('valid');
+                        }
+                    });
+                });
+                
+                userTrackingForm.addEventListener("submit", function(e) {
+                    e.preventDefault();
+                    
+                    // Show loading state
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                    submitButton.disabled = true;
+                    
+                    const formData = new FormData(userTrackingForm);
+                    
+                    fetch("{% url 'usertracking:submit_user_tracking' %}", {
+                        method: "POST",
+                        body: formData,
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest",
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Success animation
+                            submitButton.innerHTML = '<i class="fas fa-check"></i> Success!';
+                            submitButton.style.backgroundColor = '#38a169';
+                            
+                            // Success message
+                            formMessages.innerHTML = '<div class="success-message">' + data.message + '</div>';
+                            
+                            // Store tracking status in localStorage with timestamp
+                            localStorage.setItem('userTracked', 'true');
+                            localStorage.setItem('trackingTimestamp', Date.now().toString());
+                            
+                            // Smooth transition to show results
+                            setTimeout(() => {
+                                hideTrackingModal();
+                                showTrackingStatus();
+                            }, 1000);
+                        } else {
+                            // Reset button
+                            submitButton.innerHTML = 'Unlock Results <i class="fas fa-arrow-right"></i>';
+                            submitButton.disabled = false;
+                            
+                            // Show validation errors with highlights
+                            let errorHtml = '<div class="error-message">';
+                            for (const [field, errors] of Object.entries(data.errors)) {
+                                errorHtml += `<p><i class="fas fa-exclamation-circle"></i> ${errors.join(', ')}</p>`;
+                                // Highlight problem fields
+                                const problemField = document.querySelector(`[name="${field}"]`);
+                                if (problemField) {
+                                    problemField.classList.add('invalid');
+                                }
+                            }
+                            errorHtml += '</div>';
+                            formMessages.innerHTML = errorHtml;
+                            
+                            // Smooth scroll to errors
+                            formMessages.scrollIntoView({behavior: "smooth", block: "center"});
+                        }
+                    })
+                    .catch(error => {
+                        // Reset button
+                        submitButton.innerHTML = 'Unlock Results <i class="fas fa-arrow-right"></i>';
+                        submitButton.disabled = false;
+                        
+                        formMessages.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-triangle"></i> An error occurred. Please try again.</div>';
+                    });
+                });
+            }
         });
-    
-        // Toggle Facility Type
+
+        // Tracking status management functions
+        function checkTrackingStatus() {
+            const userTracked = localStorage.getItem('userTracked');
+            const trackingTimestamp = localStorage.getItem('trackingTimestamp');
+            const thirtyMinutes = 30 * 60 * 1000; // 30 minutes in milliseconds
+            
+            if (userTracked === 'true' && trackingTimestamp) {
+                const timeDiff = Date.now() - parseInt(trackingTimestamp);
+                
+                if (timeDiff < thirtyMinutes) {
+                    // User is still within the 30-minute window
+                    hideTrackingModal();
+                    showTrackingStatus();
+                    return;
+                } else {
+                    // 30 minutes have passed, clear the tracking status
+                    localStorage.removeItem('userTracked');
+                    localStorage.removeItem('trackingTimestamp');
+                }
+            }
+            
+            // Show tracking modal if there are search results
+            const pageObj = {{ page_obj|yesno:"true,false" }};
+            if (pageObj) {
+                showTrackingModal();
+            }
+        }
+
+        function showTrackingModal() {
+            const modal = document.getElementById("user-tracking-overlay");
+            const resultsContainer = document.getElementById("results-container");
+            const pagination = document.getElementById("pagination");
+            const resultsSubtext = document.getElementById("results-subtext");
+            
+            if (modal) {
+                modal.style.display = "block";
+                resultsSubtext.textContent = "Complete the quick form below to view detailed results with facility images";
+            }
+            
+            if (resultsContainer) {
+                resultsContainer.classList.add("results-blurred");
+            }
+            
+            if (pagination) {
+                pagination.classList.add("results-blurred");
+            }
+        }
+
+        function hideTrackingModal() {
+            const modal = document.getElementById("user-tracking-overlay");
+            const resultsContainer = document.getElementById("results-container");
+            const pagination = document.getElementById("pagination");
+            const resultsSubtext = document.getElementById("results-subtext");
+            
+            if (modal) {
+                modal.style.opacity = "0";
+                setTimeout(() => {
+                    modal.style.display = "none";
+                }, 300);
+            }
+            
+            if (resultsSubtext) {
+                resultsSubtext.textContent = "Browse all facility details and images freely";
+            }
+            
+            if (resultsContainer) {
+                resultsContainer.classList.add("results-transition");
+                setTimeout(() => {
+                    resultsContainer.classList.remove("results-blurred");
+                }, 100);
+            }
+            
+            if (pagination) {
+                pagination.classList.add("results-transition");
+                setTimeout(() => {
+                    pagination.classList.remove("results-blurred");
+                }, 100);
+            }
+        }
+
+        function showTrackingStatus() {
+            const statusElement = document.getElementById("tracking-status");
+            if (statusElement) {
+                statusElement.style.display = "block";
+                
+                // Hide the status message after 5 seconds
+                setTimeout(() => {
+                    statusElement.style.opacity = "0";
+                    setTimeout(() => {
+                        statusElement.style.display = "none";
+                        statusElement.style.opacity = "1"; // Reset for next time
+                    }, 300);
+                }, 5000);
+            }
+        }
+
+        // Function to manually reset tracking (useful for testing)
+        function resetTracking() {
+            localStorage.removeItem('userTracked');
+            localStorage.removeItem('trackingTimestamp');
+            location.reload();
+        }
+
+        // Additional CSS for transitions
+        const style = document.createElement('style');
+        style.textContent = `
+            .results-transition {
+                transition: filter 0.8s ease-out;
+            }
+            
+            .user-tracking-modal {
+                transition: opacity 0.3s ease-out;
+            }
+            
+            .form-field input.valid {
+                border-color: #38a169;
+                background-color: #f0fff4;
+            }
+            
+            .form-field input.invalid {
+                border-color: #e53e3e;
+                background-color: #fff5f5;
+            }
+            
+            .btn-submit {
+                transition: background-color 0.3s, transform 0.2s, box-shadow 0.2s;
+            }
+            
+            .tracking-status {
+                transition: opacity 0.3s ease-out;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Original functions preserved
         function toggleFacilityType(facilityType) {
             const form = document.getElementById("filters-form");
             const inputs = document.getElementById("facility-type-inputs");
             let exists = false;
-    
+
             // Check if the facility type is already selected
             document.querySelectorAll("input[name='facility_type']").forEach(input => {
                 if (input.value === facilityType) {
@@ -263,7 +807,7 @@
                     input.remove(); // Remove if already selected
                 }
             });
-    
+
             // Add if not already selected
             if (!exists) {
                 const newInput = document.createElement("input");
@@ -272,11 +816,10 @@
                 newInput.value = facilityType;
                 inputs.appendChild(newInput);
             }
-    
+
             form.submit();
         }
-    
-        // Clear Filters
+
         function clearFilters() {
             const form = document.getElementById("filters-form");
             document.querySelectorAll("input[name='facility_type']").forEach(input => input.remove());
@@ -284,14 +827,12 @@
             document.getElementById("sort_by_input").value = "name";
             form.submit();
         }
-    
-        // Update Bed Count
+
         function updateBedCount(value) {
             document.getElementById("bed_count_input").value = value;
             document.getElementById("filters-form").submit();
         }
-    
-        // Update Sort By
+
         function updateSortBy(value) {
             document.getElementById("sort_by_input").value = value;
             document.getElementById("filters-form").submit();

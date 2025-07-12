@@ -1,7 +1,9 @@
-# search/views.py - Updated to show only active facilities
+# search/views.py - Complete Refined version with natural summaries
 
 import json
 import requests
+import logging
+import time
 
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, Min, Max
@@ -10,173 +12,18 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.http import JsonResponse
 from .serializers import FacilitySerializer
-from bedupdates.models import BedAvailability  # Import BedData model
+from bedupdates.models import BedAvailability
 from .ollama_utils import ollama_chat
 from bs4 import BeautifulSoup
 
 from .models import Facility
 
-# Template Views
+# Set up logging
+logger = logging.getLogger(__name__)
+
+# Speed-optimized Template Views
 def home(request):
-    query = request.GET.get("q", "").strip()
-    bed_count_filter = request.GET.get("bed_count", "").strip()
-    selected_facility_types = request.GET.getlist("facility_type")
-    sort_by = request.GET.get("sort_by", "name").strip()
-
-    # Start with only active facilities
-    facilities = Facility.objects.filter(status='active')
-
-    # Apply search query first
-    if query:
-        facilities = facilities.filter(
-            address__icontains=query
-        )  # Replace with the fields you want to search
-
-    # Apply filters only if a query is entered
-    if query:
-        # Filter by selected facility types
-        if selected_facility_types:
-            facilities = facilities.filter(endorsement__icontains=selected_facility_types[0])
-            for facility_type in selected_facility_types[1:]:
-                facilities = facilities | Facility.objects.filter(
-                    endorsement__icontains=facility_type,
-                    status='active'  # Ensure we maintain the active filter
-                )
-
-        # Filter by bed count
-        if bed_count_filter.isdigit():
-            facilities = facilities.filter(bed_count=int(bed_count_filter))
-
-        # Sorting
-        sorting_options = {
-            "name": "name",
-            "bed_count": "bed_count",
-            "-bed_count": "-bed_count",
-        }
-        if sort_by in sorting_options:
-            facilities = facilities.order_by(sorting_options[sort_by])
-    
-    # Get bed data for each facility
-    facilities_list = list(facilities)
-    for facility in facilities_list:
-        try:
-            bed_data = BedAvailability.objects.filter(facility=facility).latest('updated_at')
-            facility.bed_data = bed_data
-        except BedAvailability.DoesNotExist:
-            facility.bed_data = None
-    
-    # Pagination
-    paginator = Paginator(facilities_list, 10)  # Show 10 facilities per page
-    page = request.GET.get('page')
-    
-    try:
-        page_obj = paginator.page(page)
-    except PageNotAnInteger:
-        page_obj = paginator.page(1)
-    except EmptyPage:
-        page_obj = paginator.page(paginator.num_pages)
-    
-    # Get min and max bed counts for filter dropdown (only from active facilities)
-    bed_counts = Facility.objects.filter(status='active').values_list('bed_count', flat=True).distinct().order_by('bed_count')
-    
-    context = {
-        'page_obj': page_obj,  
-        'query': query,
-        'selected_facility_types': selected_facility_types,
-        'bed_count_filter': bed_count_filter,
-        'sort_by': sort_by,
-        'bed_counts': bed_counts,
-    }
-    
-    return render(request, "search/home.html", context)
-
-def facility_detail(request, facility_id):  # Template view
-    # Only show active facilities in public view
-    facility = get_object_or_404(Facility, id=facility_id, status='active')
-    
-    # Get bed data if available
-    try:
-        bed_data = BedAvailability.objects.filter(facility=facility).latest('updated_at')
-        facility.bed_data = bed_data
-    except BedAvailability.DoesNotExist:
-        facility.bed_data = None
-        
-    return render(request, "search/detail.html", {"facility": facility})
-
-def searxnghome(request):
-    query = request.GET.get("q", "").strip()
-    bed_count_filter = request.GET.get("bed_count", "").strip()
-    selected_facility_types = request.GET.getlist("facility_type")
-    sort_by = request.GET.get("sort_by", "name").strip()
-
-    # Start with only active facilities
-    facilities = Facility.objects.filter(status='active')
-
-    # Apply search query first
-    if query:
-        facilities = facilities.filter(
-            address__icontains=query
-        )
-
-    if query:
-        # Filter by selected facility types
-        if selected_facility_types:
-            facilities = facilities.filter(endorsement__icontains=selected_facility_types[0])
-            for facility_type in selected_facility_types[1:]:
-                facilities = facilities | Facility.objects.filter(
-                    endorsement__icontains=facility_type,
-                    status='active'  # Ensure we maintain the active filter
-                )
-
-        # Filter by bed count
-        if bed_count_filter.isdigit():
-            facilities = facilities.filter(bed_count=int(bed_count_filter))
-
-        # Sorting
-        sorting_options = {
-            "name": "name",
-            "bed_count": "bed_count",
-            "-bed_count": "-bed_count",
-        }
-        if sort_by in sorting_options:
-            facilities = facilities.order_by(sorting_options[sort_by])
-
-    # Pagination
-    paginator = Paginator(facilities, 15)
-    page_number = request.GET.get("page")
-    try:
-        page_obj = paginator.page(page_number)
-    except PageNotAnInteger:
-        page_obj = paginator.page(1)
-    except EmptyPage:
-        page_obj = paginator.page(paginator.num_pages)
-
-    # Get distinct bed counts for the filter dropdown (only from active facilities)
-    bed_counts = Facility.objects.filter(status='active').values_list("bed_count", flat=True).distinct().order_by("bed_count")
-
-    return render(request, "search/searxng_home.html", {
-        "page_obj": page_obj,
-        "query": query,
-        "bed_counts": bed_counts,
-        "sort_by": sort_by,
-        "bed_count_filter": bed_count_filter,
-        "selected_facility_types": selected_facility_types,
-    })
-
-# Searxng facility detail view
-def searxngfacilitydetail(request, facility_id):
-    """
-    View function to display the detail page for a specific facility
-    """
-    # Only show active facilities in public view
-    facility = get_object_or_404(Facility, id=facility_id, status='active')
-    context = {
-        "facility": facility,
-        "request": request,  # Pass request to allow template to access GET parameters
-    }
-    return render(request, "search/detail_searxng.html", context)
-
-def ollama_search(request):
+    """Speed-optimized home view with natural engaging summaries under 3 seconds"""
     query = request.GET.get("q", "").strip()
     bed_count_filter = request.GET.get("bed_count", "").strip()
     selected_facility_types = request.GET.getlist("facility_type")
@@ -205,104 +52,107 @@ def ollama_search(request):
         if bed_count_filter.isdigit():
             facilities = facilities.filter(bed_count=int(bed_count_filter))
 
-        # Generate AI summary if there are results
+        # Generate FAST natural summary to hook users
         if facilities.exists():
-            # Prepare data for Ollama
-            facility_data = []
-            for facility in facilities[:15]:  # Limit to first 15 for summary
-                facility_data.append({
-                    'name': facility.name,
-                    'type': facility.facility_type,
-                    'endorsement': facility.endorsement,
-                    'address': facility.address,
-                    'bed_count': facility.bed_count,
-                    'state': facility.state,
-                    'county': facility.county,
-                })
-            
-            # Get bed count range
-            min_beds = facilities.aggregate(Min('bed_count'))['bed_count__min']
-            max_beds = facilities.aggregate(Max('bed_count'))['bed_count__max']
-            
-            # Extract facility types for context
-            facility_types = set()
-            endorsements = set()
-            for facility in facilities[:20]:  # Sample for variety
-                if facility.facility_type:
-                    facility_types.add(facility.facility_type)
-                if facility.endorsement:
-                    endorsements.update([e.strip() for e in facility.endorsement.split(',')])
-            
-            # Create an enhanced prompt for Ollama to generate a professional summary
-            summary_prompt = f"""
-            Analyze these active healthcare facilities matching the search "{query}":
-            {facility_data}
-
-            User query context: "{query}"
-            Total active facilities found: {facilities.count()}
-            Bed capacity range: {min_beds} to {max_beds}
-            Facility types: {list(facility_types)}
-            Endorsements/Specialties: {list(endorsements)}
-
-            Create a personalized, insightful summary that:
-            1. Directly addresses the query intent (e.g., if searching for "assisted living in Las Vegas," focus on Las Vegas options)
-            2. Highlights the MOST RELEVANT facilities and WHY they match the query (e.g., specialized care, location)
-            3. If multiple facility types are found, compare their offerings relevant to the query
-            4. Mention specific locations if the query includes location terms
-            5. Provide 1-2 specific facility recommendations with brief reasoning (e.g., "Mother's Love stands out for its 24/7 care and specialized Alzheimer's program")
-
-            Rules:
-            - Be specific and factual based ONLY on the data provided
-            - If searching for multiple conditions (e.g., "Alzheimer's and disabled care"), specifically address facilities that offer BOTH
-            - If searching for a location, emphasize facilities in that specific location
-            - Be concise but informative (4-5 sentences)
-            - Write in a professional healthcare advisor tone
-            - Do NOT mention this being AI-generated or use disclaimers
-            """
-            
-            try:
-                # Get response from Ollama
-                ai_summary = ollama_chat(summary_prompt)
-                
-                # Fallback if Ollama returns an error
-                if ai_summary.startswith("Error") or ai_summary.startswith("Exception") or ai_summary.startswith("Could not connect"):
-                    ai_summary = generate_fallback_summary(facilities, query, min_beds, max_beds)
-            except Exception as e:
-                # Simple fallback summary if Ollama fails
-                ai_summary = generate_fallback_summary(facilities, query, min_beds, max_beds)
+            ai_summary = generate_natural_hook_summary(facilities, query)
         else:
-            # No results found - provide professional guidance
-            try:
-                no_results_prompt = f"""
-                A user searched for healthcare facilities with: "{query}"
-                No matching active facilities were found in our database.
-                
-                Analyze the query to determine what type of facility or location they're looking for.
-                
-                Create a helpful, professional response that:
-                1. Acknowledges the lack of results for their specific search
-                2. Suggests 2-3 alternative search terms based on their query
-                3. If the query includes multiple requirements, suggests searching for them separately
-                4. If location is mentioned, suggests nearby areas or postal codes
-                
-                Format: 3-4 sentences total. Professional healthcare advisor tone.
-                Be direct and helpful.
-                """
-                ai_summary = ollama_chat(no_results_prompt)
-                
-                # Fallback if Ollama returns an error
-                if ai_summary.startswith("Error") or ai_summary.startswith("Exception") or ai_summary.startswith("Could not connect"):
-                    ai_summary = generate_no_results_fallback(query)
-            except Exception as e:
-                # Simple fallback if Ollama fails
-                ai_summary = generate_no_results_fallback(query)
+            ai_summary = generate_natural_no_results_hook(query)
 
         # Sorting
         sorting_options = {
             "name": "name",
             "bed_count": "bed_count",
             "-bed_count": "-bed_count",
-            "relevance": "-relevance",  # If we're using the weighted search
+            "relevance": "-relevance",
+        }
+        if sort_by in sorting_options:
+            facilities = facilities.order_by(sorting_options[sort_by])
+    
+    # Get bed data for each facility
+    facilities_list = list(facilities)
+    for facility in facilities_list:
+        try:
+            bed_data = BedAvailability.objects.filter(facility=facility).latest('updated_at')
+            facility.bed_data = bed_data
+        except BedAvailability.DoesNotExist:
+            facility.bed_data = None
+    
+    # Pagination
+    paginator = Paginator(facilities_list, 10)
+    page = request.GET.get('page')
+    
+    try:
+        page_obj = paginator.page(page)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+    
+    # Get min and max bed counts for filter dropdown
+    bed_counts = Facility.objects.filter(status='active').values_list('bed_count', flat=True).distinct().order_by('bed_count')
+    
+    context = {
+        'page_obj': page_obj,  
+        'query': query,
+        'selected_facility_types': selected_facility_types,
+        'bed_count_filter': bed_count_filter,
+        'sort_by': sort_by,
+        'bed_counts': bed_counts,
+        'ai_summary': ai_summary,
+        'search_count': search_count,
+    }
+    
+    return render(request, "search/home.html", context)
+
+def facility_detail(request, facility_id):
+    """Enhanced facility detail view with quick insights"""
+    facility = get_object_or_404(Facility, id=facility_id, status='active')
+    
+    # Get bed data if available
+    try:
+        bed_data = BedAvailability.objects.filter(facility=facility).latest('updated_at')
+        facility.bed_data = bed_data
+    except BedAvailability.DoesNotExist:
+        facility.bed_data = None
+    
+    # Generate quick facility insight
+    facility_insight = generate_facility_insight(facility)
+    
+    return render(request, "search/detail.html", {
+        "facility": facility,
+        "facility_insight": facility_insight
+    })
+
+def searxnghome(request):
+    """Speed-optimized searxng home for backward compatibility"""
+    query = request.GET.get("q", "").strip()
+    bed_count_filter = request.GET.get("bed_count", "").strip()
+    selected_facility_types = request.GET.getlist("facility_type")
+    sort_by = request.GET.get("sort_by", "name").strip()
+
+    # Start with only active facilities
+    facilities = Facility.objects.filter(status='active')
+
+    # Apply search query first
+    if query:
+        facilities = improved_search(facilities, query)
+
+        # Filter by selected facility types
+        if selected_facility_types:
+            type_query = Q(endorsement__icontains=selected_facility_types[0])
+            for facility_type in selected_facility_types[1:]:
+                type_query |= Q(endorsement__icontains=facility_type)
+            facilities = facilities.filter(type_query)
+
+        # Filter by bed count
+        if bed_count_filter.isdigit():
+            facilities = facilities.filter(bed_count=int(bed_count_filter))
+
+        # Sorting
+        sorting_options = {
+            "name": "name",
+            "bed_count": "bed_count",
+            "-bed_count": "-bed_count",
         }
         if sort_by in sorting_options:
             facilities = facilities.order_by(sorting_options[sort_by])
@@ -317,7 +167,84 @@ def ollama_search(request):
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
 
-    # Get distinct bed counts for the filter dropdown (only from active facilities)
+    # Get distinct bed counts for the filter dropdown
+    bed_counts = Facility.objects.filter(status='active').values_list("bed_count", flat=True).distinct().order_by("bed_count")
+
+    return render(request, "search/searxng_home.html", {
+        "page_obj": page_obj,
+        "query": query,
+        "bed_counts": bed_counts,
+        "sort_by": sort_by,
+        "bed_count_filter": bed_count_filter,
+        "selected_facility_types": selected_facility_types,
+    })
+
+def searxngfacilitydetail(request, facility_id):
+    """Searxng facility detail view"""
+    facility = get_object_or_404(Facility, id=facility_id, status='active')
+    context = {
+        "facility": facility,
+        "request": request,
+    }
+    return render(request, "search/detail_searxng.html", context)
+
+def ollama_search(request):
+    """Speed-optimized ollama search with natural summaries"""
+    query = request.GET.get("q", "").strip()
+    bed_count_filter = request.GET.get("bed_count", "").strip()
+    selected_facility_types = request.GET.getlist("facility_type")
+    sort_by = request.GET.get("sort_by", "name").strip()
+
+    # Start with only active facilities
+    facilities = Facility.objects.filter(status='active')
+    ai_summary = ""
+    search_count = 0
+
+    # Apply search query first
+    if query:
+        # Use the improved search function for better results
+        facilities = improved_search(facilities, query)
+        search_count = facilities.count()
+
+        # Apply filters only if a query is entered
+        # Filter by selected facility types
+        if selected_facility_types:
+            type_query = Q(endorsement__icontains=selected_facility_types[0])
+            for facility_type in selected_facility_types[1:]:
+                type_query |= Q(endorsement__icontains=facility_type)
+            facilities = facilities.filter(type_query)
+
+        # Filter by bed count
+        if bed_count_filter.isdigit():
+            facilities = facilities.filter(bed_count=int(bed_count_filter))
+
+        # Generate FAST natural summary to hook users
+        if facilities.exists():
+            ai_summary = generate_natural_hook_summary(facilities, query)
+        else:
+            ai_summary = generate_natural_no_results_hook(query)
+
+        # Sorting
+        sorting_options = {
+            "name": "name",
+            "bed_count": "bed_count",
+            "-bed_count": "-bed_count",
+            "relevance": "-relevance",
+        }
+        if sort_by in sorting_options:
+            facilities = facilities.order_by(sorting_options[sort_by])
+
+    # Pagination
+    paginator = Paginator(facilities, 15)
+    page_number = request.GET.get("page")
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+    # Get distinct bed counts for the filter dropdown
     bed_counts = Facility.objects.filter(status='active').values_list("bed_count", flat=True).distinct().order_by("bed_count")
 
     return render(request, "search/ollama_search.html", {
@@ -331,13 +258,292 @@ def ollama_search(request):
         "search_count": search_count,
     })
 
+# NATURAL SUMMARY GENERATION FUNCTIONS
+
+def generate_natural_hook_summary(facilities, query):
+    """
+    Generate natural, informative summary without specific recommendations
+    """
+    start_time = time.time()
+    count = facilities.count()
+    
+    # Get analytics quickly
+    min_beds = facilities.aggregate(Min('bed_count'))['bed_count__min']
+    max_beds = facilities.aggregate(Max('bed_count'))['bed_count__max']
+    
+    # Extract locations and facility types
+    cities = set()
+    facility_types = set()
+    specialties = set()
+    
+    for facility in facilities[:10]:  # Analyze first 10 for speed
+        if facility.address:
+            city = facility.address.split(',')[0].strip()
+            if city:
+                cities.add(city)
+        if facility.facility_type:
+            facility_types.add(facility.facility_type)
+        if facility.endorsement:
+            # Extract specialties
+            facility_specialties = [s.strip() for s in facility.endorsement.split(',')[:3]]
+            specialties.update(facility_specialties)
+    
+    # Try fast AI summary first (2-3 seconds max)
+    ai_summary = try_natural_ai_summary(query, count, cities, facility_types, specialties, min_beds, max_beds)
+    
+    # If AI fails or takes too long, use smart instant summary
+    elapsed = time.time() - start_time
+    if not ai_summary or elapsed > 2.5 or ai_summary.startswith("Error"):
+        ai_summary = generate_natural_instant_summary(query, count, cities, facility_types, specialties, min_beds, max_beds)
+    
+    logger.info(f"Summary generated in {time.time() - start_time:.2f} seconds for query: {query}")
+    return ai_summary
+
+def try_natural_ai_summary(query, count, cities, facility_types, specialties, min_beds, max_beds):
+    """
+    Attempt fast AI summary with natural language approach
+    """
+    try:
+        # Extract key terms from query for natural reference
+        query_terms = extract_key_terms(query)
+        
+        # Build context for AI
+        context_data = {
+            'search_type': determine_search_type(query),
+            'count': count,
+            'bed_range': f"{min_beds}-{max_beds}" if min_beds != max_beds else str(min_beds),
+            'locations': list(cities)[:3],
+            'facility_types': list(facility_types)[:3],
+            'specialties': list(specialties)[:4]
+        }
+
+        # Natural prompt without exact query repetition
+        prompt = f"""Create a natural summary for healthcare facility search results:
+
+Search context: {query_terms['care_type']} in {query_terms['location']} area
+Results: {count} facilities found
+Bed capacity: {context_data['bed_range']} beds
+Locations: {context_data['locations']}
+Specialties: {context_data['specialties'][:3]}
+
+Write 2-3 sentences that:
+- Mention the number of facilities found
+- Reference bed capacity range if meaningful
+- Mention service areas if location was searched
+- Note specializations if relevant to search
+- End with encouraging users to compare facilities to find their best fit
+
+Keep natural and informative without specific facility names."""
+
+        response = requests.post(
+            'http://my-ollama-llama31.h2ffbjbfh3fveffu.westus2.azurecontainer.io:11434/api/generate',
+            json={
+                'model': 'mistral:7b',
+                'prompt': prompt,
+                'stream': False,
+                'options': {
+                    'temperature': 0.3,
+                    'num_ctx': 512,
+                    'num_predict': 100,
+                }
+            },
+            timeout=3
+        )
+        
+        if response.status_code == 200:
+            return response.json()['response'].strip()
+        else:
+            return None
+            
+    except Exception as e:
+        logger.warning(f"Natural AI summary failed: {str(e)}")
+        return None
+
+def generate_natural_instant_summary(query, count, cities, facility_types, specialties, min_beds, max_beds):
+    """
+    Generate natural instant summary without AI (under 0.5 seconds)
+    """
+    query_terms = extract_key_terms(query)
+    
+    # Start with count
+    if count == 1:
+        summary = f"{count} facility matches your search criteria"
+    else:
+        summary = f"{count} facilities match your search criteria"
+    
+    # Add bed capacity information
+    if min_beds and max_beds:
+        if min_beds == max_beds:
+            summary += f", each offering {min_beds} beds"
+        else:
+            summary += f" with bed capacity ranging from {min_beds} to {max_beds}"
+    
+    # Add location information if location was in query
+    if query_terms['location'] and cities:
+        city_list = list(cities)
+        if len(city_list) == 1:
+            summary += f". Services are available in the {city_list[0]} area"
+        elif len(city_list) <= 3:
+            summary += f". Services are available across {', '.join(city_list[:2])}"
+            if len(city_list) == 3:
+                summary += f" and {city_list[2]}"
+        else:
+            summary += f". Services are available in {city_list[0]} and {len(city_list)-1} other locations"
+    
+    # Add specialty information if care type was in query
+    if query_terms['care_type'] and specialties:
+        relevant_specialties = [s for s in specialties if any(term in s.lower() for term in query_terms['care_type'].lower().split())][:2]
+        if relevant_specialties:
+            if len(relevant_specialties) == 1:
+                summary += f". These facilities specialize in {relevant_specialties[0].lower()}"
+            else:
+                summary += f". These facilities specialize in {relevant_specialties[0].lower()} and {relevant_specialties[1].lower()}"
+        elif specialties:
+            specialty_list = list(specialties)[:2]
+            summary += f". Available specialties include {specialty_list[0].lower()}"
+            if len(specialty_list) > 1:
+                summary += f" and {specialty_list[1].lower()}"
+    
+    # Natural ending encouraging comparison
+    summary += ". Please compare the available facilities to find the best fit for your specific needs."
+    
+    return summary
+
+def generate_natural_no_results_hook(query):
+    """
+    Generate natural no-results message
+    """
+    query_terms = extract_key_terms(query)
+    
+    summary = "No facilities found matching your specific search criteria"
+    
+    # Provide helpful suggestions based on query components
+    suggestions = []
+    
+    if query_terms['location']:
+        suggestions.append(f"try expanding your search to areas near {query_terms['location']}")
+    
+    if query_terms['care_type']:
+        suggestions.append(f"search for {query_terms['care_type']} without location restrictions")
+    
+    if not suggestions:
+        suggestions.append("try broader search terms")
+        suggestions.append("search by location only")
+    
+    if suggestions:
+        summary += ". Consider these alternatives: " + suggestions[0]
+        if len(suggestions) > 1:
+            summary += f" or {suggestions[1]}"
+    
+    summary += ". Complete the form below and our specialists will help you find suitable facilities in your preferred area."
+    
+    return summary
+
+def extract_key_terms(query):
+    """
+    Extract key terms from query for natural language generation
+    """
+    query_lower = query.lower()
+    
+    # Identify care types
+    care_types = {
+        'assisted living': ['assisted living', 'assisted', 'independent living'],
+        'memory care': ['alzheimer', 'memory care', 'dementia'],
+        'nursing care': ['nursing home', 'skilled nursing', 'nursing'],
+        'senior care': ['senior', 'elderly', 'elder care'],
+        'rehabilitation': ['rehab', 'rehabilitation', 'physical therapy'],
+        'respite care': ['respite', 'temporary care'],
+        'hospice care': ['hospice', 'end of life'],
+    }
+    
+    care_type = None
+    for care_name, keywords in care_types.items():
+        if any(keyword in query_lower for keyword in keywords):
+            care_type = care_name
+            break
+    
+    # Identify locations (simplified)
+    location_indicators = ['in', 'near', 'around', 'at']
+    location = None
+    
+    words = query.split()
+    for i, word in enumerate(words):
+        if word.lower() in location_indicators and i + 1 < len(words):
+            location = ' '.join(words[i+1:])
+            break
+    
+    # If no location indicator, check for common city names or zip codes
+    if not location:
+        for word in words:
+            if word.isdigit() and len(word) == 5:  # ZIP code
+                location = word
+                break
+            elif len(word) > 3 and word[0].isupper():  # Likely city name
+                location = word
+                break
+    
+    return {
+        'care_type': care_type or 'healthcare services',
+        'location': location or 'your area'
+    }
+
+def determine_search_type(query):
+    """
+    Determine the type of search for context
+    """
+    query_lower = query.lower()
+    
+    if any(term in query_lower for term in ['assisted living', 'assisted']):
+        return 'assisted_living'
+    elif any(term in query_lower for term in ['alzheimer', 'memory', 'dementia']):
+        return 'memory_care'
+    elif any(term in query_lower for term in ['nursing', 'skilled']):
+        return 'nursing_care'
+    elif any(term in query_lower for term in ['senior', 'elderly']):
+        return 'senior_care'
+    else:
+        return 'general_care'
+
+def generate_facility_insight(facility):
+    """
+    Generate quick facility insight for detail pages
+    """
+    insights = []
+    
+    # Capacity insight
+    if facility.bed_count:
+        if facility.bed_count <= 30:
+            insights.append(f"Intimate community with {facility.bed_count} beds for personalized attention")
+        elif facility.bed_count <= 80:
+            insights.append(f"Mid-sized facility with {facility.bed_count} beds balancing personal care and comprehensive services")
+        else:
+            insights.append(f"Large facility with {facility.bed_count} beds offering extensive programs and specialized care")
+    
+    # Location insight
+    if facility.address:
+        city = facility.address.split(',')[0].strip()
+        insights.append(f"Located in {city} for convenient family access")
+    
+    # Specialization insight
+    if facility.endorsement:
+        specialties = [s.strip() for s in facility.endorsement.split(',')[:2]]
+        if len(specialties) == 1:
+            insights.append(f"Specialized care includes {specialties[0].lower()}")
+        else:
+            insights.append(f"Specialized services include {specialties[0].lower()} and {specialties[1].lower()}")
+    
+    if insights:
+        return ". ".join(insights) + ". Contact them directly to discuss your specific care requirements and available options."
+    else:
+        return f"This facility offers comprehensive care services. Contact them directly to learn more about their programs and how they can meet your specific needs."
+
+# Helper functions (speed-optimized)
+
 def improved_search(queryset, query):
     """
-    Perform an intelligent search that better handles location qualifiers
-    and multiple facility type specifications - only on active facilities
+    Speed-optimized search function
     """
-    from django.db.models import Q, F, Value, IntegerField
-    from django.db.models.functions import Greatest
+    from django.db.models import Q
     
     # Ensure we only search active facilities
     queryset = queryset.filter(status='active')
@@ -349,319 +555,138 @@ def improved_search(queryset, query):
     if not query:
         return queryset.none()
     
-    # Parse query to detect various components
-    query_components = parse_query(query)
+    # Split query into words for flexible searching
+    words = [word for word in query.split() if len(word) > 1]
     
-    # Extract components
-    main_terms = query_components['main_terms']
-    location_terms = query_components['location_terms']
-    facility_types = query_components['facility_types']
+    if not words:
+        return queryset.none()
     
-    # Initialize empty Q objects for each category
-    main_q = Q()
-    location_q = Q()
-    facility_type_q = Q()
+    # Build search query
+    search_q = Q()
     
-    # Process main search terms (name, etc.)
-    if main_terms:
-        main_query = " ".join(main_terms)
-        main_q = (
-            Q(name__icontains=main_query) | 
-            Q(endorsement__icontains=main_query)
+    # Search across main fields
+    for word in words:
+        word_q = (
+            Q(name__icontains=word) |
+            Q(address__icontains=word) |
+            Q(state__icontains=word) |
+            Q(county__icontains=word) |
+            Q(facility_type__icontains=word) |
+            Q(endorsement__icontains=word)
         )
         
-        # Also search individual words if multiple words are provided
-        if len(main_terms) > 1:
-            for term in main_terms:
-                if len(term) > 2:  # Skip very short words
-                    main_q |= (
-                        Q(name__icontains=term) | 
-                        Q(endorsement__icontains=term)
-                    )
-    
-    # Process location terms (address, state, county, etc.)
-    if location_terms:
-        location_query = " ".join(location_terms)
-        location_q = (
-            Q(address__icontains=location_query) | 
-            Q(state__icontains=location_query) | 
-            Q(county__icontains=location_query)
-        )
-        
-        # Also search for zip codes and individual location terms
-        for term in location_terms:
-            # If it looks like a zip code (5 digits)
-            if term.isdigit() and len(term) == 5:
-                location_q |= Q(address__icontains=term)
-            elif len(term) > 2:  # Skip very short words
-                location_q |= (
-                    Q(address__icontains=term) | 
-                    Q(state__icontains=term) | 
-                    Q(county__icontains=term)
-                )
-    
-    # Process facility type terms
-    if facility_types:
-        for facility_type in facility_types:
-            facility_type_q |= (
-                Q(facility_type__icontains=facility_type) | 
-                Q(endorsement__icontains=facility_type)
-            )
-    
-    # Combine queries based on what components were found
-    combined_q = Q()
-    
-    # If we have all components, require matches for each category
-    if main_terms and location_terms and facility_types:
-        combined_q = main_q & location_q & facility_type_q
-    # If we have main terms and location but no facility types
-    elif main_terms and location_terms:
-        combined_q = main_q & location_q
-    # If we have main terms and facility types but no location
-    elif main_terms and facility_types:
-        combined_q = main_q & facility_type_q
-    # If we have location and facility types but no main terms
-    elif location_terms and facility_types:
-        combined_q = location_q & facility_type_q
-    # If we only have one component
-    elif main_terms:
-        combined_q = main_q
-    elif location_terms:
-        combined_q = location_q
-    elif facility_types:
-        combined_q = facility_type_q
-    
-    # Apply the combined query
-    results = queryset.filter(combined_q)
-    
-    # If no results, try a more relaxed approach
-    if not results.exists():
-        # Relax the query by using OR instead of AND
-        relaxed_q = Q()
-        if main_terms:
-            relaxed_q |= main_q
-        if location_terms:
-            relaxed_q |= location_q
-        if facility_types:
-            relaxed_q |= facility_type_q
-        
-        results = queryset.filter(relaxed_q)
-    
-    # Apply ranking to sort by relevance
-    return apply_relevance_ranking(results, query_components)
-
-# Keep all other helper functions the same (parse_query, apply_relevance_ranking, etc.)
-# [Previous helper functions remain unchanged]
-
-
-
-# Add these helper functions to the end of your search/views.py file
-
-def parse_query(query):
-    """
-    Parse the query string to detect main terms, location, and facility types
-    """
-    # Common location indicators
-    location_indicators = ["in", "near", "at", "around", "by", "close to"]
-    
-    # Common facility type keywords
-    facility_keywords = [
-        "ALZHEIMER", "ASSISTED LIVING", "INTELLECTUAL DISABILIT", 
-        "MENTAL ILLNESS", "ELDERLY", "DISABLED", "RESIDENTIAL", 
-        "NURSING", "REHAB", "REHABILITATION", "CARE", "HOME", "CENTER"
-    ]
-    
-    # Normalize query
-    query = query.upper()  # Convert to uppercase for easier matching
-    words = query.split()
-    
-    # Initialize components
-    main_terms = []
-    location_terms = []
-    facility_types = []
-    
-    # Detect location part first
-    i = 0
-    while i < len(words):
-        if words[i].lower() in location_indicators and i + 1 < len(words):
-            # Collect all words after the location indicator
-            j = i + 1
-            while j < len(words):
-                location_terms.append(words[j])
-                j += 1
-            i = j  # Skip to the end
+        if not search_q:
+            search_q = word_q
         else:
-            i += 1
+            search_q &= word_q  # AND for multiple words
     
-    # If no location indicator found, try to detect ZIP codes
-    if not location_terms:
+    # Apply search
+    results = queryset.filter(search_q)
+    
+    # If no results with AND, try OR for broader results
+    if not results.exists() and len(words) > 1:
+        or_q = Q()
         for word in words:
-            if word.isdigit() and len(word) == 5:  # Likely a ZIP code
-                location_terms.append(word)
+            or_q |= (
+                Q(name__icontains=word) |
+                Q(address__icontains=word) |
+                Q(state__icontains=word) |
+                Q(county__icontains=word) |
+                Q(facility_type__icontains=word) |
+                Q(endorsement__icontains=word)
+            )
+        results = queryset.filter(or_q)
     
-    # Remove location terms from consideration for other categories
-    remaining_words = [w for w in words if w.lower() not in location_indicators and w not in location_terms]
-    
-    # Detect facility types
-    for word in remaining_words:
-        for keyword in facility_keywords:
-            if keyword in word:
-                facility_types.append(word)
-                break
-    
-    # Remaining words are main terms
-    main_terms = [w for w in remaining_words if w not in facility_types]
-    
-    return {
-        'main_terms': main_terms,
-        'location_terms': location_terms,
-        'facility_types': facility_types,
-        'original_query': query
-    }
+    return results
 
-def apply_relevance_ranking(queryset, query_components):
-    """
-    Apply relevance ranking to search results
-    """
-    from django.db.models import Case, When, Value, IntegerField, F
-    
-    # Extract components
-    main_terms = query_components['main_terms']
-    location_terms = query_components['location_terms']
-    facility_types = query_components['facility_types']
-    original_query = query_components['original_query']
-    
-    # Prepare annotation parameters
-    annotation_params = {}
-    
-    # Name exact match gets highest score
-    annotation_params['name_exact_match'] = Case(
-        When(name__iexact=original_query, then=Value(100)),
-        default=Value(0),
-        output_field=IntegerField()
-    )
-    
-    # Name contains full query
-    annotation_params['name_contains'] = Case(
-        When(name__icontains=original_query, then=Value(50)),
-        default=Value(0),
-        output_field=IntegerField()
-    )
-    
-    # Location match
-    if location_terms:
-        location_query = " ".join(location_terms)
-        annotation_params['location_match'] = Case(
-            When(address__icontains=location_query, then=Value(40)),
-            When(county__icontains=location_query, then=Value(30)),
-            When(state__icontains=location_query, then=Value(20)),
-            default=Value(0),
-            output_field=IntegerField()
-        )
-    else:
-        annotation_params['location_match'] = Value(0, output_field=IntegerField())
-    
-    # Facility type match
-    if facility_types:
-        facility_query = " ".join(facility_types)
-        annotation_params['facility_match'] = Case(
-            When(facility_type__icontains=facility_query, then=Value(40)),
-            When(endorsement__icontains=facility_query, then=Value(35)),
-            default=Value(0),
-            output_field=IntegerField()
-        )
-    else:
-        annotation_params['facility_match'] = Value(0, output_field=IntegerField())
-    
-    # Main terms match
-    if main_terms:
-        main_query = " ".join(main_terms)
-        annotation_params['main_match'] = Case(
-            When(name__icontains=main_query, then=Value(30)),
-            When(endorsement__icontains=main_query, then=Value(25)),
-            default=Value(0),
-            output_field=IntegerField()
-        )
-    else:
-        annotation_params['main_match'] = Value(0, output_field=IntegerField())
-    
-    # Apply annotations
-    queryset = queryset.annotate(**annotation_params)
-    
-    # Calculate total relevance
-    queryset = queryset.annotate(
-        relevance=F('name_exact_match') + 
-                 F('name_contains') + 
-                 F('location_match') + 
-                 F('facility_match') + 
-                 F('main_match')
-    )
-    
-    # Order by relevance
-    return queryset.order_by('-relevance')
+# API Views (simplified for speed)
 
-def generate_fallback_summary(facilities, query, min_beds, max_beds):
+@api_view(['GET'])
+def facility_list(request):
     """
-    Generate a fallback summary when Ollama fails
+    Speed-optimized API endpoint to list facilities
     """
-    count = facilities.count()
+    query = request.GET.get('q', '')
+    facilities = Facility.objects.filter(status='active')
     
-    # Extract query components
-    query_components = parse_query(query)
-    has_location = len(query_components['location_terms']) > 0
-    has_facility_type = len(query_components['facility_types']) > 0
+    if query:
+        facilities = improved_search(facilities, query)
     
-    # Basic summary
-    summary = f"Found {count} active facilities matching your search"
+    # Limit results for speed
+    facilities = facilities[:50]
     
-    # Add bed count info if available
-    if min_beds is not None and max_beds is not None:
-        if min_beds == max_beds:
-            summary += f" with {min_beds} beds."
-        else:
-            summary += f" with bed counts ranging from {min_beds} to {max_beds}."
-    else:
-        summary += "."
+    serializer = FacilitySerializer(facilities, many=True)
     
-    # Add location-specific info
-    if has_location:
-        location = " ".join(query_components['location_terms'])
-        summary += f" Services are available in the {location} area."
-    
-    # Add facility type info
-    if has_facility_type:
-        facility_type = " ".join(query_components['facility_types'])
-        summary += f" These facilities provide specialized {facility_type} services."
-    
-    # Add general recommendation
-    summary += " Consider comparing facilities with similar services to find the best fit for your specific needs."
-    
-    return summary
+    return Response({
+        'results': serializer.data,
+        'count': len(serializer.data),
+    })
 
-def generate_no_results_fallback(query):
+@api_view(['GET'])
+def api_facility_detail(request, pk):
     """
-    Generate a fallback message when no results are found
+    API endpoint for facility detail
     """
-    query_components = parse_query(query)
+    try:
+        facility = Facility.objects.get(pk=pk, status='active')
+        
+        # Add bed data if available
+        try:
+            bed_data = BedAvailability.objects.filter(facility=facility).latest('updated_at')
+            facility.bed_data = bed_data
+        except BedAvailability.DoesNotExist:
+            facility.bed_data = None
+            
+        serializer = FacilitySerializer(facility)
+        return Response(serializer.data)
+    except Facility.DoesNotExist:
+        return Response({'error': 'Facility not found'}, status=404)
+
+def search_suggestions(request):
+    """
+    Fast search suggestions
+    """
+    query = request.GET.get('q', '').strip()
     
-    main_terms = query_components['main_terms']
-    location_terms = query_components['location_terms']
-    facility_types = query_components['facility_types']
+    if len(query) < 2:
+        return JsonResponse({'suggestions': []})
     
-    # Basic message
-    message = f"No active facilities found matching '{query}'."
+    suggestions = []
     
-    # Suggest alternatives
-    if location_terms and facility_types:
-        message += f" Try searching for '{' '.join(facility_types)}' without specifying a location, or search for other facilities in '{' '.join(location_terms)}'."
-    elif location_terms:
-        message += f" Try searching for facilities in nearby areas or use a broader region than '{' '.join(location_terms)}'."
-    elif facility_types:
-        message += f" Try using more general terms for facility types instead of '{' '.join(facility_types)}'."
-    else:
-        message += " Try using more general terms or check for spelling errors."
+    # Quick suggestions from facility names
+    facilities = Facility.objects.filter(status='active', name__icontains=query)[:3]
+    for facility in facilities:
+        suggestions.append({
+            'text': facility.name,
+            'type': 'facility_name'
+        })
     
-    # Add final tip
-    message += " You can also clear all filters and try a new search."
+    # Add common search suggestions
+    common_searches = [
+        'assisted living', 'memory care', 'nursing home', 
+        'senior care', 'rehabilitation', 'respite care'
+    ]
+    for search_term in common_searches:
+        if query.lower() in search_term.lower():
+            suggestions.append({
+                'text': search_term,
+                'type': 'care_type'
+            })
     
-    return message
+    return JsonResponse({'suggestions': suggestions[:5]})
+
+def health_check(request):
+    """
+    Quick health check endpoint
+    """
+    try:
+        facility_count = Facility.objects.filter(status='active').count()
+        return JsonResponse({
+            'status': 'healthy',
+            'active_facilities': facility_count,
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'unhealthy',
+            'error': str(e)
+        }, status=500)

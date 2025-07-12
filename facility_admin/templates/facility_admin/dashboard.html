@@ -16,6 +16,8 @@
             --success-color: #10b981;
             --warning-color: #f59e0b;
             --danger-color: #ef4444;
+            --info-color: #3b82f6;
+            --bed-color: #8b5cf6;
         }
         
         body {
@@ -41,6 +43,19 @@
         .sidebar .nav-link.active {
             background: rgba(255,255,255,0.1);
             color: white;
+            transform: translateX(4px);
+        }
+        
+        .sidebar .nav-link.bed-management {
+            background: linear-gradient(135deg, var(--bed-color), #7c3aed);
+            color: white !important;
+            border-radius: 8px;
+            margin: 4px 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link.bed-management:hover {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
             transform: translateX(4px);
         }
         
@@ -146,8 +161,461 @@
             color: var(--secondary-color);
             margin-bottom: 0;
         }
+
+        /* Bed Management Styles */
+        .bed-management-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--bed-color);
+        }
+
+        .bed-management-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .bed-management-icon {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--bed-color);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 20px;
+        }
+
+        /* Analytics section styles */
+        .analytics-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--info-color);
+        }
+
+        .analytics-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .analytics-icon {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--info-color);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 20px;
+        }
+
+        .nav-link.analytics-link {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white !important;
+            border-radius: 8px;
+            margin: 4px 12px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link.analytics-link:hover {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            transform: translateX(4px);
+        }
+
+        .bed-stats-mini {
+            background: rgba(139, 92, 246, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .bed-stats-number {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--bed-color);
+        }
+
+        .bed-stats-label {
+            font-size: 0.8rem;
+            color: var(--secondary-color);
+            margin-top: 2px;
+        }
+
+        /* Enhanced Quick Actions Styles */
+        .enhanced-quick-actions {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+            height: 100%;
+        }
+
+        .quick-actions-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .quick-actions-icon {
+            background: linear-gradient(135deg, var(--primary-color), #1d4ed8);
+            color: white;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            font-size: 20px;
+        }
+
+        .action-grid {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .action-card {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .action-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            text-decoration: none;
+        }
+
+        .action-card.primary-action {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(59, 130, 246, 0.05));
+        }
+        .action-card.primary-action::before { background: var(--primary-color); }
+        .action-card.primary-action:hover::before { width: 100%; opacity: 0.1; }
+
+        .action-card.bed-action {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(124, 58, 237, 0.05));
+        }
+        .action-card.bed-action::before { background: var(--bed-color); }
+        .action-card.bed-action:hover::before { width: 100%; opacity: 0.1; }
+
+        .action-card.warning-action {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(251, 191, 36, 0.05));
+        }
+        .action-card.warning-action::before { background: var(--warning-color); }
+        .action-card.warning-action:hover::before { width: 100%; opacity: 0.1; }
+
+        .action-card.secondary-action {
+            background: linear-gradient(135deg, rgba(100, 116, 139, 0.05), rgba(148, 163, 184, 0.05));
+        }
+        .action-card.secondary-action::before { background: var(--secondary-color); }
+        .action-card.secondary-action:hover::before { width: 100%; opacity: 0.1; }
+
+        .action-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 16px;
+            background: rgba(255,255,255,0.8);
+            color: inherit;
+        }
+
+        .action-content {
+            flex: 1;
+        }
+
+        .action-title {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+
+        .action-subtitle {
+            font-size: 0.85rem;
+            color: var(--secondary-color);
+        }
+
+        .action-badge {
+            background: var(--warning-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .action-arrow {
+            color: var(--secondary-color);
+            font-size: 12px;
+        }
+
+        .quick-stats {
+            display: flex;
+            justify-content: space-between;
+            padding: 16px;
+            background: rgba(0,0,0,0.02);
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .quick-stat-item {
+            text-align: center;
+        }
+
+        .quick-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .quick-stat-label {
+            font-size: 0.75rem;
+            color: var(--secondary-color);
+            margin-top: 2px;
+        }
+
+        /* Enhanced Analytics Styles */
+        .enhanced-analytics-section {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+            height: 100%;
+        }
+
+        .analytics-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .analytics-card {
+            padding: 20px;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analytics-card.primary-metric {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .analytics-card.success-metric {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .analytics-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .analytics-card-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.8);
+            color: var(--primary-color);
+        }
+
+        .analytics-trend {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .analytics-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .analytics-label {
+            font-weight: 500;
+            color: var(--secondary-color);
+            margin-bottom: 2px;
+        }
+
+        .analytics-period {
+            font-size: 0.75rem;
+            color: var(--secondary-color);
+        }
+
+        .conversion-rate {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: rgba(0,0,0,0.02);
+            border-radius: 12px;
+        }
+
+        .conversion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .conversion-label {
+            font-weight: 500;
+            color: var(--secondary-color);
+        }
+
+        .conversion-value {
+            font-weight: 700;
+            color: var(--success-color);
+            font-size: 1.1rem;
+        }
+
+        .conversion-bar {
+            height: 6px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .conversion-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-color), #059669);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .analytics-indicators {
+            margin-bottom: 20px;
+        }
+
+        .indicator-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: var(--secondary-color);
+        }
+
+        .indicator-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .indicator-dot.active {
+            background: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        .indicator-dot.warning {
+            background: var(--warning-color);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .analytics-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn-analytics {
+            padding: 12px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 0.9rem;
+        }
+
+        .btn-analytics.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-analytics.primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            color: white;
+            text-decoration: none;
+        }
+
+        .btn-analytics.secondary {
+            background: rgba(0,0,0,0.05);
+            color: var(--secondary-color);
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .btn-analytics.secondary:hover {
+            background: rgba(0,0,0,0.08);
+            transform: translateY(-1px);
+            color: var(--secondary-color);
+            text-decoration: none;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .analytics-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .analytics-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .quick-stats {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
     </style>
 </head>
+
 <body>
     <div class="container-fluid">
         <div class="row">
@@ -162,6 +630,12 @@
                         <a class="nav-link active" href="{% url 'facility_admin:dashboard' %}">
                             <i class="fas fa-tachometer-alt me-2"></i> Dashboard
                         </a>
+                        
+                        <hr class="text-white-50 my-2">
+                        
+                        <!-- Facility Management Section -->
+                        <small class="text-white-50 px-3 mb-2 text-uppercase fw-bold" style="font-size: 0.7rem;">Facility Management</small>
+                        
                         <a class="nav-link" href="{% url 'facility_admin:facility_list' %}">
                             <i class="fas fa-building me-2"></i> All Facilities
                         </a>
@@ -180,12 +654,35 @@
                         <a class="nav-link" href="{% url 'facility_admin:export_facilities' %}">
                             <i class="fas fa-download me-2"></i> Export Data
                         </a>
-                        <hr class="text-white-50">
-                        <a class="nav-link" href="{% url 'home' %}" target="_blank">
-                            <i class="fas fa-search me-2"></i> View Search Engine
+                        
+                        <hr class="text-white-50 my-2">
+                        
+                        <!-- Bed Management Section -->
+                        <small class="text-white-50 px-3 mb-2 text-uppercase fw-bold" style="font-size: 0.7rem;">Bed Management</small>
+                        
+                        <a class="nav-link bed-management" href="{% url 'bedupdates:facility_dashboard' %}">
+                            <i class="fas fa-bed me-2"></i> Bed Dashboard
+                            <small class="d-block text-white-75" style="font-size: 0.7rem; margin-top: 2px;">
+                                View all bed availability
+                            </small>
                         </a>
-                        <a class="nav-link" href="{% url 'usertracking:dashboard' %}">
+                        <a class="nav-link" href="{% url 'bedupdates:bed_update_view' %}">
+                            <i class="fas fa-edit me-2"></i> Update Bed Info
+                        </a>
+                        
+                        <hr class="text-white-50 my-2">
+                        
+                        <!-- Analytics & Search Section -->
+                        <small class="text-white-50 px-3 mb-2 text-uppercase fw-bold" style="font-size: 0.7rem;">Analytics & Search</small>
+                        
+                        <a class="nav-link analytics-link" href="{% url 'usertracking:dashboard' %}">
                             <i class="fas fa-chart-line me-2"></i> User Analytics
+                            <small class="d-block text-white-75" style="font-size: 0.7rem; margin-top: 2px;">
+                                Lead tracking & conversions
+                            </small>
+                        </a>
+                        <a class="nav-link" href="{% url 'search:home' %}" target="_blank">
+                            <i class="fas fa-search me-2"></i> View Search Engine
                         </a>
                     </nav>
                 </div>
@@ -197,7 +694,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h1 class="header-title">Search Engine Admin Dashboard</h1>
-                        <p class="header-subtitle">Manage facilities and monitor system activity</p>
+                        <p class="header-subtitle">Manage facilities, bed availability, and monitor system activity</p>
                     </div>
                     <div>
                         <span class="text-muted me-3">Welcome, {{ user.get_full_name|default:user.username }}</span>
@@ -207,30 +704,30 @@
                     </div>
                 </div>
                 
-                <!-- Stats Cards -->
+                <!-- Stats Cards - Removed bed stats -->
                 <div class="row mb-4">
-                    <div class="col-md-3 mb-3">
+                    <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                         <div class="stat-card position-relative">
                             <div class="stat-number">{{ stats.total_facilities }}</div>
                             <div class="stat-label">Total Facilities</div>
                             <i class="fas fa-building stat-icon"></i>
                         </div>
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                         <div class="stat-card position-relative" style="border-left-color: var(--success-color);">
                             <div class="stat-number" style="color: var(--success-color);">{{ stats.active_facilities }}</div>
                             <div class="stat-label">Active Facilities</div>
                             <i class="fas fa-check-circle stat-icon" style="color: var(--success-color);"></i>
                         </div>
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                         <div class="stat-card position-relative" style="border-left-color: var(--warning-color);">
                             <div class="stat-number" style="color: var(--warning-color);">{{ stats.pending_facilities }}</div>
                             <div class="stat-label">Pending Approval</div>
                             <i class="fas fa-clock stat-icon" style="color: var(--warning-color);"></i>
                         </div>
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                         <div class="stat-card position-relative" style="border-left-color: var(--secondary-color);">
                             <div class="stat-number" style="color: var(--secondary-color);">{{ stats.inactive_facilities }}</div>
                             <div class="stat-label">Inactive Facilities</div>
@@ -241,33 +738,82 @@
                 
                 <div class="row">
                     <!-- Quick Actions -->
-                    <div class="col-md-6 mb-4">
+                    <div class="col-lg-4 mb-4">
                         <div class="quick-actions">
-                            <h5 class="mb-3">Quick Actions</h5>
+                            <h5 class="mb-3">
+                                <i class="fas fa-bolt me-2 text-primary"></i>
+                                Quick Actions
+                            </h5>
                             <div class="d-grid gap-2">
                                 <a href="{% url 'facility_admin:facility_create' %}" class="btn btn-primary">
                                     <i class="fas fa-plus me-2"></i> Add New Facility
                                 </a>
+                                <a href="{% url 'bedupdates:bed_update_view' %}" class="btn btn-outline-primary" style="border-color: var(--bed-color); color: var(--bed-color);">
+                                    <i class="fas fa-bed me-2"></i> Update Bed Info
+                                </a>
                                 <a href="{% url 'facility_admin:approval_queue' %}" class="btn btn-outline-primary">
-                                    <i class="fas fa-clock me-2"></i> Review Pending Facilities
+                                    <i class="fas fa-clock me-2"></i> Review Pending
                                     {% if stats.pending_facilities > 0 %}
                                         <span class="badge bg-warning ms-2">{{ stats.pending_facilities }}</span>
                                     {% endif %}
                                 </a>
-                                <a href="{% url 'facility_admin:bulk_import' %}" class="btn btn-outline-primary">
+                                <a href="{% url 'facility_admin:bulk_import' %}" class="btn btn-outline-secondary">
                                     <i class="fas fa-upload me-2"></i> Bulk Import CSV
-                                </a>
-                                <a href="{% url 'facility_admin:export_facilities' %}" class="btn btn-outline-primary">
-                                    <i class="fas fa-download me-2"></i> Export Facility Data
                                 </a>
                             </div>
                         </div>
                     </div>
+
                     
+                    <!-- User Analytics Section -->
+                    <div class="col-lg-4 mb-4">
+                        <div class="analytics-section">
+                            <div class="analytics-header">
+                                <div class="analytics-icon">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">User Analytics</h5>
+                                    <p class="text-muted mb-0 small">Monitor search conversions and user engagement</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Analytics Preview Cards -->
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <div class="text-center p-3" style="background: rgba(59, 130, 246, 0.05); border-radius: 8px;">
+                                        <div class="fw-bold text-primary" style="font-size: 1.5rem;">{{ user_stats.total_inquiries|default:"0" }}</div>
+                                        <div class="small text-muted">Total Inquiries</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center p-3" style="background: rgba(16, 185, 129, 0.05); border-radius: 8px;">
+                                        <div class="fw-bold text-success" style="font-size: 1.5rem;">{{ user_stats.conversions|default:"0" }}</div>
+                                        <div class="small text-muted">Conversions</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'usertracking:dashboard' %}" class="btn btn-primary">
+                                    <i class="fas fa-chart-line me-2"></i> View Full Analytics
+                                </a>
+                                <a href="{% url 'usertracking:dashboard' %}?export=csv" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-download me-1"></i> Export User Data
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
                     <!-- Recent Activity -->
-                    <div class="col-md-6 mb-4">
+                    <div class="col-12 mb-4">
                         <div class="activity-feed">
-                            <h5 class="mb-3">Recent Activity</h5>
+                            <h5 class="mb-3">
+                                <i class="fas fa-history me-2 text-primary"></i>
+                                Recent Activity
+                            </h5>
                             
                             {% if recent_submissions %}
                                 <h6 class="text-muted mb-2">Pending Submissions:</h6>
@@ -340,8 +886,12 @@
                     <div class="col-12">
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
-                            <strong>Tip:</strong> You can use the <a href="{% url 'facility_admin:public_registration' %}" target="_blank">public registration form</a> 
-                            to test the self-registration workflow. New facilities submitted through this form will appear in the pending approvals queue.
+                            <strong>Getting Started:</strong> 
+                            Use the <a href="{% url 'facility_admin:public_registration' %}" target="_blank">public registration form</a> 
+                            to test facility submissions. Manage bed availability through the 
+                            <a href="{% url 'bedupdates:facility_dashboard' %}">Bed Dashboard</a> or 
+                            <a href="{% url 'bedupdates:bed_update_view' %}">update individual facilities</a>.
+                            Track user engagement in the <a href="{% url 'usertracking:dashboard' %}">Analytics Dashboard</a>.
                         </div>
                     </div>
                 </div>

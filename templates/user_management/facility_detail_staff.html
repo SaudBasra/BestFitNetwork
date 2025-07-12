@@ -1,0 +1,678 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ facility.name }} - Facility Details</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #059669;
+            --primary-light: #10b981;
+            --primary-dark: #047857;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #0ea5e9;
+            --light-bg: #f8fafc;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 4px 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(4px);
+        }
+        
+        .main-content {
+            padding: 24px;
+        }
+        
+        .facility-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--primary-color);
+            margin-bottom: 24px;
+        }
+        
+        .info-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .header-title {
+            color: #1e293b;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header-subtitle {
+            color: var(--secondary-color);
+            margin-bottom: 0;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        
+        .timeline-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .timeline-marker {
+            position: absolute;
+            left: -2rem;
+            top: 0.25rem;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px #e9ecef;
+        }
+        
+        .timeline-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: -1.75rem;
+            top: 1.25rem;
+            bottom: -2rem;
+            width: 2px;
+            background-color: #e9ecef;
+        }
+        
+        .timeline-title {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+            color: #374151;
+            font-weight: 500;
+        }
+        
+        .timeline-description {
+            margin-bottom: 0;
+            font-size: 0.9rem;
+            color: var(--secondary-color);
+        }
+        
+        .badge-coming-soon {
+            background: linear-gradient(45deg, var(--warning-color), #d97706);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .facility-image {
+            max-height: 300px;
+            width: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            color: var(--secondary-color);
+            margin-bottom: 16px;
+        }
+        
+        .section-header {
+            color: var(--primary-color);
+            font-weight: 600;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="p-3">
+                    <h4 class="text-white mb-4">
+                        <i class="fas fa-user-md me-2"></i>
+                        Facility Staff
+                    </h4>
+                    
+                    <nav class="nav flex-column">
+                        <a class="nav-link active" href="{% url 'user_management:facility_dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                        </a>
+                        <a class="nav-link" href="{% url 'user_management:facility_detail_staff' %}">
+                            <i class="fas fa-info-circle me-2"></i> Facility Details
+                        </a>
+                        <a class="nav-link" href="{% url 'user_management:facility_update_staff' %}">
+                            <i class="fas fa-edit me-2"></i> Update Facility Info
+                        </a>
+                        <a class="nav-link" href="{% url 'search:facility_detail' facility.id %}" target="_blank">
+                            <i class="fas fa-eye me-2"></i> View Public Profile
+                        </a>
+                        <a class="nav-link" href="{% url 'user_management:profile' %}">
+                            <i class="fas fa-user-edit me-2"></i> Update Personal Profile
+                        </a>
+
+
+
+<!-- Bed Management Section -->
+<hr class="nav-divider">
+<div class="nav-section-header">
+    <small class="text-white-50 px-3">BED MANAGEMENT</small>
+</div>
+<a class="nav-link" href="{% url 'user_management:facility_bed_update_staff' %}">
+    <i class="fas fa-bed me-2"></i> Update Bed Availability
+</a>
+
+
+<!-- Landing Page Management Section -->
+<hr class="nav-divider">
+<div class="nav-section-header">
+    <small class="text-white-50 px-3">LANDING PAGE</small>
+</div>
+<a class="nav-link" href="{% url 'facility_landing:dashboard' %}">
+    <i class="fas fa-tachometer-alt me-2"></i> Landing Dashboard
+</a>
+<a class="nav-link" href="{% url 'facility_landing:edit_page' %}">
+    <i class="fas fa-edit me-2"></i> Edit Content
+</a>
+<a class="nav-link" href="{% url 'facility_landing:manage_gallery' %}">
+    <i class="fas fa-images me-2"></i> Photo Gallery
+</a>
+<a class="nav-link" href="{% url 'facility_landing:manage_testimonials' %}">
+    <i class="fas fa-quote-left me-2"></i> Testimonials
+</a>
+<a class="nav-link" href="{% url 'facility_landing:analytics' %}">
+    <i class="fas fa-chart-line me-2"></i> Analytics
+</a>
+<a class="nav-link" href="{% url 'facility_landing:public_page' facility.id %}" target="_blank">
+    <i class="fas fa-external-link-alt me-2"></i> View Public Page
+</a>
+
+                        <!-- External Links Section -->
+                        <hr class="nav-divider">
+                        <div class="nav-section-header">
+                            <small class="text-white-50 px-3">EXTERNAL LINKS</small>
+                        </div>
+                        <a class="nav-link" href="{% url 'search:home' %}" target="_blank">
+                            <i class="fas fa-search me-2"></i> Search Engine
+                        </a>
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">
+                            <i class="fas fa-question-circle me-2"></i> Help & Support
+                        </a>
+                    </nav>
+                                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="header-title">{{ facility.name }} - Facility Details</h1>
+                        <p class="header-subtitle">View and manage your facility information</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'user_management:facility_dashboard' %}" class="btn btn-outline-secondary me-2">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                        </a>
+                        <a href="{% url 'user_management:facility_update_staff' %}" class="btn btn-primary">
+                            <i class="fas fa-edit me-1"></i> Update Information
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        <!-- Main Facility Information -->
+                        <div class="facility-card">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-building me-2"></i> Facility Information
+                                </h5>
+                                <div>
+                                    <span class="badge badge-lg
+                                        {% if facility.status == 'active' %}bg-success
+                                        {% elif facility.status == 'pending' %}bg-warning
+                                        {% elif facility.status == 'rejected' %}bg-danger
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ facility.get_status_display }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <!-- Facility Image -->
+                                <div class="col-md-5 mb-4">
+                                    <img src="{{ facility.image_url }}" alt="{{ facility.name }}" class="facility-image">
+                                </div>
+                                
+                                <!-- Basic Information -->
+                                <div class="col-md-7">
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="info-label">Facility Type</div>
+                                            <div class="info-value">{{ facility.facility_type }}</div>
+                                        </div>
+                                        
+                                        <div class="col-sm-6">
+                                            <div class="info-label">Bed Count</div>
+                                            <div class="info-value">{{ facility.bed_count }} beds</div>
+                                        </div>
+                                        
+                                        <div class="col-sm-6">
+                                            <div class="info-label">Inspection Number</div>
+                                            <div class="info-value">{{ facility.inspection_number }}</div>
+                                        </div>
+                                        
+                                        <div class="col-sm-6">
+                                            <div class="info-label">Last Updated</div>
+                                            <div class="info-value">{{ facility.updated_at|date:"M d, Y H:i" }}</div>
+                                        </div>
+                                        
+                                        {% if facility.endorsement %}
+                                            <div class="col-12">
+                                                <div class="info-label">Specializations</div>
+                                                <div class="info-value">{{ facility.endorsement }}</div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Location Information -->
+                        <div class="info-card">
+                            <h6 class="section-header">
+                                <i class="fas fa-map-marker-alt me-2"></i> Location Information
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="info-label">Address</div>
+                                    <div class="info-value">{{ facility.address }}</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-label">Location</div>
+                                    <div class="info-value">{{ facility.county }}, {{ facility.state }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Contact Information -->
+                        {% if facility.contact or facility.contact_person %}
+                            <div class="info-card">
+                                <h6 class="section-header">
+                                    <i class="fas fa-phone me-2"></i> Contact Information
+                                </h6>
+                                <div class="row">
+                                    {% if facility.contact %}
+                                        <div class="col-md-6">
+                                            <div class="info-label">Phone Number</div>
+                                            <div class="info-value">
+                                                <a href="tel:{{ facility.contact }}" class="text-decoration-none">
+                                                    <i class="fas fa-phone me-1"></i> {{ facility.contact }}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    {% if facility.contact_person %}
+                                        <div class="col-md-6">
+                                            <div class="info-label">Contact Person</div>
+                                            <div class="info-value">
+                                                <i class="fas fa-user me-1"></i> {{ facility.contact_person }}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- SEO Information (if available) -->
+                        {% if facility.meta_description or facility.search_keywords %}
+                            <div class="info-card">
+                                <h6 class="section-header">
+                                    <i class="fas fa-search me-2"></i> Search Engine Information
+                                </h6>
+                                {% if facility.meta_description %}
+                                    <div class="mb-3">
+                                        <div class="info-label">Description</div>
+                                        <div class="info-value">{{ facility.meta_description }}</div>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if facility.search_keywords %}
+                                    <div class="mb-3">
+                                        <div class="info-label">Search Keywords</div>
+                                        <div class="info-value">{{ facility.search_keywords }}</div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Current Bed Availability -->
+                        {% if bed_data %}
+                            <div class="info-card">
+                                <h6 class="section-header">
+                                    <i class="fas fa-bed me-2"></i> Current Bed Availability
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="info-label">Available Beds</div>
+                                        <div class="info-value">
+                                            <span class="badge bg-success fs-6">{{ bed_data.available_beds }} available</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="info-label">Total Capacity</div>
+                                        <div class="info-value">{{ facility.bed_count }} beds</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="info-label">Last Updated</div>
+                                        <div class="info-value">{{ bed_data.updated_at|date:"M d, H:i" }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Side Panel -->
+                    <div class="col-md-4">
+                        <!-- Quick Actions -->
+                        <div class="info-card">
+                            <h6 class="section-header">
+                                <i class="fas fa-bolt me-2"></i> Quick Actions
+                            </h6>
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'user_management:facility_update_staff' %}" class="btn btn-primary">
+                                    <i class="fas fa-edit me-2"></i> Update Information
+                                </a>
+                                <a href="{% url 'search:facility_detail' facility.id %}" class="btn btn-outline-primary" target="_blank">
+                                    <i class="fas fa-external-link-alt me-2"></i> View Public Profile
+                                </a>
+                                <a href="#" onclick="alert('Feature coming soon!')" class="btn btn-outline-success">
+                                    <i class="fas fa-bed me-2"></i> Update Bed Availability
+                                </a>
+                                <hr>
+                                <a href="{% url 'user_management:facility_dashboard' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-tachometer-alt me-2"></i> Back to Dashboard
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Facility Statistics -->
+                        <div class="info-card">
+                            <h6 class="section-header">
+                                <i class="fas fa-chart-bar me-2"></i> Statistics
+                            </h6>
+                            <div class="mb-3">
+                                <div class="info-label">Profile Created</div>
+                                <div class="info-value">{{ facility.created_at|date:"M d, Y" }}</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="info-label">Last Modified</div>
+                                <div class="info-value">{{ facility.updated_at|timesince }} ago</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="info-label">Recent Changes</div>
+                                <div class="info-value">{{ change_logs|length }} recorded updates</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="info-label">Facility ID</div>
+                                <div class="info-value">#{{ facility.id }}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Help & Support -->
+                        <div class="info-card">
+                            <h6 class="section-header">
+                                <i class="fas fa-question-circle me-2"></i> Need Help?
+                            </h6>
+                            <p class="text-muted mb-3">Questions about updating your facility information?</p>
+                            
+                            <div class="d-grid gap-2">
+                                <a href="mailto:support@bestfitnetwork.com" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-envelope me-1"></i> Contact Support
+                                </a>
+                                <a href="tel:1-800-237-8348" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-phone me-1"></i> Call Support
+                                </a>
+                            </div>
+                            
+                            <div class="mt-3 small text-muted">
+                                <div><strong>Support Hours:</strong></div>
+                                <div>Mon-Fri: 8 AM - 6 PM EST</div>
+                                <div>Emergency: 24/7</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Change History (if available) -->
+                {% if change_logs %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="info-card">
+                                <h6 class="section-header">
+                                    <i class="fas fa-history me-2"></i> Recent Updates
+                                </h6>
+                                
+                                <div class="timeline">
+                                    {% for log in change_logs|slice:":5" %}
+                                        <div class="timeline-item">
+                                            <div class="timeline-marker 
+                                                {% if log.change_type == 'created' %}bg-primary
+                                                {% elif log.change_type == 'approved' %}bg-success
+                                                {% elif log.change_type == 'updated' or log.change_type == 'updated_by_staff' %}bg-info
+                                                {% else %}bg-secondary{% endif %}">
+                                            </div>
+                                            <div class="timeline-content">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <h6 class="timeline-title">{{ log.get_change_type_display }}</h6>
+                                                        <p class="timeline-description">
+                                                            {% if log.changed_by %}
+                                                                by {{ log.changed_by.get_full_name|default:log.changed_by.username }}
+                                                            {% else %}
+                                                                System update
+                                                            {% endif %}
+                                                        </p>
+                                                        {% if log.notes %}
+                                                            <p class="timeline-description">
+                                                                <em>{{ log.notes }}</em>
+                                                            </p>
+                                                        {% endif %}
+                                                    </div>
+                                                    <small class="text-muted">{{ log.timestamp|date:"M d, H:i" }}</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                {% if change_logs|length > 5 %}
+                                    <div class="text-center mt-3">
+                                        <small class="text-muted">Showing recent 5 updates • {{ change_logs|length }} total changes</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Coming Soon Feature Alert (same as dashboard)
+        function showComingSoon() {
+            const modalHTML = `
+                <div class="modal fade" id="comingSoonModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-warning text-dark">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-clock me-2"></i>
+                                    Feature Coming Soon
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="text-center">
+                                    <i class="fas fa-globe fa-3x text-warning mb-3"></i>
+                                    <h5>Custom Landing Page</h5>
+                                    <p class="text-muted">
+                                        We're working on a feature that will allow you to create and customize 
+                                        a dedicated landing page for your facility. This will include:
+                                    </p>
+                                    <ul class="text-start">
+                                        <li>Custom facility branding and colors</li>
+                                        <li>Photo gallery and virtual tours</li>
+                                        <li>Detailed service descriptions</li>
+                                        <li>Staff profiles and credentials</li>
+                                        <li>Patient testimonials and reviews</li>
+                                        <li>Direct contact and admission forms</li>
+                                    </ul>
+                                    <div class="alert alert-info">
+                                        <strong>Expected Launch:</strong> Q2 2025<br>
+                                        <strong>Beta Testing:</strong> Sign up for early access
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <a href="mailto:beta@bestfitnetwork.com?subject=Landing Page Beta Interest" class="btn btn-warning">
+                                    <i class="fas fa-envelope me-1"></i>Join Beta List
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if present
+            const existingModal = document.getElementById('comingSoonModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            const modalElement = document.getElementById('comingSoonModal');
+            const modalInstance = new bootstrap.Modal(modalElement);
+            modalInstance.show();
+            
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                modalElement.remove();
+            });
+        }
+        
+        // Auto-hide alerts after 5 seconds
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-success, .alert-info');
+            alerts.forEach(alert => {
+                if (alert.classList.contains('show')) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            });
+        }, 5000);
+        
+        // Enhanced navigation highlighting
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.sidebar .nav-link');
+            
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

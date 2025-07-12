@@ -3,6 +3,7 @@
 from django.db import models
 # Import the enhanced models from search app
 # We'll extend Facility model functionality here if needed
+from django.urls import reverse
 
 class AdminProfile(models.Model):
     """Extended profile for admin users"""
@@ -17,3 +18,4 @@ class AdminProfile(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.role}"
+    

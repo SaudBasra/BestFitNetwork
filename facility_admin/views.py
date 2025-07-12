@@ -1,10 +1,11 @@
-# facility_admin/views.py
+# facility_admin/views.py - Updated with bed management integration
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
-from django.db.models import Q, Count
+from django.db.models import Q, Count, F, Sum, Value, IntegerField
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 import csv
@@ -12,6 +13,7 @@ import io
 
 # Import all the models from search app
 from search.models import Facility, FacilitySubmission, FacilityChangeLog
+from bedupdates.models import BedAvailability  # Import bed availability model
 from .forms import (
     FacilityForm, PublicRegistrationForm, BulkImportForm, 
     ApprovalForm, FacilityFilterForm
@@ -24,9 +26,9 @@ def is_admin(user):
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
-    """Admin dashboard with quick stats and recent activity"""
+    """Admin dashboard with quick stats, recent activity, and bed statistics"""
     
-    # Quick stats
+    # Quick stats for facilities
     stats = {
         'total_facilities': Facility.objects.count(),
         'active_facilities': Facility.objects.filter(status='active').count(),
@@ -34,12 +36,55 @@ def admin_dashboard(request):
         'inactive_facilities': Facility.objects.filter(status='inactive').count(),
     }
     
+    # Bed statistics
+    bed_stats = BedAvailability.objects.aggregate(
+        total_beds=Coalesce(Sum(F('shared_beds_total') + F('separate_beds_total')), Value(0), output_field=IntegerField()),
+        available_beds=Coalesce(Sum('available_beds'), Value(0), output_field=IntegerField()),
+        total_shared=Coalesce(Sum('shared_beds_total'), Value(0), output_field=IntegerField()),
+        total_separate=Coalesce(Sum('separate_beds_total'), Value(0), output_field=IntegerField()),
+    )
+    
+    # Calculate official bed count from facilities
+    total_official_beds = Facility.objects.aggregate(Sum('bed_count'))['bed_count__sum'] or 0
+    
+    # Get facilities with low bed availability (less than 10% available)
+    low_availability = []
+    for facility in Facility.objects.filter(status='active'):
+        try:
+            bed = facility.bed_availability
+            total_beds = bed.shared_beds_total + bed.separate_beds_total
+            if total_beds > 0 and (bed.available_beds / total_beds) < 0.1:
+                low_availability.append({
+                    'facility': facility,
+                    'available': bed.available_beds,
+                    'total': total_beds,
+                    'percentage': (bed.available_beds / total_beds) * 100
+                })
+        except BedAvailability.DoesNotExist:
+            pass
+    
+    # User tracking stats (if usertracking app is available)
+    user_stats = {'total_inquiries': 0, 'conversions': 0}
+    try:
+        from usertracking.models import UserTracking
+        user_stats = {
+            'total_inquiries': UserTracking.objects.count(),
+            'conversions': UserTracking.objects.filter(joined_facility=True).count(),
+        }
+    except (ImportError, AttributeError):
+        # usertracking app not available or not installed
+        pass
+    
     # Recent activity
     recent_submissions = Facility.objects.filter(status='pending').order_by('-created_at')[:5]
     recent_changes = FacilityChangeLog.objects.select_related('facility', 'changed_by').order_by('-timestamp')[:10]
     
     context = {
         'stats': stats,
+        'bed_stats': bed_stats,
+        'total_official_beds': total_official_beds,
+        'low_availability': low_availability,
+        'user_stats': user_stats,
         'recent_submissions': recent_submissions,
         'recent_changes': recent_changes,
     }
@@ -101,7 +146,21 @@ def facility_create(request):
             facility.approved_at = timezone.now()
             facility.save()
             
-            # Log the creation - NOW FacilityChangeLog is properly imported
+            # Create initial bed availability record
+            BedAvailability.objects.get_or_create(
+                facility=facility,
+                defaults={
+                    'available_beds': 0,
+                    'shared_beds_total': 0,
+                    'shared_beds_male': 0,
+                    'shared_beds_female': 0,
+                    'separate_beds_total': 0,
+                    'separate_beds_male': 0,
+                    'separate_beds_female': 0,
+                }
+            )
+            
+            # Log the creation
             FacilityChangeLog.objects.create(
                 facility=facility,
                 changed_by=request.user,
@@ -138,6 +197,20 @@ def facility_edit(request, facility_id):
         form = FacilityForm(request.POST, request.FILES, instance=facility)
         if form.is_valid():
             updated_facility = form.save()
+            
+            # Create bed availability record if it doesn't exist
+            BedAvailability.objects.get_or_create(
+                facility=updated_facility,
+                defaults={
+                    'available_beds': 0,
+                    'shared_beds_total': 0,
+                    'shared_beds_male': 0,
+                    'shared_beds_female': 0,
+                    'separate_beds_total': 0,
+                    'separate_beds_male': 0,
+                    'separate_beds_female': 0,
+                }
+            )
             
             # Log the changes
             new_values = {
@@ -181,7 +254,21 @@ def public_registration(request):
             facility.status = 'pending'
             facility.save()
             
-            # Create submission record - NOW FacilitySubmission is properly imported
+            # Create initial bed availability record
+            BedAvailability.objects.get_or_create(
+                facility=facility,
+                defaults={
+                    'available_beds': 0,
+                    'shared_beds_total': 0,
+                    'shared_beds_male': 0,
+                    'shared_beds_female': 0,
+                    'separate_beds_total': 0,
+                    'separate_beds_male': 0,
+                    'separate_beds_female': 0,
+                }
+            )
+            
+            # Create submission record
             submission = FacilitySubmission.objects.create(
                 facility=facility,
                 submitter_name=facility_form.cleaned_data['submitter_name'],
@@ -239,7 +326,6 @@ def approval_queue(request):
 def facility_approve(request, facility_id):
     """Approve or reject a facility - works for any status"""
     
-    # Remove the status='pending' filter to allow reviewing any facility
     facility = get_object_or_404(Facility, id=facility_id)
     
     if request.method == 'POST':
@@ -249,13 +335,27 @@ def facility_approve(request, facility_id):
             admin_notes = form.cleaned_data['admin_notes']
             rejection_reason = form.cleaned_data.get('rejection_reason', '')
             
-            old_status = facility.status  # Store the old status
+            old_status = facility.status
             
             if action == 'approve':
                 facility.status = 'active'
                 facility.approved_by = request.user
                 facility.approved_at = timezone.now()
                 facility.save()
+                
+                # Create bed availability record if it doesn't exist
+                BedAvailability.objects.get_or_create(
+                    facility=facility,
+                    defaults={
+                        'available_beds': 0,
+                        'shared_beds_total': 0,
+                        'shared_beds_male': 0,
+                        'shared_beds_female': 0,
+                        'separate_beds_total': 0,
+                        'separate_beds_male': 0,
+                        'separate_beds_female': 0,
+                    }
+                )
                 
                 # Update submission record if it exists
                 try:
@@ -319,12 +419,12 @@ def facility_approve(request, facility_id):
         'facility': facility,
         'form': form
     })
-    
+
 
 @login_required
 @user_passes_test(is_admin)
 def bulk_import(request):
-    """Bulk import facilities from CSV"""
+    """Bulk import facilities from CSV with enhanced error handling"""
     
     if request.method == 'POST':
         form = BulkImportForm(request.POST, request.FILES)
@@ -332,27 +432,152 @@ def bulk_import(request):
             csv_file = form.cleaned_data['csv_file']
             
             try:
-                # Read CSV file
-                file_content = csv_file.read().decode('utf-8')
-                csv_reader = csv.DictReader(io.StringIO(file_content))
+                # Read CSV file with better encoding handling
+                file_content = csv_file.read()
                 
+                # Try different encodings
+                for encoding in ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252']:
+                    try:
+                        decoded_content = file_content.decode(encoding)
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                else:
+                    raise ValueError("Could not decode CSV file. Please ensure it's saved in UTF-8 format.")
+                
+                # Enhanced CSV parsing with multiple delimiter detection
+                import csv
+                import io
+                
+                # Detect delimiter
+                sample = decoded_content[:1024]
+                sniffer = csv.Sniffer()
+                try:
+                    delimiter = sniffer.sniff(sample, delimiters=',;\t|').delimiter
+                except:
+                    delimiter = ','  # Default to comma
+                
+                # Parse CSV with detected delimiter
+                csv_reader = csv.DictReader(io.StringIO(decoded_content), delimiter=delimiter)
+                
+                # Get the fieldnames (headers)
+                fieldnames = csv_reader.fieldnames
+                
+                if not fieldnames:
+                    raise ValueError("CSV file appears to be empty or has no headers.")
+                
+                # Clean fieldnames (remove quotes, extra spaces)
+                cleaned_fieldnames = [field.strip().strip('"\'') for field in fieldnames]
+                
+                # Map CSV fields to our model fields (case-insensitive)
+                field_mapping = {}
+                required_fields = ['name', 'type', 'inspection number', 'address', 'state', 'county', 'bed count']
+                
+                # Create case-insensitive mapping
+                for field in cleaned_fieldnames:
+                    field_lower = field.lower().strip()
+                    if 'name' in field_lower and 'contact' not in field_lower:
+                        field_mapping['name'] = field
+                    elif 'type' in field_lower:
+                        field_mapping['type'] = field
+                    elif 'inspection' in field_lower:
+                        field_mapping['inspection_number'] = field
+                    elif 'address' in field_lower:
+                        field_mapping['address'] = field
+                    elif 'state' in field_lower:
+                        field_mapping['state'] = field
+                    elif 'county' in field_lower:
+                        field_mapping['county'] = field
+                    elif 'bed' in field_lower:
+                        field_mapping['bed_count'] = field
+                    elif 'endorsement' in field_lower:
+                        field_mapping['endorsement'] = field
+                    elif 'contact person' in field_lower:
+                        field_mapping['contact_person'] = field
+                    elif 'contact' in field_lower:
+                        field_mapping['contact'] = field
+                
+                # Check for missing required fields
+                missing_required = []
+                for req_field in required_fields:
+                    mapped_field = req_field.replace(' ', '_')
+                    if mapped_field not in field_mapping:
+                        missing_required.append(req_field.title())
+                
+                if missing_required:
+                    messages.error(request, 
+                        f"Missing required columns: {', '.join(missing_required)}. "
+                        f"Found columns: {', '.join(cleaned_fieldnames)}. "
+                        "Please download the template for the correct format.")
+                    return redirect('facility_admin:bulk_import')
+                
+                # Process the CSV data
                 imported_count = 0
                 errors = []
+                warnings = []
+                
+                # Reset the reader
+                csv_reader = csv.DictReader(io.StringIO(decoded_content), delimiter=delimiter)
                 
                 for row_num, row in enumerate(csv_reader, start=2):
                     try:
-                        # Create facility from CSV row
+                        # Clean row data
+                        cleaned_row = {}
+                        for key, value in row.items():
+                            if key:  # Skip None keys
+                                cleaned_key = key.strip().strip('"\'')
+                                cleaned_value = str(value).strip().strip('"\'') if value else ''
+                                cleaned_row[cleaned_key] = cleaned_value
+                        
+                        # Extract data using our field mapping
+                        facility_data = {}
+                        
+                        # Required fields
+                        try:
+                            facility_data['name'] = cleaned_row[field_mapping['name']]
+                            facility_data['facility_type'] = cleaned_row[field_mapping['type']]
+                            facility_data['inspection_number'] = cleaned_row[field_mapping['inspection_number']]
+                            facility_data['address'] = cleaned_row[field_mapping['address']]
+                            facility_data['state'] = cleaned_row[field_mapping['state']]
+                            facility_data['county'] = cleaned_row[field_mapping['county']]
+                            
+                            # Handle bed count conversion
+                            bed_count_str = cleaned_row[field_mapping['bed_count']]
+                            facility_data['bed_count'] = int(bed_count_str) if bed_count_str and bed_count_str.isdigit() else 0
+                            
+                        except (KeyError, ValueError) as e:
+                            errors.append(f"Row {row_num}: Missing or invalid required field - {str(e)}")
+                            continue
+                        
+                        # Optional fields
+                        facility_data['endorsement'] = cleaned_row.get(field_mapping.get('endorsement', ''), '')
+                        facility_data['contact'] = cleaned_row.get(field_mapping.get('contact', ''), '')
+                        facility_data['contact_person'] = cleaned_row.get(field_mapping.get('contact_person', ''), '')
+                        
+                        # Validate required fields are not empty
+                        if not all([facility_data['name'], facility_data['facility_type'], 
+                                   facility_data['inspection_number'], facility_data['address'],
+                                   facility_data['state'], facility_data['county']]):
+                            errors.append(f"Row {row_num}: One or more required fields are empty")
+                            continue
+                        
+                        # Check for duplicate inspection number
+                        if Facility.objects.filter(inspection_number=facility_data['inspection_number']).exists():
+                            warnings.append(f"Row {row_num}: Inspection number {facility_data['inspection_number']} already exists - skipped")
+                            continue
+                        
+                        # Create facility
                         facility = Facility(
-                            name=row['Name'],
-                            facility_type=row['Type'],
-                            endorsement=row.get('Endorsement', ''),
-                            inspection_number=row['Inspection Number'],
-                            address=row['Address'],
-                            state=row['State'],
-                            county=row['County'],
-                            contact=row.get('Contact', ''),
-                            contact_person=row.get('Contact Person', ''),
-                            bed_count=int(row['Bed Count']) if row['Bed Count'] else 0,
+                            name=facility_data['name'],
+                            facility_type=facility_data['facility_type'],
+                            endorsement=facility_data['endorsement'],
+                            inspection_number=facility_data['inspection_number'],
+                            address=facility_data['address'],
+                            state=facility_data['state'],
+                            county=facility_data['county'],
+                            contact=facility_data['contact'],
+                            contact_person=facility_data['contact_person'],
+                            bed_count=facility_data['bed_count'],
                             submitted_by=request.user,
                             submission_type='bulk_import',
                             status='active',  # Bulk imports are immediately active
@@ -360,6 +585,20 @@ def bulk_import(request):
                             approved_at=timezone.now()
                         )
                         facility.save()
+                        
+                        # Create initial bed availability record
+                        BedAvailability.objects.get_or_create(
+                            facility=facility,
+                            defaults={
+                                'available_beds': 0,
+                                'shared_beds_total': 0,
+                                'shared_beds_male': 0,
+                                'shared_beds_female': 0,
+                                'separate_beds_total': 0,
+                                'separate_beds_male': 0,
+                                'separate_beds_female': 0,
+                            }
+                        )
                         
                         # Log the import
                         FacilityChangeLog.objects.create(
@@ -374,14 +613,24 @@ def bulk_import(request):
                     except Exception as e:
                         errors.append(f"Row {row_num}: {str(e)}")
                 
+                # Show results
                 if imported_count > 0:
                     messages.success(request, f'Successfully imported {imported_count} facilities!')
+                
+                if warnings:
+                    for warning in warnings[:5]:  # Show first 5 warnings
+                        messages.warning(request, warning)
+                    if len(warnings) > 5:
+                        messages.warning(request, f"... and {len(warnings) - 5} more warnings")
                 
                 if errors:
                     for error in errors[:5]:  # Show first 5 errors
                         messages.error(request, error)
                     if len(errors) > 5:
                         messages.error(request, f"... and {len(errors) - 5} more errors")
+                
+                if imported_count == 0 and (errors or warnings):
+                    messages.error(request, "No facilities were imported. Please check the errors above and fix your CSV file.")
                 
             except Exception as e:
                 messages.error(request, f'Error processing CSV file: {str(e)}')
@@ -415,6 +664,20 @@ def bulk_approve(request):
             facility.approved_by = request.user
             facility.approved_at = timezone.now()
             facility.save()
+            
+            # Create bed availability record
+            BedAvailability.objects.get_or_create(
+                facility=facility,
+                defaults={
+                    'available_beds': 0,
+                    'shared_beds_total': 0,
+                    'shared_beds_male': 0,
+                    'shared_beds_female': 0,
+                    'separate_beds_total': 0,
+                    'separate_beds_male': 0,
+                    'separate_beds_female': 0,
+                }
+            )
             
             # Log bulk approval
             FacilityChangeLog.objects.create(
@@ -464,7 +727,8 @@ def export_facilities(request):
     writer.writerow([
         'Name', 'Type', 'Endorsement', 'Inspection Number', 'Address', 
         'State', 'County', 'Contact', 'Contact Person', 'Bed Count',
-        'Status', 'Created At', 'Submitted By'
+        'Status', 'Available Beds', 'Total Beds (Shared + Private)', 
+        'Created At', 'Submitted By'
     ])
     
     # Get facilities based on filters
@@ -481,6 +745,15 @@ def export_facilities(request):
     
     # Write data
     for facility in facilities:
+        # Get bed information if available
+        try:
+            bed_info = facility.bed_availability
+            available_beds = bed_info.available_beds
+            total_beds = bed_info.shared_beds_total + bed_info.separate_beds_total
+        except BedAvailability.DoesNotExist:
+            available_beds = 'N/A'
+            total_beds = 'N/A'
+        
         writer.writerow([
             facility.name,
             facility.facility_type,
@@ -493,6 +766,8 @@ def export_facilities(request):
             facility.contact_person or '',
             facility.bed_count,
             facility.get_status_display(),
+            available_beds,
+            total_beds,
             facility.created_at.strftime('%Y-%m-%d %H:%M'),
             facility.submitted_by.username if facility.submitted_by else ''
         ])
@@ -503,7 +778,7 @@ def export_facilities(request):
 @login_required
 @user_passes_test(is_admin)
 def facility_detail_admin(request, facility_id):
-    """Admin view of facility details with change history"""
+    """Admin view of facility details with change history and bed information"""
     
     facility = get_object_or_404(Facility, id=facility_id)
     change_logs = FacilityChangeLog.objects.filter(facility=facility).order_by('-timestamp')
@@ -515,10 +790,18 @@ def facility_detail_admin(request, facility_id):
     except FacilitySubmission.DoesNotExist:
         pass
     
+    # Get bed availability information
+    bed_info = None
+    try:
+        bed_info = facility.bed_availability
+    except BedAvailability.DoesNotExist:
+        pass
+    
     context = {
         'facility': facility,
         'change_logs': change_logs,
         'submission': submission,
+        'bed_info': bed_info,
     }
     
     return render(request, 'facility_admin/facility_detail.html', context)
@@ -539,6 +822,21 @@ def change_facility_status(request, facility_id):
     old_status = facility.status
     facility.status = new_status
     facility.save()
+    
+    # Create bed availability record if activating facility and it doesn't exist
+    if new_status == 'active':
+        BedAvailability.objects.get_or_create(
+            facility=facility,
+            defaults={
+                'available_beds': 0,
+                'shared_beds_total': 0,
+                'shared_beds_male': 0,
+                'shared_beds_female': 0,
+                'separate_beds_total': 0,
+                'separate_beds_male': 0,
+                'separate_beds_female': 0,
+            }
+        )
     
     # Log status change
     FacilityChangeLog.objects.create(

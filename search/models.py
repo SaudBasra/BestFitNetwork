@@ -91,7 +91,8 @@ class Facility(models.Model):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse('facility_detail', kwargs={'facility_id': self.id})
+        # FIXED: Added namespace to resolve URL ambiguity
+        return reverse('search:facility_detail', kwargs={'facility_id': self.id})
 
     @property
     def image_url(self):
@@ -151,3 +152,6 @@ class FacilityChangeLog(models.Model):
     
     def __str__(self):
         return f"{self.change_type} - {self.facility.name} by {self.changed_by}"
+    
+    def get_absolute_url(self):
+        return reverse('search:facility_detail', kwargs={'facility_id': self.id})

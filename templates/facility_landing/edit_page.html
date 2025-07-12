@@ -1,0 +1,1457 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Landing Page - {{ facility.name }}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #059669;
+            --primary-light: #10b981;
+            --primary-dark: #047857;
+            --secondary-color: #64748b;
+            --light-bg: #f8fafc;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --success-color: #10b981;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--light-bg);
+            line-height: 1.6;
+        }
+        
+        .main-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 2rem 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .content-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 1px solid #f1f5f9;
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .content-section:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+        
+        .section-header {
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+        
+        .section-header::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: var(--primary-light);
+        }
+        
+        .section-header h4 {
+            color: var(--primary-color);
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .section-header p {
+            color: var(--secondary-color);
+            margin: 0.5rem 0 0 0;
+            font-size: 1.1rem;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .form-label i {
+            margin-right: 0.5rem;
+            color: var(--primary-color);
+        }
+        
+        .form-control, .form-select {
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(5, 150, 105, 0.15);
+            transform: translateY(-1px);
+        }
+        
+        .form-control:hover, .form-select:hover {
+            border-color: var(--primary-light);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(5, 150, 105, 0.3);
+        }
+        
+        .btn-outline-secondary {
+            border: 2px solid var(--secondary-color);
+            color: var(--secondary-color);
+            border-radius: 10px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline-secondary:hover {
+            background: var(--secondary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .btn-outline-light {
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline-light:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: white;
+            transform: translateY(-2px);
+        }
+        
+        .preview-box {
+            background: linear-gradient(135deg, var(--light-bg), #ffffff);
+            border: 3px dashed var(--primary-color);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .preview-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .preview-box:hover::before {
+            left: 100%;
+        }
+        
+        .preview-box:hover {
+            border-color: var(--primary-light);
+            background: linear-gradient(135deg, #ffffff, var(--light-bg));
+        }
+        
+        .current-image {
+            max-width: 100%;
+            max-height: 250px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+        }
+        
+        .current-image:hover {
+            transform: scale(1.05);
+        }
+        
+        .character-count {
+            font-size: 0.875rem;
+            color: var(--secondary-color);
+            text-align: right;
+            margin-top: 0.5rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .character-count.warning {
+            color: var(--warning-color);
+            font-weight: 600;
+        }
+        
+        .character-count.danger {
+            color: var(--danger-color);
+            font-weight: 700;
+        }
+        
+        .navigation-tabs {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 1px solid #f1f5f9;
+        }
+        
+        .tab-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            background: var(--light-bg);
+            color: var(--secondary-color);
+            border: none;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tab-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .tab-button:hover::before {
+            left: 100%;
+        }
+        
+        .tab-button.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(5, 150, 105, 0.3);
+        }
+        
+        .tab-button:hover {
+            background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+            color: white;
+            text-decoration: none;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.2);
+        }
+        
+        .tab-button i {
+            margin-right: 0.5rem;
+            font-size: 1.1rem;
+        }
+        
+        .save-actions {
+            position: sticky;
+            bottom: 0;
+            background: linear-gradient(135deg, #ffffff, var(--light-bg));
+            padding: 2rem;
+            border-top: 2px solid #e5e7eb;
+            margin: 2rem -2.5rem -2.5rem -2.5rem;
+            border-radius: 0 0 15px 15px;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+        
+        .help-text {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border-left: 4px solid var(--primary-color);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 0 12px 12px 0;
+            position: relative;
+        }
+        
+        .help-text::before {
+            content: '\f0eb';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+        }
+        
+        .quick-actions {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .quick-action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            color: white;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+        
+        .quick-action-btn:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(5, 150, 105, 0.4);
+        }
+        
+        .progress-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+            z-index: 1001;
+            transition: width 0.3s ease;
+        }
+        
+        .form-section-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .section-progress {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--light-bg);
+            border: 2px solid var(--primary-color);
+            margin-right: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        
+        .section-progress.completed {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .error-message {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: 1px solid #fecaca;
+            border-left: 4px solid var(--danger-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            color: #991b1b;
+        }
+        
+        .success-message {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            border: 1px solid #bbf7d0;
+            border-left: 4px solid var(--success-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            color: #166534;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeInUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .content-section {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .quick-actions {
+            animation: slideIn 0.8s ease-out;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .quick-actions {
+                display: none;
+            }
+            
+            .main-header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .content-section {
+                padding: 1.5rem;
+                margin-bottom: 1rem;
+            }
+            
+            .save-actions {
+                padding: 1.5rem;
+                margin: 1rem -1.5rem -1.5rem -1.5rem;
+            }
+            
+            .tab-button {
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            .tab-button i {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .navigation-tabs {
+                padding: 1rem;
+            }
+            
+            .tab-button {
+                display: block;
+                width: 100%;
+                margin-right: 0;
+                text-align: center;
+            }
+            
+            .tab-button i {
+                display: inline;
+            }
+        }
+        
+        /* Print Styles */
+        @media print {
+            .quick-actions,
+            .save-actions,
+            .navigation-tabs {
+                display: none;
+            }
+            
+            .content-section {
+                box-shadow: none;
+                border: 1px solid #ccc;
+                page-break-inside: avoid;
+            }
+        }
+        
+        /* Focus indicators for accessibility */
+        .form-control:focus,
+        .form-select:focus,
+        .btn:focus,
+        .tab-button:focus {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--light-bg);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+        
+        .is-invalid {
+            border-color: var(--danger-color) !important;
+            box-shadow: 0 0 0 0.2rem rgba(239, 68, 68, 0.25) !important;
+        }
+        
+        .readonly-field {
+            background-color: #f8f9fa !important;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Progress Indicator -->
+    <div class="progress-indicator" id="progressIndicator"></div>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="main-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8" data-aos="fade-right">
+                    <h1 class="mb-2">
+                        <i class="fas fa-edit me-3"></i>Edit Landing Page
+                    </h1>
+                    <p class="mb-0 opacity-90">{{ facility.name }}</p>
+                    <small class="opacity-75">
+                        <i class="fas fa-map-marker-alt me-1"></i>
+                        {{ facility.address|default:"Address not available" }}
+                    </small>
+                </div>
+                <div class="col-md-4 text-end" data-aos="fade-left">
+                    <a href="{% url 'facility_landing:public_page' facility.id %}" target="_blank" class="btn btn-light me-2">
+                        <i class="fas fa-eye me-2"></i>Preview
+                    </a>
+                    <a href="{% url 'user_management:facility_dashboard' %}" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left me-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" data-aos="fade-down">
+            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="container my-4">
+        <!-- Navigation Tabs -->
+        <div class="navigation-tabs" data-aos="fade-up">
+            <div class="d-flex flex-wrap">
+                <a href="#hero-section" class="tab-button active" data-section="hero">
+                    <i class="fas fa-home"></i>Hero Section
+                </a>
+                <a href="#about-section" class="tab-button" data-section="about">
+                    <i class="fas fa-info-circle"></i>About Us
+                </a>
+                <a href="#services-section" class="tab-button" data-section="services">
+                    <i class="fas fa-user-md"></i>Services
+                </a>
+                <a href="#details-section" class="tab-button" data-section="details">
+                    <i class="fas fa-list"></i>Additional Details
+                </a>
+                <a href="#seo-section" class="tab-button" data-section="seo">
+                    <i class="fas fa-search"></i>SEO Settings
+                </a>
+            </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" id="landing-page-form">
+            {% csrf_token %}
+            
+            <!-- Hero Section -->
+            <div class="content-section" id="hero-section" data-aos="fade-up">
+                <div class="form-section-indicator">
+                    <div class="section-progress completed">1</div>
+                    <div class="section-header">
+                        <h4><i class="fas fa-home me-2"></i>Hero Section</h4>
+                        <p class="text-muted mb-0">The first thing visitors see when they visit your landing page</p>
+                    </div>
+                </div>
+                
+                <div class="help-text">
+                    <strong>Tips:</strong> Use a compelling tagline and description to make a great first impression. Upload a high-quality hero image that showcases your facility's best features.
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <label for="{{ form.hero_tagline.id_for_label }}" class="form-label">
+                                <i class="fas fa-bullhorn"></i>{{ form.hero_tagline.label }}
+                            </label>
+                            {{ form.hero_tagline }}
+                            <div class="character-count">
+                                <span id="tagline-count">0</span>/200 characters
+                            </div>
+                            {% if form.hero_tagline.help_text %}
+                            <div class="form-text">{{ form.hero_tagline.help_text }}</div>
+                            {% endif %}
+                            {% if form.hero_tagline.errors %}
+                                <div class="error-message">
+                                    {% for error in form.hero_tagline.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.hero_description.id_for_label }}" class="form-label">
+                                <i class="fas fa-align-left"></i>{{ form.hero_description.label }}
+                            </label>
+                            {{ form.hero_description }}
+                            <div class="character-count">
+                                <span id="description-count">0</span>/500 characters
+                            </div>
+                            {% if form.hero_description.help_text %}
+                            <div class="form-text">{{ form.hero_description.help_text }}</div>
+                            {% endif %}
+                            {% if form.hero_description.errors %}
+                                <div class="error-message">
+                                    {% for error in form.hero_description.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.years_of_experience.id_for_label }}" class="form-label">
+                                <i class="fas fa-calendar-alt"></i>{{ form.years_of_experience.label }}
+                            </label>
+                            {{ form.years_of_experience }}
+                            {% if form.years_of_experience.help_text %}
+                            <div class="form-text">{{ form.years_of_experience.help_text }}</div>
+                            {% endif %}
+                            {% if form.years_of_experience.errors %}
+                                <div class="error-message">
+                                    {% for error in form.years_of_experience.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <label for="{{ form.hero_image.id_for_label }}" class="form-label">
+                                <i class="fas fa-image"></i>{{ form.hero_image.label }}
+                            </label>
+                            <div class="preview-box">
+                                {% if landing_page.hero_image %}
+                                <img src="{{ landing_page.hero_image.url }}" alt="Current hero image" class="current-image mb-3">
+                                <p class="mb-2"><strong>Current Image</strong></p>
+                                {% else %}
+                                <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                                <p class="mb-2"><strong>No hero image uploaded</strong></p>
+                                <p class="text-muted">Upload an image to make your landing page more engaging</p>
+                                {% endif %}
+                            </div>
+                            {{ form.hero_image }}
+                            {% if form.hero_image.help_text %}
+                            <div class="form-text">{{ form.hero_image.help_text }}</div>
+                            {% endif %}
+                            {% if form.hero_image.errors %}
+                                <div class="error-message">
+                                    {% for error in form.hero_image.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About Section -->
+            <div class="content-section" id="about-section" data-aos="fade-up">
+                <div class="form-section-indicator">
+                    <div class="section-progress">2</div>
+                    <div class="section-header">
+                        <h4><i class="fas fa-info-circle me-2"></i>About Us</h4>
+                        <p class="text-muted mb-0">Tell your facility's story and share your mission</p>
+                    </div>
+                </div>
+                
+                <div class="help-text">
+                    <strong>Tips:</strong> Share what makes your facility unique. Include your mission, values, and the story behind your facility. This helps families connect emotionally with your facility.
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <label for="{{ form.mission_statement.id_for_label }}" class="form-label">
+                                <i class="fas fa-heart"></i>{{ form.mission_statement.label }}
+                            </label>
+                            {{ form.mission_statement }}
+                            {% if form.mission_statement.help_text %}
+                            <div class="form-text">{{ form.mission_statement.help_text }}</div>
+                            {% endif %}
+                            {% if form.mission_statement.errors %}
+                                <div class="error-message">
+                                    {% for error in form.mission_statement.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <label for="{{ form.facility_story.id_for_label }}" class="form-label">
+                                <i class="fas fa-book"></i>{{ form.facility_story.label }}
+                            </label>
+                            {{ form.facility_story }}
+                            {% if form.facility_story.help_text %}
+                            <div class="form-text">{{ form.facility_story.help_text }}</div>
+                            {% endif %}
+                            {% if form.facility_story.errors %}
+                                <div class="error-message">
+                                    {% for error in form.facility_story.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Services Section -->
+            <div class="content-section" id="services-section" data-aos="fade-up">
+                <div class="form-section-indicator">
+                    <div class="section-progress">3</div>
+                    <div class="section-header">
+                        <h4><i class="fas fa-user-md me-2"></i>Services & Care</h4>
+                        <p class="text-muted mb-0">Describe the services and specialized care you provide</p>
+                    </div>
+                </div>
+                
+                <div class="help-text">
+                    <strong>Tips:</strong> Be specific about the services you offer. Mention any specialized programs, certifications, or unique care approaches that set you apart from competitors.
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <label for="{{ form.services_description.id_for_label }}" class="form-label">
+                                <i class="fas fa-stethoscope"></i>{{ form.services_description.label }}
+                            </label>
+                            {{ form.services_description }}
+                            {% if form.services_description.help_text %}
+                            <div class="form-text">{{ form.services_description.help_text }}</div>
+                            {% endif %}
+                            {% if form.services_description.errors %}
+                                <div class="error-message">
+                                    {% for error in form.services_description.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.accreditations.id_for_label }}" class="form-label">
+                                <i class="fas fa-award"></i>{{ form.accreditations.label }}
+                            </label>
+                            {{ form.accreditations }}
+                            {% if form.accreditations.help_text %}
+                            <div class="form-text">{{ form.accreditations.help_text }}</div>
+                            {% endif %}
+                            {% if form.accreditations.errors %}
+                                <div class="error-message">
+                                    {% for error in form.accreditations.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <label for="{{ form.specialized_care.id_for_label }}" class="form-label">
+                                <i class="fas fa-user-nurse"></i>{{ form.specialized_care.label }}
+                            </label>
+                            {{ form.specialized_care }}
+                            {% if form.specialized_care.help_text %}
+                            <div class="form-text">{{ form.specialized_care.help_text }}</div>
+                            {% endif %}
+                            {% if form.specialized_care.errors %}
+                                <div class="error-message">
+                                    {% for error in form.specialized_care.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.staff_credentials.id_for_label }}" class="form-label">
+                                <i class="fas fa-user-graduate"></i>{{ form.staff_credentials.label }}
+                            </label>
+                            {{ form.staff_credentials }}
+                            {% if form.staff_credentials.help_text %}
+                            <div class="form-text">{{ form.staff_credentials.help_text }}</div>
+                            {% endif %}
+                            {% if form.staff_credentials.errors %}
+                                <div class="error-message">
+                                    {% for error in form.staff_credentials.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Details Section -->
+            <div class="content-section" id="details-section" data-aos="fade-up">
+                <div class="form-section-indicator">
+                    <div class="section-progress">4</div>
+                    <div class="section-header">
+                        <h4><i class="fas fa-list me-2"></i>Additional Details</h4>
+                        <p class="text-muted mb-0">Amenities, visiting hours, and other important information</p>
+                    </div>
+                </div>
+                
+                <div class="help-text">
+                    <strong>Tips:</strong> Include amenities that families care about, clear visiting hours, and any special features of your facility. This practical information helps families make informed decisions.
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <label for="{{ form.amenities.id_for_label }}" class="form-label">
+                                <i class="fas fa-home"></i>{{ form.amenities.label }}
+                            </label>
+                            {{ form.amenities }}
+                            {% if form.amenities.help_text %}
+                            <div class="form-text">{{ form.amenities.help_text }}</div>
+                            {% endif %}
+                            {% if form.amenities.errors %}
+                                <div class="error-message">
+                                    {% for error in form.amenities.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.visiting_hours.id_for_label }}" class="form-label">
+                                <i class="fas fa-clock"></i>{{ form.visiting_hours.label }}
+                            </label>
+                            {{ form.visiting_hours }}
+                            {% if form.visiting_hours.help_text %}
+                            <div class="form-text">{{ form.visiting_hours.help_text }}</div>
+                            {% endif %}
+                            {% if form.visiting_hours.errors %}
+                                <div class="error-message">
+                                    {% for error in form.visiting_hours.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <div class="form-check">
+                                {{ form.tour_available }}
+                                <label class="form-check-label" for="{{ form.tour_available.id_for_label }}">
+                                    <i class="fas fa-walking me-2"></i>{{ form.tour_available.label }}
+                                </label>
+                                {% if form.tour_available.help_text %}
+                                <div class="form-text">{{ form.tour_available.help_text }}</div>
+                                {% endif %}
+                                {% if form.tour_available.errors %}
+                                    <div class="error-message">
+                                        {% for error in form.tour_available.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Facility Information Summary -->
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Facility Information</h6>
+                            <ul class="mb-0">
+                                <li><strong>Type:</strong> {{ facility.facility_type|default:"Healthcare Facility" }}</li>
+                                <li><strong>Total Beds:</strong> {{ facility.bed_count|default:"Not specified" }}</li>
+                                <li><strong>Specializations:</strong> {{ facility.endorsement|default:"General Care" }}</li>
+                                <li><strong>Location:</strong> {{ facility.county|default:"" }}{% if facility.county and facility.state %}, {% endif %}{{ facility.state|default:"" }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEO Section -->
+            <div class="content-section" id="seo-section" data-aos="fade-up">
+                <div class="form-section-indicator">
+                    <div class="section-progress">5</div>
+                    <div class="section-header">
+                        <h4><i class="fas fa-search me-2"></i>SEO Settings</h4>
+                        <p class="text-muted mb-0">Optimize your landing page for search engines</p>
+                    </div>
+                </div>
+                
+                <div class="help-text">
+                    <strong>Tips:</strong> Good SEO helps families find your facility online. Use relevant keywords and write compelling descriptions that accurately represent your facility.
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <label for="{{ form.meta_title.id_for_label }}" class="form-label">
+                                <i class="fas fa-tag"></i>{{ form.meta_title.label }}
+                            </label>
+                            {{ form.meta_title }}
+                            <div class="character-count">
+                                <span id="title-count">0</span>/60 characters
+                            </div>
+                            {% if form.meta_title.help_text %}
+                            <div class="form-text">{{ form.meta_title.help_text }}</div>
+                            {% endif %}
+                            {% if form.meta_title.errors %}
+                                <div class="error-message">
+                                    {% for error in form.meta_title.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="form-check">
+                                {{ form.is_published }}
+                                <label class="form-check-label" for="{{ form.is_published.id_for_label }}">
+                                    <i class="fas fa-globe me-2"></i>{{ form.is_published.label }}
+                                </label>
+                                {% if form.is_published.help_text %}
+                                <div class="form-text">{{ form.is_published.help_text }}</div>
+                                {% endif %}
+                                {% if form.is_published.errors %}
+                                    <div class="error-message">
+                                        {% for error in form.is_published.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <label for="{{ form.meta_description.id_for_label }}" class="form-label">
+                                <i class="fas fa-file-text"></i>{{ form.meta_description.label }}
+                            </label>
+                            {{ form.meta_description }}
+                            <div class="character-count">
+                                <span id="meta-count">0</span>/160 characters
+                            </div>
+                            {% if form.meta_description.help_text %}
+                            <div class="form-text">{{ form.meta_description.help_text }}</div>
+                            {% endif %}
+                            {% if form.meta_description.errors %}
+                                <div class="error-message">
+                                    {% for error in form.meta_description.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- SEO Preview -->
+                        <div class="alert alert-secondary">
+                            <h6><i class="fas fa-eye me-2"></i>Search Engine Preview</h6>
+                            <div class="seo-preview">
+                                <div class="seo-title text-primary" id="seo-title-preview">
+                                    {% if landing_page.meta_title %}{{ landing_page.meta_title }}{% else %}{{ facility.name }} - Healthcare Facility{% endif %}
+                                </div>
+                                <div class="seo-url text-success small">
+                                    {{ request.get_host }}{% url 'facility_landing:public_page' facility.id %}
+                                </div>
+                                <div class="seo-description text-muted" id="seo-description-preview">
+                                    {% if landing_page.meta_description %}{{ landing_page.meta_description }}{% else %}Quality care and comfortable living at {{ facility.name }}.{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save Actions -->
+            <div class="save-actions">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-save me-2 text-primary"></i>
+                            <div>
+                                <p class="mb-0 fw-bold">Ready to save your changes?</p>
+                                <small class="text-muted">Changes will be visible immediately after saving</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <a href="{% url 'user_management:facility_dashboard' %}" class="btn btn-outline-secondary me-3">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="button" class="btn btn-outline-primary me-2" onclick="saveAsDraft()">
+                            <i class="fas fa-save me-2"></i>Save Draft
+                        </button>
+                        <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
+                            <i class="fas fa-check me-2"></i>Save & Publish
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Quick Actions (Fixed Position) -->
+    <div class="quick-actions">
+        <a href="{% url 'facility_landing:public_page' facility.id %}" target="_blank" class="quick-action-btn" title="Preview Landing Page">
+            <i class="fas fa-eye"></i>
+        </a>
+        <a href="{% url 'facility_landing:manage_gallery' %}" class="quick-action-btn" title="Manage Gallery">
+            <i class="fas fa-images"></i>
+        </a>
+        <a href="{% url 'facility_landing:manage_testimonials' %}" class="quick-action-btn" title="Manage Testimonials">
+            <i class="fas fa-quote-left"></i>
+        </a>
+        <a href="#hero-section" class="quick-action-btn" title="Back to Top">
+            <i class="fas fa-arrow-up"></i>
+        </a>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- AOS Animation -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize AOS animations
+            AOS.init({
+                duration: 600,
+                once: true,
+                offset: 100
+            });
+            
+            // Character counting with advanced features
+            function setupCharacterCounter(fieldId, counterId, maxLength) {
+                const field = document.getElementById('id_' + fieldId);
+                const counter = document.getElementById(counterId);
+                
+                if (field && counter) {
+                    function updateCount() {
+                        const currentLength = field.value.length;
+                        counter.textContent = currentLength;
+                        
+                        // Remove existing classes
+                        counter.classList.remove('warning', 'danger');
+                        
+                        // Color coding with animations
+                        if (currentLength > maxLength) {
+                            counter.classList.add('danger');
+                            counter.parentElement.style.animation = 'shake 0.5s ease-in-out';
+                        } else if (currentLength > maxLength * 0.9) {
+                            counter.classList.add('danger');
+                        } else if (currentLength > maxLength * 0.7) {
+                            counter.classList.add('warning');
+                        }
+                        
+                        // Reset animation
+                        setTimeout(() => {
+                            if (counter.parentElement) {
+                                counter.parentElement.style.animation = '';
+                            }
+                        }, 500);
+                    }
+                    
+                    field.addEventListener('input', updateCount);
+                    field.addEventListener('paste', () => setTimeout(updateCount, 10));
+                    updateCount(); // Initial count
+                }
+            }
+            
+            // Add shake animation to CSS
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    25% { transform: translateX(-5px); }
+                    75% { transform: translateX(5px); }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            setupCharacterCounter('hero_tagline', 'tagline-count', 200);
+            setupCharacterCounter('hero_description', 'description-count', 500);
+            setupCharacterCounter('meta_title', 'title-count', 60);
+            setupCharacterCounter('meta_description', 'meta-count', 160);
+            
+            // Tab navigation with smooth transitions
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const sections = document.querySelectorAll('.content-section');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Remove active class from all buttons
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    // Scroll to target section with offset
+                    const targetId = this.getAttribute('href');
+                    const targetSection = document.querySelector(targetId);
+                    
+                    if (targetSection) {
+                        const headerOffset = 120;
+                        const elementPosition = targetSection.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                        
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                        });
+                        
+                        // Update progress indicator
+                        updateProgressIndicator(targetSection);
+                    }
+                });
+            });
+            
+            // Update active tab on scroll with throttling
+            let ticking = false;
+            
+            function updateActiveTab() {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (window.pageYOffset >= sectionTop - 200) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                
+                tabButtons.forEach(button => {
+                    button.classList.remove('active');
+                    if (button.getAttribute('href') === '#' + current) {
+                        button.classList.add('active');
+                    }
+                });
+                
+                ticking = false;
+            }
+            
+            function onScroll() {
+                if (!ticking) {
+                    requestAnimationFrame(updateActiveTab);
+                    ticking = true;
+                }
+            }
+            
+            window.addEventListener('scroll', onScroll);
+            
+            // Progress indicator
+            function updateProgressIndicator(targetSection = null) {
+                const scrollTop = window.pageYOffset;
+                const documentHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const scrollPercentage = (scrollTop / documentHeight) * 100;
+                
+                const progressIndicator = document.getElementById('progressIndicator');
+                progressIndicator.style.width = Math.min(scrollPercentage, 100) + '%';
+            }
+            
+            window.addEventListener('scroll', updateProgressIndicator);
+            
+            // Form validation with enhanced features
+            const form = document.getElementById('landing-page-form');
+            form.addEventListener('submit', function(e) {
+                let hasErrors = false;
+                const errors = [];
+                
+                // Check required fields
+                const requiredFields = [
+                    { id: 'hero_tagline', name: 'Hero Tagline' },
+                    { id: 'hero_description', name: 'Hero Description' }
+                ];
+                
+                requiredFields.forEach(field => {
+                    const fieldElement = document.getElementById('id_' + field.id);
+                    if (fieldElement && !fieldElement.value.trim()) {
+                        fieldElement.classList.add('is-invalid');
+                        errors.push(field.name + ' is required');
+                        hasErrors = true;
+                    } else if (fieldElement) {
+                        fieldElement.classList.remove('is-invalid');
+                    }
+                });
+                
+                // Check character limits
+                const characterLimits = [
+                    { id: 'hero_tagline', limit: 200 },
+                    { id: 'hero_description', limit: 500 },
+                    { id: 'meta_title', limit: 60 },
+                    { id: 'meta_description', limit: 160 }
+                ];
+                
+                characterLimits.forEach(field => {
+                    const fieldElement = document.getElementById('id_' + field.id);
+                    if (fieldElement && fieldElement.value.length > field.limit) {
+                        fieldElement.classList.add('is-invalid');
+                        errors.push(`${field.id.replace('_', ' ')} exceeds ${field.limit} character limit`);
+                        hasErrors = true;
+                    }
+                });
+                
+                if (hasErrors) {
+                    e.preventDefault();
+                    showErrorSummary(errors);
+                    return false;
+                }
+                
+                // Show loading state
+                showLoadingState();
+            });
+            
+            function showErrorSummary(errors) {
+                const errorHtml = `
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Please fix the following errors:</h6>
+                        <ul class="mb-0">
+                            ${errors.map(error => `<li>${error}</li>`).join('')}
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                
+                const container = document.querySelector('.container');
+                container.insertAdjacentHTML('afterbegin', errorHtml);
+                
+                // Scroll to top to show errors
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            
+            function showLoadingState() {
+                const submitBtn = document.getElementById('submit-btn');
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+                submitBtn.disabled = true;
+                loadingOverlay.style.display = 'flex';
+            }
+            
+            // Auto-save functionality
+            let autoSaveTimeout;
+            const formFields = form.querySelectorAll('input, textarea, select');
+            let originalFormData = new FormData(form);
+            
+            function hasFormChanged() {
+                const currentFormData = new FormData(form);
+                
+                for (let [key, value] of originalFormData.entries()) {
+                    if (currentFormData.get(key) !== value) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            
+            formFields.forEach(field => {
+                field.addEventListener('input', function() {
+                    clearTimeout(autoSaveTimeout);
+                    
+                    // Show unsaved changes indicator
+                    if (hasFormChanged()) {
+                        document.title = '● ' + document.title.replace('● ', '');
+                    }
+                    
+                    autoSaveTimeout = setTimeout(() => {
+                        // Auto-save functionality could be implemented here
+                        console.log('Auto-save triggered');
+                    }, 5000);
+                });
+            });
+            
+            // Save as draft functionality
+            window.saveAsDraft = function() {
+                const isPublishedField = document.getElementById('id_is_published');
+                if (isPublishedField) {
+                    isPublishedField.checked = false;
+                }
+                form.submit();
+            };
+            
+            // Smooth scrolling for quick actions
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        const headerOffset = 120;
+                        const elementPosition = target.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                        
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+            
+            // Image preview functionality
+            const heroImageInput = document.getElementById('id_hero_image');
+            if (heroImageInput) {
+                heroImageInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const previewBox = document.querySelector('.preview-box');
+                            previewBox.innerHTML = `
+                                <img src="${e.target.result}" alt="Preview" class="current-image mb-3">
+                                <p class="mb-2"><strong>New Image Preview</strong></p>
+                                <p class="text-muted">${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)</p>
+                            `;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+            
+            // SEO Preview Updates
+            function updateSEOPreview() {
+                const titleField = document.getElementById('id_meta_title');
+                const descriptionField = document.getElementById('id_meta_description');
+                const titlePreview = document.getElementById('seo-title-preview');
+                const descriptionPreview = document.getElementById('seo-description-preview');
+                
+                if (titleField && titlePreview) {
+                    titleField.addEventListener('input', function() {
+                        titlePreview.textContent = this.value || '{{ facility.name }} - Healthcare Facility';
+                    });
+                }
+                
+                if (descriptionField && descriptionPreview) {
+                    descriptionField.addEventListener('input', function() {
+                        descriptionPreview.textContent = this.value || 'Quality care and comfortable living at {{ facility.name }}.';
+                    });
+                }
+            }
+            
+            updateSEOPreview();
+            
+            // Section progress indicators
+            function updateSectionProgress() {
+                const sections = [
+                    { id: 'hero-section', fields: ['hero_tagline', 'hero_description'] },
+                    { id: 'about-section', fields: ['mission_statement', 'facility_story'] },
+                    { id: 'services-section', fields: ['services_description', 'specialized_care'] },
+                    { id: 'details-section', fields: ['amenities', 'visiting_hours'] },
+                    { id: 'seo-section', fields: ['meta_title', 'meta_description'] }
+                ];
+                
+                sections.forEach((section, index) => {
+                    const progressIndicator = document.querySelectorAll('.section-progress')[index];
+                    let completedFields = 0;
+                    
+                    section.fields.forEach(fieldId => {
+                        const field = document.getElementById('id_' + fieldId);
+                        if (field && field.value.trim()) {
+                            completedFields++;
+                        }
+                    });
+                    
+                    if (completedFields > 0) {
+                        progressIndicator.classList.add('completed');
+                        progressIndicator.innerHTML = '<i class="fas fa-check"></i>';
+                    } else {
+                        progressIndicator.classList.remove('completed');
+                        progressIndicator.textContent = index + 1;
+                    }
+                });
+            }
+            
+            // Update progress indicators on field changes
+            formFields.forEach(field => {
+                field.addEventListener('input', updateSectionProgress);
+            });
+            
+            // Initial progress update
+            updateSectionProgress();
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl/Cmd + S to save
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    form.submit();
+                }
+                
+                // Ctrl/Cmd + P to preview
+                if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                    e.preventDefault();
+                    window.open('{% url "facility_landing:public_page" facility.id %}', '_blank');
+                }
+            });
+            
+            // Warn about unsaved changes
+            window.addEventListener('beforeunload', function(e) {
+                if (hasFormChanged()) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
+            
+            // Initial setup
+            updateProgressIndicator();
+            
+            console.log('Landing page editor initialized successfully');
+        });
+    </script>
+</body>
+</html>

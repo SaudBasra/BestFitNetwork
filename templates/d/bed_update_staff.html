@@ -1,0 +1,630 @@
+{% load static %}
+{% load tz %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bed Management - {{ facility.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #059669;
+            --primary-light: #10b981;
+            --primary-dark: #047857;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #0ea5e9;
+            --light-bg: #f8fafc;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 4px 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(4px);
+        }
+        
+        .main-content {
+            padding: 24px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card.total { border-left-color: var(--info-color); }
+        .stat-card.available { border-left-color: var(--success-color); }
+        .stat-card.occupied { border-left-color: var(--warning-color); }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-number.total { color: var(--info-color); }
+        .stat-number.available { color: var(--success-color); }
+        .stat-number.occupied { color: var(--warning-color); }
+        
+        .stat-label {
+            color: var(--secondary-color);
+            font-weight: 500;
+            margin-top: 8px;
+        }
+        
+        .stat-icon {
+            font-size: 2rem;
+            opacity: 0.1;
+            position: absolute;
+            right: 20px;
+            top: 20px;
+        }
+        
+        .welcome-banner {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        .header-title {
+            color: #1e293b;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header-subtitle {
+            color: var(--secondary-color);
+            margin-bottom: 0;
+        }
+        
+        .bed-update-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--warning-color);
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(5, 150, 105, 0.25);
+        }
+        
+        .badge-coming-soon {
+            background: linear-gradient(45deg, var(--warning-color), #d97706);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .bed-type-info {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+        
+        .bed-icon {
+            margin-right: 0.5rem;
+            font-size: 1rem;
+        }
+        
+        .male-icon { color: #0d6efd; }
+        .female-icon { color: #d63384; }
+        
+        .progress {
+            height: 8px;
+            border-radius: 4px;
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+        
+        .progress-bar {
+            background-color: var(--primary-color);
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="p-3">
+                    <h4 class="text-white mb-4">
+                        <i class="fas fa-user-md me-2"></i>
+                        Facility Staff
+                    </h4>
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="{% url 'user_management:facility_dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                        </a>
+                        <a class="nav-link" href="{% url 'search:facility_detail' facility.id %}" target="_blank">
+                            <i class="fas fa-eye me-2"></i> View Public Profile
+                        </a>
+                        <a class="nav-link" href="{% url 'user_management:profile' %}">
+                            <i class="fas fa-user-edit me-2"></i> Update Personal Profile
+                        </a>
+                        <a class="nav-link" href="{% url 'user_management:facility_info_view' %}">
+                            <i class="fas fa-building-columns me-2"></i> Facility Information
+                        </a>
+                        <a class="nav-link active" href="{% url 'bedupdates:bed_update' %}?facility={{ facility.id }}">
+                            <i class="fas fa-bed me-2"></i> Update Bed Availability
+                        </a>
+                        <a class="nav-link" href="#" onclick="showComingSoon()">
+                            <i class="fas fa-globe me-2"></i> Landing Page
+                            <span class="badge-coming-soon ms-2">Soon</span>
+                        </a>
+                        <hr class="text-white-50">
+                        <a class="nav-link" href="{% url 'search:home' %}" target="_blank">
+                            <i class="fas fa-search me-2"></i> Search Engine
+                        </a>
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">
+                            <i class="fas fa-question-circle me-2"></i> Help & Support
+                        </a>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="header-title">Bed Availability Management</h1>
+                        <p class="header-subtitle">Update real-time bed availability for {{ facility.name }}</p>
+                    </div>
+                    <div>
+                        <span class="text-muted me-3">Welcome, {{ user.get_full_name|default:user.username }}</span>
+                        <a href="{% url 'user_management:logout' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-sign-out-alt me-1"></i> Logout
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <!-- Welcome Banner -->
+                <div class="welcome-banner">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h4 class="mb-1">
+                                <i class="fas fa-bed me-2"></i>
+                                {{ facility.name }} - Bed Management
+                            </h4>
+                            <p class="mb-0 opacity-90">
+                                Total Authorized Beds: {{ facility_bed_count }} • Last Update: 
+                                {% if bed_data %}
+                                    {% timezone "Asia/Karachi" %}{{ bed_data.updated_at|date:"M d, Y g:i A" }}{% endtimezone %}
+                                {% else %}
+                                    Never updated
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="text-white-50">
+                                <small>Real-time bed tracking system</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bed Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card total">
+                            <div class="stat-number total">{{ bed_data.shared_beds_total|add:bed_data.separate_beds_total }}</div>
+                            <div class="stat-label">Total Available</div>
+                            <i class="fas fa-bed stat-icon" style="color: var(--info-color);"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card available">
+                            <div class="stat-number available">{{ bed_data.shared_beds_total }}</div>
+                            <div class="stat-label">Shared Beds</div>
+                            <i class="fas fa-users stat-icon" style="color: var(--success-color);"></i>
+                            <div class="bed-type-info">
+                                <i class="fas fa-male bed-icon male-icon"></i>
+                                <span class="small">{{ bed_data.shared_beds_male }} Male</span>
+                            </div>
+                            <div class="bed-type-info">
+                                <i class="fas fa-female bed-icon female-icon"></i>
+                                <span class="small">{{ bed_data.shared_beds_female }} Female</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card occupied">
+                            <div class="stat-number occupied">{{ bed_data.separate_beds_total }}</div>
+                            <div class="stat-label">Private Beds</div>
+                            <i class="fas fa-user stat-icon" style="color: var(--warning-color);"></i>
+                            <div class="bed-type-info">
+                                <i class="fas fa-male bed-icon male-icon"></i>
+                                <span class="small">{{ bed_data.separate_beds_male }} Male</span>
+                            </div>
+                            <div class="bed-type-info">
+                                <i class="fas fa-female bed-icon female-icon"></i>
+                                <span class="small">{{ bed_data.separate_beds_female }} Female</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card" style="border-left-color: var(--danger-color);">
+                            <div class="stat-number" style="color: var(--danger-color);">
+                                {{ facility_bed_count|add:"-"|add:bed_data.shared_beds_total|add:"-"|add:bed_data.separate_beds_total }}
+                            </div>
+                            <div class="stat-label">Occupied</div>
+                            <i class="fas fa-hospital-user stat-icon" style="color: var(--danger-color);"></i>
+                            <div class="progress mt-2">
+                                {% if facility_bed_count > 0 %}
+                                    {% with occupancy_rate=bed_data.shared_beds_total|add:bed_data.separate_beds_total|floatformat:0|div:facility_bed_count|mul:100 %}
+                                        <div class="progress-bar bg-{% if occupancy_rate > 80 %}danger{% elif occupancy_rate > 60 %}warning{% else %}success{% endif %}" 
+                                             style="width: {{ 100|add:"-"|add:occupancy_rate }}%"></div>
+                                    {% endwith %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bed Update Form -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="bed-update-card">
+                            <h5 class="mb-4">
+                                <i class="fas fa-edit me-2 text-warning"></i>
+                                Update Bed Availability
+                            </h5>
+                            
+                            <form method="post" id="bed-update-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="facility" value="{{ facility.id }}">
+                                
+                                <!-- General Availability -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="text-primary border-bottom pb-2 mb-3">
+                                            <i class="fas fa-procedures me-2"></i>General Availability
+                                        </h6>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="id_available_beds" class="form-label fw-bold">
+                                            <i class="fas fa-bed me-1 text-primary"></i>Available Beds
+                                        </label>
+                                        <input type="number" name="available_beds" id="id_available_beds" 
+                                               class="form-control form-control-lg" value="{{ bed_data.available_beds }}" 
+                                               min="0" max="{{ facility_bed_count }}" required>
+                                        <div class="form-text">Total beds available for new patients</div>
+                                    </div>
+                                    <div class="col-md-8 d-flex align-items-center">
+                                        <div class="alert alert-info w-100 mb-0">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <strong>Quick Guide:</strong> This should be the total number of beds ready for immediate patient admission.
+                                            Maximum allowed: {{ facility_bed_count }} beds.
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Shared Beds Section -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="text-primary border-bottom pb-2 mb-3">
+                                            <i class="fas fa-users me-2"></i>Shared Room Beds
+                                        </h6>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="id_shared_beds_total" class="form-label fw-bold">Total Shared Beds</label>
+                                        <input type="number" name="shared_beds_total" id="id_shared_beds_total" 
+                                               class="form-control" value="{{ bed_data.shared_beds_total }}" min="0">
+                                        <div class="form-text">Currently available shared beds for new patients</div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="id_shared_beds_male" class="form-label fw-bold">
+                                            <i class="fas fa-male me-1 male-icon"></i>Male Shared Beds
+                                        </label>
+                                        <input type="number" name="shared_beds_male" id="id_shared_beds_male" 
+                                               class="form-control" value="{{ bed_data.shared_beds_male }}" min="0">
+                                        <div class="form-text">Available shared beds for male patients</div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="id_shared_beds_female" class="form-label fw-bold">
+                                            <i class="fas fa-female me-1 female-icon"></i>Female Shared Beds
+                                        </label>
+                                        <input type="number" name="shared_beds_female" id="id_shared_beds_female"
+                                               class="form-control" value="{{ bed_data.shared_beds_female }}" min="0">
+                                        <div class="form-text">Available shared beds for female patients</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Private Beds Section -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="text-primary border-bottom pb-2 mb-3">
+                                            <i class="fas fa-user me-2"></i>Private Room Beds
+                                        </h6>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="id_separate_beds_total" class="form-label fw-bold">Total Private Beds</label>
+                                        <input type="number" name="separate_beds_total" id="id_separate_beds_total" 
+                                               class="form-control" value="{{ bed_data.separate_beds_total }}" min="0">
+                                        <div class="form-text">Currently available private beds for new patients</div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="id_separate_beds_male" class="form-label fw-bold">
+                                            <i class="fas fa-male me-1 male-icon"></i>Male Private Beds
+                                        </label>
+                                        <input type="number" name="separate_beds_male" id="id_separate_beds_male" 
+                                               class="form-control" value="{{ bed_data.separate_beds_male }}" min="0">
+                                        <div class="form-text">Available private beds for male patients</div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="id_separate_beds_female" class="form-label fw-bold">
+                                            <i class="fas fa-female me-1 female-icon"></i>Female Private Beds
+                                        </label>
+                                        <input type="number" name="separate_beds_female" id="id_separate_beds_female" 
+                                               class="form-control" value="{{ bed_data.separate_beds_female }}" min="0">
+                                        <div class="form-text">Available private beds for female patients</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'user_management:facility_dashboard' %}" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                                    </a>
+                                    <div>
+                                        <button type="button" class="btn btn-outline-warning me-2" onclick="resetForm()">
+                                            <i class="fas fa-undo me-1"></i>Reset
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i>Update Bed Information
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Help Information -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <i class="fas fa-lightbulb me-2"></i>
+                                    <strong>Tip:</strong> Update bed availability at least twice daily for accurate patient placement. 
+                                    All changes are reflected immediately in the search engine.
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#helpModal">
+                                        <i class="fas fa-question-circle me-1"></i>Need Help?
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-question-circle me-2"></i>
+                        Bed Management Help
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-bed me-2 text-primary"></i>Understanding Bed Types</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><i class="fas fa-users text-info me-2"></i><strong>Shared Beds:</strong> Beds in rooms with multiple patients</li>
+                                <li class="mb-2"><i class="fas fa-user text-warning me-2"></i><strong>Private Beds:</strong> Beds in single-occupancy rooms</li>
+                                <li class="mb-2"><i class="fas fa-bed text-success me-2"></i><strong>Available Beds:</strong> Ready for immediate admission</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-clock me-2 text-primary"></i>Best Practices</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Update at least twice daily</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Verify counts before submission</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Account for gender-specific needs</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Important:</strong> Bed counts should never exceed your facility's total authorized bed count of {{ facility_bed_count }} beds.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="mailto:support@bestfitnetwork.com" class="btn btn-primary">
+                        <i class="fas fa-envelope me-2"></i>Contact Support
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Coming Soon Modal
+        function showComingSoon() {
+            const modalHTML = `
+                <div class="modal fade" id="comingSoonModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-warning text-dark">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-clock me-2"></i>Feature Coming Soon
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="text-center">
+                                    <i class="fas fa-globe fa-3x text-warning mb-3"></i>
+                                    <h5>Custom Landing Page</h5>
+                                    <p class="text-muted">We're working on custom facility landing pages.</p>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            const modalElement = document.body.lastElementChild;
+            const modalInstance = new bootstrap.Modal(modalElement);
+            modalInstance.show();
+            
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                modalElement.remove();
+            });
+        }
+        
+        // Form validation
+        document.getElementById('bed-update-form').addEventListener('submit', function(e) {
+            const totalBeds = {{ facility_bed_count }};
+            const availableBeds = parseInt(document.getElementById('id_available_beds').value) || 0;
+            
+            if (availableBeds > totalBeds) {
+                e.preventDefault();
+                alert(`Available beds (${availableBeds}) cannot exceed total authorized beds (${totalBeds})`);
+                return false;
+            }
+            
+            if (availableBeds < 0) {
+                e.preventDefault();
+                alert('Available beds cannot be negative');
+                return false;
+            }
+        });
+        
+        // Reset form function
+        function resetForm() {
+            if (confirm('Are you sure you want to reset all bed counts to zero?')) {
+                document.querySelectorAll('#bed-update-form input[type="number"]').forEach(input => {
+                    input.value = 0;
+                });
+            }
+        }
+        
+        // Auto-calculate totals
+        function updateTotals() {
+            const sharedMale = parseInt(document.getElementById('id_shared_beds_male').value) || 0;
+            const sharedFemale = parseInt(document.getElementById('id_shared_beds_female').value) || 0;
+            const privateMale = parseInt(document.getElementById('id_separate_beds_male').value) || 0;
+            const privateFemale = parseInt(document.getElementById('id_separate_beds_female').value) || 0;
+            
+            document.getElementById('id_shared_beds_total').value = sharedMale + sharedFemale;
+            document.getElementById('id_separate_beds_total').value = privateMale + privateFemale;
+            document.getElementById('id_available_beds').value = sharedMale + sharedFemale + privateMale + privateFemale;
+        }
+        
+        // Add event listeners for auto-calculation
+        ['id_shared_beds_male', 'id_shared_beds_female', 'id_separate_beds_male', 'id_separate_beds_female'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateTotals);
+        });
+        
+        // Auto-hide alerts
+        setTimeout(() => {
+            document.querySelectorAll('.alert-success, .alert-info').forEach(alert => {
+                if (alert.classList.contains('show')) {
+                    new bootstrap.Alert(alert).close();
+                }
+            });
+        }, 5000);
+        
+        // Check for success parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('updated') && urlParams.get('updated') === 'success') {
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+            notification.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>
+                Bed information updated successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                new bootstrap.Alert(notification).close();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
