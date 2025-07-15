@@ -309,7 +309,7 @@
                     <a href="{{ facility.get_absolute_url }}" class="btn btn-outline-info" target="_blank">
                         <i class="fas fa-external-link-alt me-2"></i> View on Site
                     </a>
-                    <a href="{% url 'bed_update_view' %}?facility={{ facility.id }}" class="btn btn-outline-warning">
+                    <a href="{% url 'bedupdates:bed_update_view' %}?facility={{ facility.id }}" class="btn btn-outline-warning">
                         <i class="fas fa-bed me-2"></i> Manage Beds
                     </a>
                 </div>

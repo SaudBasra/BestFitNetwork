@@ -131,6 +131,12 @@ class FacilityLandingPage(models.Model):
         help_text="Whether the landing page is publicly visible"
     )
     
+    # IMPORTANT: Add this field to track if content has been customized
+    is_customized = models.BooleanField(
+        default=False,
+        help_text="Whether this landing page has been customized by facility staff"
+    )
+    
     class Meta:
         verbose_name = "Facility Landing Page"
         verbose_name_plural = "Facility Landing Pages"
@@ -326,22 +332,3 @@ class LandingPageView(models.Model):
     def __str__(self):
         return f"View of {self.facility.name} at {self.viewed_at}"
 
-
-# Signal to create default landing page when facility is created
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-
-@receiver(post_save, sender=Facility)
-def create_default_landing_page(sender, instance, created, **kwargs):
-    """Create a default landing page when a new facility is created"""
-    if created:
-        FacilityLandingPage.objects.get_or_create(
-            facility=instance,
-            defaults={
-                'hero_tagline': f"Welcome to {instance.name}",
-                'hero_description': f"Quality care and comfortable living at {instance.name}.",
-                'mission_statement': "Our mission is to provide exceptional care and support to our residents in a warm, welcoming environment.",
-                'services_description': f"At {instance.name}, we offer comprehensive care services tailored to meet the unique needs of each resident.",
-                'is_published': True,
-            }
-        )

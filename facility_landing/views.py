@@ -3,7 +3,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from django.utils import timezone
@@ -24,17 +24,15 @@ def public_landing_page(request, facility_id):
     # Get facility and ensure it's active
     facility = get_object_or_404(Facility, id=facility_id, status='active')
     
-    # Get or create landing page
-    landing_page, created = FacilityLandingPage.objects.get_or_create(
-        facility=facility,
-        defaults={
-            'hero_tagline': f"Welcome to {facility.name}",
-            'hero_description': f"Quality care and comfortable living at {facility.name}.",
-            'mission_statement': "Our mission is to provide exceptional care and support to our residents in a warm, welcoming environment.",
-            'services_description': f"At {facility.name}, we offer comprehensive care services tailored to meet the unique needs of each resident.",
-            'is_published': True,
-        }
-    )
+    # Get landing page - DON'T create with defaults that could overwrite customizations
+    try:
+        landing_page = FacilityLandingPage.objects.get(facility=facility)
+    except FacilityLandingPage.DoesNotExist:
+        # Only create minimal landing page if it doesn't exist - let the signal handle defaults
+        landing_page = FacilityLandingPage.objects.create(
+            facility=facility,
+            is_published=True
+        )
     
     # Check if landing page is published
     if not landing_page.is_published:
@@ -110,18 +108,16 @@ def landing_page_dashboard(request):
         messages.error(request, "No facility associated with your account.")
         return redirect('search:home')
     
-    # Get or create landing page
-    landing_page, created = FacilityLandingPage.objects.get_or_create(
-        facility=facility,
-        defaults={
-            'hero_tagline': f"Welcome to {facility.name}",
-            'hero_description': f"Quality care and comfortable living at {facility.name}.",
-            'mission_statement': "Our mission is to provide exceptional care and support to our residents in a warm, welcoming environment.",
-            'services_description': f"At {facility.name}, we offer comprehensive care services tailored to meet the unique needs of each resident.",
-            'is_published': True,
-            'last_updated_by': request.user,
-        }
-    )
+    # Get landing page - DON'T use get_or_create with defaults
+    try:
+        landing_page = FacilityLandingPage.objects.get(facility=facility)
+    except FacilityLandingPage.DoesNotExist:
+        # Create minimal landing page if it doesn't exist
+        landing_page = FacilityLandingPage.objects.create(
+            facility=facility,
+            last_updated_by=request.user,
+            is_published=True
+        )
     
     # Get gallery statistics
     gallery_count = FacilityGallery.objects.filter(facility=facility).count()
@@ -166,13 +162,15 @@ def edit_landing_page(request, facility_id=None):
         messages.error(request, "You can only edit your own facility's landing page.")
         return redirect('facility_landing:dashboard')
     
-    # Get or create landing page
-    landing_page, created = FacilityLandingPage.objects.get_or_create(
-        facility=facility,
-        defaults={
-            'last_updated_by': request.user,
-        }
-    )
+    # Get landing page - DON'T use get_or_create with defaults
+    try:
+        landing_page = FacilityLandingPage.objects.get(facility=facility)
+    except FacilityLandingPage.DoesNotExist:
+        # Create minimal landing page if it doesn't exist
+        landing_page = FacilityLandingPage.objects.create(
+            facility=facility,
+            last_updated_by=request.user
+        )
     
     if request.method == 'POST':
         form = FacilityLandingPageForm(request.POST, request.FILES, instance=landing_page)
@@ -183,6 +181,9 @@ def edit_landing_page(request, facility_id=None):
                     landing_page = form.save(commit=False)
                     landing_page.facility = facility
                     landing_page.last_updated_by = request.user
+                    # Mark as customized when facility staff saves changes
+                    if hasattr(landing_page, 'is_customized'):
+                        landing_page.is_customized = True
                     landing_page.save()
                     
                     logger.info(f"Landing page updated for {facility.name} by {request.user.username}")
@@ -262,9 +263,17 @@ def delete_gallery_image(request, image_id):
         facility = user_profile.facility
         
         image = get_object_or_404(FacilityGallery, id=image_id, facility=facility)
+        
+        # Delete the image file from storage
+        if image.image:
+            image.image.delete(save=False)
+        
+        # Delete the database record
         image.delete()
         
         messages.success(request, "Image deleted successfully!")
+        logger.info(f"Gallery image {image_id} deleted by {request.user.username}")
+        
     except Exception as e:
         logger.error(f"Error deleting image: {e}")
         messages.error(request, "Error deleting image.")
@@ -333,260 +342,12 @@ def toggle_testimonial_featured(request, testimonial_id):
         
         status = "featured" if testimonial.is_featured else "unfeatured"
         messages.success(request, f"Testimonial {status} successfully!")
-    except Exception as e:
-        logger.error(f"Error toggling testimonial featured status: {e}")
-        messages.error(request, "Error updating testimonial.")
-    
-    return redirect('facility_landing:manage_testimonials')
-
-
-def preview_landing_page(request, facility_id):
-    """Preview landing page (same as public but with preview notice)"""
-    
-    context = public_landing_page(request, facility_id).context_data
-    context['is_preview'] = True
-    
-    return render(request, 'facility_landing/public_page.html', context)
-
-
-# Utility functions
-def get_client_ip(request):
-    """Get client IP address"""
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
-
-
-# API Views for AJAX calls
-@login_required
-@require_http_methods(["POST"])
-def update_image_order(request):
-    """Update gallery image display order via AJAX"""
-    
-    try:
-        user_profile = request.user.user_profile
-        facility = user_profile.facility
-        
-        import json
-        data = json.loads(request.body)
-        image_orders = data.get('image_orders', [])
-        
-        with transaction.atomic():
-            for item in image_orders:
-                image_id = item.get('id')
-                order = item.get('order')
-                
-                FacilityGallery.objects.filter(
-                    id=image_id,
-                    facility=facility
-                ).update(display_order=order)
-        
-        return JsonResponse({'success': True, 'message': 'Image order updated successfully!'})
-    
-    except Exception as e:
-        logger.error(f"Error updating image order: {e}")
-        return JsonResponse({'success': False, 'message': 'Error updating image order.'})
-
-
-@login_required
-def landing_page_analytics(request):
-    """Basic analytics for landing page views"""
-    
-    try:
-        user_profile = request.user.user_profile
-        facility = user_profile.facility
-    except AttributeError:
-        messages.error(request, "User profile not found.")
-        return redirect('search:home')
-    
-    # Get view statistics
-    from datetime import timedelta, date
-    from django.db.models import Count
-    from django.db.models.functions import TruncDate
-    
-    thirty_days_ago = timezone.now() - timedelta(days=30)
-    
-    # Daily views for the last 30 days
-    daily_views = LandingPageView.objects.filter(
-        facility=facility,
-        viewed_at__gte=thirty_days_ago
-    ).annotate(
-        date=TruncDate('viewed_at')
-    ).values('date').annotate(
-        count=Count('id')
-    ).order_by('date')
-    
-    # Total views
-    total_views = LandingPageView.objects.filter(facility=facility).count()
-    
-    # Recent views
-    recent_views = LandingPageView.objects.filter(facility=facility).order_by('-viewed_at')[:10]
-    
-    context = {
-        'facility': facility,
-        'daily_views': daily_views,
-        'total_views': total_views,
-        'recent_views': recent_views,
-    }
-    
-    return render(request, 'facility_landing/analytics.html', context)
-
-
-
-# facility_landing/views.py (add this temporarily)
-from django.http import HttpResponse
-
-def test_landing_page(request, facility_id):
-    return HttpResponse(f"Landing page for facility {facility_id} works!")
-
-# facility_landing/views.py - Additional functions to add to your existing views.py
-
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-from django.db import transaction
-from django.utils import timezone
-from django.core.paginator import Paginator
-
-from search.models import Facility
-from .models import FacilityLandingPage, FacilityGallery, FacilityTestimonial, LandingPageView
-from .forms import FacilityLandingPageForm, FacilityGalleryForm, TestimonialForm
-
-import logging
-
-logger = logging.getLogger(__name__)
-
-
-# Add these missing functions to your existing views.py file:
-
-@login_required
-@require_http_methods(["POST"])
-def delete_gallery_image(request, image_id):
-    """Delete a gallery image"""
-    
-    try:
-        user_profile = request.user.user_profile
-        facility = user_profile.facility
-        
-        image = get_object_or_404(FacilityGallery, id=image_id, facility=facility)
-        
-        # Delete the image file from storage
-        if image.image:
-            image.image.delete(save=False)
-        
-        # Delete the database record
-        image.delete()
-        
-        messages.success(request, "Image deleted successfully!")
-        logger.info(f"Gallery image {image_id} deleted by {request.user.username}")
-        
-    except Exception as e:
-        logger.error(f"Error deleting image: {e}")
-        messages.error(request, "Error deleting image.")
-    
-    return redirect('facility_landing:manage_gallery')
-
-
-@login_required
-@require_http_methods(["POST"])
-def toggle_testimonial_featured(request, testimonial_id):
-    """Toggle featured status of a testimonial"""
-    
-    try:
-        user_profile = request.user.user_profile
-        facility = user_profile.facility
-        
-        testimonial = get_object_or_404(FacilityTestimonial, id=testimonial_id, facility=facility)
-        testimonial.is_featured = not testimonial.is_featured
-        testimonial.save()
-        
-        status = "featured" if testimonial.is_featured else "unfeatured"
-        messages.success(request, f"Testimonial {status} successfully!")
         
     except Exception as e:
         logger.error(f"Error toggling testimonial featured status: {e}")
         messages.error(request, "Error updating testimonial.")
     
     return redirect('facility_landing:manage_testimonials')
-
-
-@login_required
-@require_http_methods(["POST"])
-def update_image_order(request):
-    """Update gallery image display order via AJAX"""
-    
-    try:
-        user_profile = request.user.user_profile
-        facility = user_profile.facility
-        
-        import json
-        data = json.loads(request.body)
-        image_orders = data.get('image_orders', [])
-        
-        with transaction.atomic():
-            for item in image_orders:
-                image_id = item.get('id')
-                order = item.get('order')
-                
-                FacilityGallery.objects.filter(
-                    id=image_id,
-                    facility=facility
-                ).update(display_order=order)
-        
-        return JsonResponse({'success': True, 'message': 'Image order updated successfully!'})
-    
-    except Exception as e:
-        logger.error(f"Error updating image order: {e}")
-        return JsonResponse({'success': False, 'message': 'Error updating image order.'})
-
-
-@login_required
-def landing_page_analytics(request):
-    """Basic analytics for landing page views"""
-    
-    try:
-        user_profile = request.user.user_profile
-        facility = user_profile.facility
-    except AttributeError:
-        messages.error(request, "User profile not found.")
-        return redirect('search:home')
-    
-    # Get view statistics
-    from datetime import timedelta, date
-    from django.db.models import Count
-    from django.db.models.functions import TruncDate
-    
-    thirty_days_ago = timezone.now() - timedelta(days=30)
-    
-    # Daily views for the last 30 days
-    daily_views = LandingPageView.objects.filter(
-        facility=facility,
-        viewed_at__gte=thirty_days_ago
-    ).annotate(
-        date=TruncDate('viewed_at')
-    ).values('date').annotate(
-        count=Count('id')
-    ).order_by('date')
-    
-    # Total views
-    total_views = LandingPageView.objects.filter(facility=facility).count()
-    
-    # Recent views
-    recent_views = LandingPageView.objects.filter(facility=facility).order_by('-viewed_at')[:10]
-    
-    context = {
-        'facility': facility,
-        'daily_views': daily_views,
-        'total_views': total_views,
-        'recent_views': recent_views,
-    }
-    
-    return render(request, 'facility_landing/analytics.html', context)
 
 
 def preview_landing_page(request, facility_id):
@@ -595,17 +356,15 @@ def preview_landing_page(request, facility_id):
     # Get facility and ensure it exists
     facility = get_object_or_404(Facility, id=facility_id)
     
-    # Get or create landing page
-    landing_page, created = FacilityLandingPage.objects.get_or_create(
-        facility=facility,
-        defaults={
-            'hero_tagline': f"Welcome to {facility.name}",
-            'hero_description': f"Quality care and comfortable living at {facility.name}.",
-            'mission_statement': "Our mission is to provide exceptional care and support to our residents in a warm, welcoming environment.",
-            'services_description': f"At {facility.name}, we offer comprehensive care services tailored to meet the unique needs of each resident.",
-            'is_published': True,
-        }
-    )
+    # Get landing page without creating defaults that could overwrite customizations
+    try:
+        landing_page = FacilityLandingPage.objects.get(facility=facility)
+    except FacilityLandingPage.DoesNotExist:
+        # Create minimal landing page if it doesn't exist
+        landing_page = FacilityLandingPage.objects.create(
+            facility=facility,
+            is_published=True
+        )
     
     # Get gallery images organized by category
     gallery_images = FacilityGallery.objects.filter(facility=facility).order_by('display_order', '-uploaded_at')
@@ -644,6 +403,80 @@ def preview_landing_page(request, facility_id):
 
 
 @login_required
+@require_http_methods(["POST"])
+def update_image_order(request):
+    """Update gallery image display order via AJAX"""
+    
+    try:
+        user_profile = request.user.user_profile
+        facility = user_profile.facility
+        
+        import json
+        data = json.loads(request.body)
+        image_orders = data.get('image_orders', [])
+        
+        with transaction.atomic():
+            for item in image_orders:
+                image_id = item.get('id')
+                order = item.get('order')
+                
+                FacilityGallery.objects.filter(
+                    id=image_id,
+                    facility=facility
+                ).update(display_order=order)
+        
+        return JsonResponse({'success': True, 'message': 'Image order updated successfully!'})
+    
+    except Exception as e:
+        logger.error(f"Error updating image order: {e}")
+        return JsonResponse({'success': False, 'message': 'Error updating image order.'})
+
+
+@login_required
+def landing_page_analytics(request):
+    """Basic analytics for landing page views"""
+    
+    try:
+        user_profile = request.user.user_profile
+        facility = user_profile.facility
+    except AttributeError:
+        messages.error(request, "User profile not found.")
+        return redirect('search:home')
+    
+    # Get view statistics
+    from datetime import timedelta, date
+    from django.db.models import Count
+    from django.db.models.functions import TruncDate
+    
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    
+    # Daily views for the last 30 days
+    daily_views = LandingPageView.objects.filter(
+        facility=facility,
+        viewed_at__gte=thirty_days_ago
+    ).annotate(
+        date=TruncDate('viewed_at')
+    ).values('date').annotate(
+        count=Count('id')
+    ).order_by('date')
+    
+    # Total views
+    total_views = LandingPageView.objects.filter(facility=facility).count()
+    
+    # Recent views
+    recent_views = LandingPageView.objects.filter(facility=facility).order_by('-viewed_at')[:10]
+    
+    context = {
+        'facility': facility,
+        'daily_views': daily_views,
+        'total_views': total_views,
+        'recent_views': recent_views,
+    }
+    
+    return render(request, 'facility_landing/analytics.html', context)
+
+
+@login_required
 def quick_update_landing_page(request):
     """Quick update API endpoint for AJAX updates"""
     
@@ -654,10 +487,14 @@ def quick_update_landing_page(request):
         user_profile = request.user.user_profile
         facility = user_profile.facility
         
-        landing_page, created = FacilityLandingPage.objects.get_or_create(
-            facility=facility,
-            defaults={'last_updated_by': request.user}
-        )
+        # Get existing landing page without creating defaults
+        try:
+            landing_page = FacilityLandingPage.objects.get(facility=facility)
+        except FacilityLandingPage.DoesNotExist:
+            landing_page = FacilityLandingPage.objects.create(
+                facility=facility,
+                last_updated_by=request.user
+            )
         
         import json
         data = json.loads(request.body)
@@ -671,6 +508,9 @@ def quick_update_landing_page(request):
             landing_page.is_published = data['is_published']
         
         landing_page.last_updated_by = request.user
+        # Mark as customized when updated via API
+        if hasattr(landing_page, 'is_customized'):
+            landing_page.is_customized = True
         landing_page.save()
         
         return JsonResponse({'success': True, 'message': 'Landing page updated successfully!'})
@@ -725,7 +565,7 @@ def bulk_gallery_upload(request):
         return JsonResponse({'success': False, 'message': 'Error uploading images'})
 
 
-# Utility function to get client IP (add this if not already present)
+# Utility function to get client IP
 def get_client_ip(request):
     """Get client IP address"""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
