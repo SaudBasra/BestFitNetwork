@@ -1,4 +1,4 @@
-# user_management/backends.py - Updated to not interfere with form validation
+# user_management/backends.py - Updated for credential number system
 
 from django.contrib.auth.backends import BaseBackend
 from django.contrib.auth.models import User
@@ -10,20 +10,20 @@ logger = logging.getLogger(__name__)
 
 class FacilityAuthenticationBackend(BaseBackend):
     """
-    Updated backend - only handles ACTIVE facilities
-    Status checking is now done in the form for better error messages
+    Updated backend for credential number system
+    Handles both simple number format and full AGC format
     """
     
     def authenticate(self, request, username=None, password=None, **kwargs):
         """
-        Authenticate facility staff - only for ACTIVE facilities
-        (Status checking is now handled in the form)
+        Authenticate facility staff using credential number system
+        Username should be the full credential number (e.g., "23242-AGC-2" or "23242")
         """
         
         print("\n" + "="*80)
         print("🏥 BACKEND AUTHENTICATION ATTEMPT")
         print("="*80)
-        print(f"📋 Username (Inspection #): '{username}'")
+        print(f"📋 Username (Credential): '{username}'")
         print(f"🔑 Password provided: {'✅ Yes' if password else '❌ No'}")
         
         # Step 1: Basic validation
@@ -32,8 +32,8 @@ class FacilityAuthenticationBackend(BaseBackend):
             print("="*80)
             return None
         
-        # Step 2: Skip if this looks like admin login
-        if '@' in username or len(username) < 3:
+        # Step 2: Skip if this looks like admin login (contains @ or too short)
+        if '@' in username or (len(username) < 3 and not username.isdigit()):
             print("🔄 BACKEND: Looks like admin login, skipping")
             print("="*80)
             return None
@@ -47,32 +47,47 @@ class FacilityAuthenticationBackend(BaseBackend):
         
         print("✅ BACKEND: Password correct")
         
-        # Step 4: Find facility
+        # Step 4: Find facility by credential number
         try:
-            facility = Facility.objects.get(inspection_number=username)
-            print(f"✅ BACKEND: Found facility {facility.name}")
+            # Try exact match first
+            facility = Facility.objects.filter(credential_number=username).first()
             
-            # Step 5: Check if facility is active (backend only handles active)
+            if not facility and username.isdigit():
+                # If username is just digits, try finding by prefix (registration number)
+                facility = Facility.objects.filter(
+                    credential_number__startswith=f"{username}-AGC"
+                ).first()
+            
+            if not facility:
+                print(f"❌ BACKEND: Facility not found for credential '{username}'")
+                self._log_failed_attempt(request, username, 'facility_not_found')
+                print("="*80)
+                return None
+            
+            print(f"✅ BACKEND: Found facility {facility.name}")
+            print(f"   🆔 Credential Number: {facility.credential_number}")
+            
+            # Step 5: Check if facility is active
             if facility.status != 'active':
-                print(f"❌ BACKEND: Facility not active ({facility.status}) - letting form handle this")
+                print(f"❌ BACKEND: Facility not active ({facility.status})")
                 self._log_failed_attempt(request, username, f'facility_status_{facility.status}')
                 print("="*80)
                 return None
             
             print("✅ BACKEND: Facility is active")
             
-        except Facility.DoesNotExist:
-            print(f"❌ BACKEND: Facility not found")
-            self._log_failed_attempt(request, username, 'facility_not_found')
+        except Exception as e:
+            print(f"❌ BACKEND: Database error: {str(e)}")
+            self._log_failed_attempt(request, username, f'database_error_{str(e)}')
             print("="*80)
             return None
         
-        # Step 6: Create/get user
+        # Step 6: Create/get user using full credential number as username
         try:
             user = self._get_or_create_facility_user(facility)
             if user:
                 print(f"✅ BACKEND SUCCESS: {user.username}")
-                self._log_successful_attempt(request, username)
+                self._log_successful_attempt(request, username, facility)
                 print("="*80)
                 return user
             else:
@@ -96,7 +111,8 @@ class FacilityAuthenticationBackend(BaseBackend):
     def _get_or_create_facility_user(self, facility):
         """Get or create user account with proper profile setup"""
         
-        username = facility.inspection_number
+        # Use full credential number as username
+        username = facility.credential_number
         print(f"   🔍 BACKEND: Looking for user {username}")
         
         try:
@@ -121,12 +137,15 @@ class FacilityAuthenticationBackend(BaseBackend):
                 first_name = 'Facility'
                 last_name = 'Staff'
             
+            # Create email using credential number (safe for email)
+            safe_credential = facility.credential_number.replace('-', '_')
+            
             user = User.objects.create_user(
                 username=username,
                 password='bestfit#123',
                 first_name=first_name,
                 last_name=last_name,
-                email=f"{username}@facility.bestfit.com",
+                email=f"{safe_credential}@facility.bestfit.com",
                 is_active=True
             )
             print(f"   ✅ BACKEND: Created user {username}")
@@ -149,15 +168,18 @@ class FacilityAuthenticationBackend(BaseBackend):
         
         return user
     
-    def _log_successful_attempt(self, request, username):
+    def _log_successful_attempt(self, request, username, facility):
         """Log successful login attempt"""
         try:
+            registration_number = facility.get_registration_number() if hasattr(facility, 'get_registration_number') else username
+            
             LoginAttempt.objects.create(
                 username=username,
                 ip_address=self._get_client_ip(request),
                 user_agent=request.META.get('HTTP_USER_AGENT', ''),
                 attempt_type='success',
-                inspection_number=username
+                registration_number=registration_number,
+                credential_number=facility.credential_number
             )
         except Exception as e:
             print(f"   ⚠️  Could not log success: {str(e)}")
@@ -165,13 +187,19 @@ class FacilityAuthenticationBackend(BaseBackend):
     def _log_failed_attempt(self, request, username, reason):
         """Log failed login attempt"""
         try:
+            # Extract registration number if possible
+            registration_number = username
+            if '-AGC' in username:
+                registration_number = username.split('-AGC')[0]
+            
             LoginAttempt.objects.create(
                 username=username,
                 ip_address=self._get_client_ip(request),
                 user_agent=request.META.get('HTTP_USER_AGENT', ''),
                 attempt_type='failure',
                 failure_reason=reason,
-                inspection_number=username
+                registration_number=registration_number if registration_number.isdigit() else None,
+                credential_number=username if '-AGC' in username else None
             )
         except Exception as e:
             print(f"   ⚠️  Could not log failure: {str(e)}")

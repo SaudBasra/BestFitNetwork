@@ -53,10 +53,11 @@
                             <strong>Important:</strong>
                             <ul class="mb-0 mt-2">
                                 <li>All imported facilities will be set to <strong>Active</strong> status immediately</li>
-                                <li>Duplicate inspection numbers will be skipped</li>
+                                <li>Duplicate credential numbers will be skipped</li>
                                 <li>Invalid rows will be reported after import</li>
                                 <li>Make sure your CSV follows the required format (see template below)</li>
                                 <li><strong>CSV columns must be properly separated by commas</strong></li>
+                                <li><strong>Credential numbers must be in format: XXXXX-AGC-X</strong></li>
                             </ul>
                         </div>
                     </div>
@@ -70,6 +71,7 @@
                             <li>Missing comma separators between fields</li>
                             <li>Incorrect encoding (save as UTF-8)</li>
                             <li>Extra spaces or quotes around field names</li>
+                            <li>Invalid credential number format (must be XXXXX-AGC-X)</li>
                         </ul>
                         <div class="mt-2">
                             <strong>Solution:</strong> Download our template and copy your data into it, or ensure your CSV software exports with proper comma separation.
@@ -153,7 +155,7 @@
                         <span class="badge bg-danger">Required</span>
                     </div>
                     <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-                        <span>Inspection Number</span>
+                        <span>Credential Number</span>
                         <span class="badge bg-danger">Required</span>
                     </div>
                     <div class="list-group-item d-flex justify-content-between align-items-center px-0">
@@ -171,6 +173,18 @@
                     <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <span>Bed Count</span>
                         <span class="badge bg-danger">Required</span>
+                    </div>
+                </div>
+                
+                <!-- Credential Number Format Info -->
+                <div class="alert alert-warning mt-3 mb-0">
+                    <h6 class="small mb-2"><i class="fas fa-id-card me-1"></i> Credential Number Format</h6>
+                    <div class="small">
+                        <strong>Required Format:</strong> XXXXX-AGC-X<br>
+                        <strong>Examples:</strong><br>
+                        • 11168-AGC-2<br>
+                        • 7323-AGC-15<br>
+                        • 98765-AGC-1
                     </div>
                 </div>
             </div>
@@ -212,7 +226,11 @@
                 <ul class="list-unstyled mb-0 small">
                     <li class="mb-2">
                         <i class="fas fa-check text-success me-2"></i>
-                        Inspection numbers must be unique
+                        Credential numbers must be unique
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Credential numbers must follow XXXXX-AGC-X format
                     </li>
                     <li class="mb-2">
                         <i class="fas fa-check text-success me-2"></i>
@@ -345,7 +363,7 @@ function validateAndPreviewFile(file) {
         
         // Parse headers using improved CSV parser
         const headers = parseCSVLine(lines[0]);
-        const requiredHeaders = ['Name', 'Type', 'Inspection Number', 'Address', 'State', 'County', 'Bed Count'];
+        const requiredHeaders = ['Name', 'Type', 'Credential Number', 'Address', 'State', 'County', 'Bed Count'];
         
         let previewHTML = '';
         let hasFormatIssue = false;
@@ -370,7 +388,7 @@ function validateAndPreviewFile(file) {
         for (let required of requiredHeaders) {
             let found = false;
             for (let header of headers) {
-                // Normalize headers for comparison
+                // Normalize headers for comparison - remove quotes and spaces
                 const normalizedHeader = header.toLowerCase().replace(/[^a-z0-9]/g, '');
                 const normalizedRequired = required.toLowerCase().replace(/[^a-z0-9]/g, '');
                 
@@ -404,10 +422,12 @@ function validateAndPreviewFile(file) {
             </div>
         `;
         
-        // Show headers
+        // Show headers with better detection
         previewHTML += '<div class="mb-3"><strong>Headers found:</strong><br>';
         headers.forEach(header => {
-            const normalizedHeader = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+            // Clean header for display
+            const cleanHeader = header.replace(/^["']|["']$/g, '').trim();
+            const normalizedHeader = cleanHeader.toLowerCase().replace(/[^a-z0-9]/g, '');
             const isRequired = requiredHeaders.some(req => {
                 const normalizedRequired = req.toLowerCase().replace(/[^a-z0-9]/g, '');
                 return normalizedHeader === normalizedRequired || 
@@ -415,7 +435,7 @@ function validateAndPreviewFile(file) {
                        normalizedRequired.includes(normalizedHeader);
             });
             const badgeClass = isRequired ? 'bg-success' : 'bg-secondary';
-            previewHTML += `<span class="badge ${badgeClass} me-1 mb-1">${header}</span>`;
+            previewHTML += `<span class="badge ${badgeClass} me-1 mb-1">${cleanHeader}</span>`;
         });
         previewHTML += '</div>';
         
@@ -428,7 +448,8 @@ function validateAndPreviewFile(file) {
             // Header row
             previewHTML += '<thead class="table-light"><tr>';
             headers.forEach(header => {
-                previewHTML += `<th class="small" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;">${header}</th>`;
+                const cleanHeader = header.replace(/^["']|["']$/g, '').trim();
+                previewHTML += `<th class="small" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;">${cleanHeader}</th>`;
             });
             previewHTML += '</tr></thead><tbody>';
             
@@ -441,8 +462,9 @@ function validateAndPreviewFile(file) {
                     // Ensure we have the right number of cells
                     for (let j = 0; j < headers.length; j++) {
                         const cell = cells[j] || '';
-                        const displayCell = cell || '<em class="text-muted">empty</em>';
-                        previewHTML += `<td class="small" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${cell}">${displayCell}</td>`;
+                        const cleanCell = cell.replace(/^["']|["']$/g, '').trim();
+                        const displayCell = cleanCell || '<em class="text-muted">empty</em>';
+                        previewHTML += `<td class="small" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${cleanCell}">${displayCell}</td>`;
                     }
                     previewHTML += '</tr>';
                 }
@@ -477,24 +499,40 @@ function validateAndPreviewFile(file) {
         previewSection.style.display = 'block';
     };
     
-    reader.readAsText(file);
+    reader.readAsText(file, 'UTF-8');
 }
 
 function downloadTemplate() {
-    // Create CSV template content with proper comma separation
-    const csvContent = `"Name","Type","Inspection Number","Address","State","County","Bed Count","Endorsement","Contact","Contact Person"
-"Sunrise Senior Living","ASSISTED LIVING SERVICES","ASL001","123 Main Street, Suite 100","California","Los Angeles","50","Alzheimer Care Specialty","(555) 123-4567","John Smith"
-"Memory Care Center","ALZHEIMER DISEASE","ALZ002","456 Oak Avenue","Florida","Miami-Dade","30","Memory Care, Dementia Support","(555) 234-5678","Jane Johnson"
-"Golden Years Facility","RESIDENTIAL FACILITY FOR ELDERLY OR DISABLED PERSONS","RES003","789 Pine Road","Texas","Harris","75","Senior Living, Disabled Care","(555) 345-6789","Bob Wilson"
-"Mental Health Support Home","MENTAL ILLNESS","MHI004","321 Elm Street","New York","Manhattan","20","Mental Health Services","(555) 456-7890","Sarah Davis"
-"Intellectual Care Services","INDIVIDUALS WITH INTELLECTUAL DISABILITES","IID005","654 Maple Drive","Illinois","Cook","40","Intellectual Disability Support","(555) 567-8901","Mike Brown"`;
+    // Create CSV template content with proper format - FIXED
+    const csvHeaders = ['Name', 'Type', 'Credential Number', 'Address', 'State', 'County', 'Bed Count', 'Endorsement', 'Contact', 'Contact Person'];
+    const csvData = [
+        ['Sunrise Senior Living', 'ASSISTED LIVING SERVICES', '11168-AGC-2', '123 Main Street, Suite 100', 'California', 'Los Angeles', '50', 'Alzheimer Care Specialty', '(555) 123-4567', 'John Smith'],
+        ['Memory Care Center', 'ALZHEIMER DISEASE', '7323-AGC-15', '456 Oak Avenue', 'Florida', 'Miami-Dade', '30', 'Memory Care, Dementia Support', '(555) 234-5678', 'Jane Johnson'],
+        ['Golden Years Facility', 'RESIDENTIAL FACILITY FOR ELDERLY OR DISABLED PERSONS', '98765-AGC-1', '789 Pine Road', 'Texas', 'Harris', '75', 'Senior Living, Disabled Care', '(555) 345-6789', 'Bob Wilson'],
+        ['Mental Health Support Home', 'MENTAL ILLNESS', '5432-AGC-8', '321 Elm Street', 'New York', 'Manhattan', '20', 'Mental Health Services', '(555) 456-7890', 'Sarah Davis'],
+        ['Intellectual Care Services', 'INDIVIDUALS WITH INTELLECTUAL DISABILITES', '8765-AGC-3', '654 Maple Drive', 'Illinois', 'Cook', '40', 'Intellectual Disability Support', '(555) 567-8901', 'Mike Brown']
+    ];
+    
+    // Create CSV content with proper escaping
+    let csvContent = csvHeaders.join(',') + '\n';
+    csvData.forEach(row => {
+        const escapedRow = row.map(field => {
+            // Escape fields that contain commas, quotes, or newlines
+            if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+                return '"' + field.replace(/"/g, '""') + '"';
+            }
+            return field;
+        });
+        csvContent += escapedRow.join(',') + '\n';
+    });
     
     // Create and download file
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'facility_import_template.csv';
+    a.download = 'facility_credential_import_template.csv';
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -507,7 +545,7 @@ function downloadTemplate() {
     toast.style.right = '20px';
     toast.style.zIndex = '9999';
     toast.innerHTML = `
-        <i class="fas fa-download me-2"></i>Template downloaded successfully! Use this format for your CSV.
+        <i class="fas fa-download me-2"></i>Template downloaded successfully! Use this format for your CSV with credential numbers.
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     document.body.appendChild(toast);

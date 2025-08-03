@@ -56,20 +56,21 @@
                             {% endif %}
                         </div>
                         
-                        <div class="col-md-4 mb-3">
-                            <label for="{{ form.inspection_number.id_for_label }}" class="form-label">
-                                <i class="fas fa-id-card me-1"></i> Inspection Number *
-                            </label>
-                            {{ form.inspection_number }}
-                            {% if form.inspection_number.errors %}
-                                <div class="text-danger mt-1">
-                                    {% for error in form.inspection_number.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        
+<!-- Update label and field -->
+<div class="col-md-4 mb-3">
+    <label for="{{ form.credential_number.id_for_label }}" class="form-label">
+        <i class="fas fa-id-card me-1"></i> Credential Number *
+    </label>
+    {{ form.credential_number }}
+    <div class="form-text">Format: XXXXX-AGC-X (e.g., 11168-AGC-2)</div>
+    {% if form.credential_number.errors %}
+        <div class="text-danger mt-1">
+            {% for error in form.credential_number.errors %}
+                <small>{{ error }}</small>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>                        
                         <div class="col-md-6 mb-3">
                             <label for="{{ form.facility_type.id_for_label }}" class="form-label">
                                 <i class="fas fa-tag me-1"></i> Facility Type *

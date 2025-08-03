@@ -1,4 +1,4 @@
-# user_management/admin.py - Updated with Facility User Creation
+# user_management/admin.py - Updated for credential number system
 
 from django.contrib import admin
 from django.contrib.auth.models import User
@@ -71,7 +71,7 @@ class UserSessionAdmin(admin.ModelAdmin):
 class LoginAttemptAdmin(admin.ModelAdmin):
     list_display = ['username', 'attempt_type', 'ip_address', 'timestamp', 'failure_reason']
     list_filter = ['attempt_type', 'timestamp']
-    search_fields = ['username', 'ip_address', 'inspection_number']
+    search_fields = ['username', 'ip_address', 'registration_number', 'credential_number']  # Updated field names
     readonly_fields = ['timestamp']
     
     def get_queryset(self, request):
@@ -79,32 +79,24 @@ class LoginAttemptAdmin(admin.ModelAdmin):
 
 # Custom admin action to create facility users
 def create_facility_users_for_active_facilities(modeladmin, request, queryset):
-    """Create facility staff users for selected active facilities"""
+    """Create facility users for selected active facilities"""
     created_count = 0
-    errors = []
+    error_count = 0
     
     for facility in queryset.filter(status='active'):
         try:
-            # Check if user already exists
-            if User.objects.filter(username=facility.inspection_number).exists():
+            username = facility.credential_number  # Updated to use credential_number
+            
+            if User.objects.filter(username=username).exists():
                 continue
             
             # Create user
-            if facility.contact_person:
-                name_parts = facility.contact_person.split()
-                first_name = name_parts[0] if name_parts else 'Facility'
-                last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else 'Staff'
-            else:
-                first_name = 'Facility'
-                last_name = 'Staff'
-            
             user = User.objects.create_user(
-                username=facility.inspection_number,
+                username=username,
                 password='bestfit#123',
-                first_name=first_name,
-                last_name=last_name,
-                email=f"{facility.inspection_number}@facility.bestfit.com",
-                is_active=True
+                first_name=facility.contact_person.split()[0] if facility.contact_person else 'Facility',
+                last_name=' '.join(facility.contact_person.split()[1:]) if facility.contact_person and len(facility.contact_person.split()) > 1 else 'Staff',
+                email=f"{facility.credential_number}@facility.bestfit.local"
             )
             
             # Create profile
@@ -112,34 +104,23 @@ def create_facility_users_for_active_facilities(modeladmin, request, queryset):
                 user=user,
                 user_type='facility_staff',
                 facility=facility,
-                position='Facility Staff',
-                phone_number=facility.contact if facility.contact else None,
-                is_verified=True
+                phone_number=facility.contact or '',
+                position='Facility Staff'
             )
             
             created_count += 1
             
         except Exception as e:
-            errors.append(f"{facility.name}: {str(e)}")
+            error_count += 1
+            messages.error(request, f'Error creating user for {facility.name}: {str(e)}')
     
     if created_count > 0:
-        messages.success(request, f"Successfully created {created_count} facility staff accounts.")
-    
-    if errors:
-        messages.error(request, f"Errors occurred: {'; '.join(errors)}")
+        messages.success(request, f'Successfully created {created_count} facility user accounts.')
+    if error_count > 0:
+        messages.error(request, f'{error_count} facilities had errors during user creation.')
 
-create_facility_users_for_active_facilities.short_description = "Create facility staff users for selected active facilities"
+create_facility_users_for_active_facilities.short_description = "Create facility users for selected facilities"
 
-# Add the action to Facility admin if it exists
-try:
-    from search.admin import FacilityAdmin
-    if hasattr(FacilityAdmin, 'actions'):
-        FacilityAdmin.actions = list(FacilityAdmin.actions) + [create_facility_users_for_active_facilities]
-    else:
-        FacilityAdmin.actions = [create_facility_users_for_active_facilities]
-except ImportError:
-    pass
-
-# Unregister the default User admin and register our custom one
+# Re-register User admin
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)

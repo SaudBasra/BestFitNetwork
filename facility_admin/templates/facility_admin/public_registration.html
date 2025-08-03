@@ -144,6 +144,23 @@
             margin-bottom: 1.5rem;
         }
         
+        .credential-help-box {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border: 1px solid #fbbf24;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .credential-help-box code {
+            background: #f59e0b;
+            color: white;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
         .success-message {
             background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
             border: 1px solid #86efac;
@@ -283,15 +300,27 @@
                                         </div>
                                         
                                         <div class="col-md-4 mb-3">
-                                            <label for="{{ form.inspection_number.id_for_label }}" class="form-label">
-                                                License/Inspection Number *
+                                            <label for="{{ form.credential_number.id_for_label }}" class="form-label">
+                                                Credential Number *
                                             </label>
-                                            {{ form.inspection_number }}
-                                            {% if form.inspection_number.errors %}
+                                            {{ form.credential_number }}
+                                            {% if form.credential_number.errors %}
                                                 <div class="text-danger mt-1">
-                                                    {% for error in form.inspection_number.errors %}<div>{{ error }}</div>{% endfor %}
+                                                    {% for error in form.credential_number.errors %}<div>{{ error }}</div>{% endfor %}
                                                 </div>
                                             {% endif %}
+                                        </div>
+                                        
+                                        <div class="col-12 mb-3">
+                                            <div class="credential-help-box">
+                                                <h6 class="small mb-2"><i class="fas fa-question-circle me-1"></i> Credential Number Format</h6>
+                                                <div class="small">
+                                                    <strong>Enter your credential number (2-5 digits only):</strong><br>
+                                                    • If your credential is <code>23242-AGC-2</code>, enter <code>23242</code><br>
+                                                    • If your credential is <code>123-AGC-5</code>, enter <code>123</code><br>
+                                                    • If you only have <code>23242</code>, enter <code>23242</code>
+                                                </div>
+                                            </div>
                                         </div>
                                         
                                         <div class="col-md-6 mb-3">
@@ -530,7 +559,7 @@
                     <p class="text-muted mb-0">Connecting families with quality healthcare facilities.</p>
                 </div>
                 <div class="col-md-6 text-md-end">
-
+                    <small>© 2025 BestFit Network. All rights reserved.</small>
                 </div>
             </div>
         </div>
@@ -614,7 +643,20 @@
             }
         });
         
-        if (!isValid) {
+        // Special validation for credential number (2-5 digits only)
+        const credentialField = document.getElementById('{{ form.credential_number.id_for_label }}');
+        if (credentialField && step === 1) {
+            const value = credentialField.value.trim();
+            if (value && !/^\d{2,5}$/.test(value)) {
+                credentialField.classList.add('is-invalid');
+                isValid = false;
+                alert('Credential number must be 2-5 digits only.');
+            }
+        }
+        
+        if (!isValid && step === 1) {
+            alert('Please fill in all required fields correctly before proceeding.');
+        } else if (!isValid) {
             alert('Please fill in all required fields before proceeding.');
         }
         
@@ -652,6 +694,32 @@
         }
     });
 
+    // Credential number input validation (only allow digits)
+    const credentialInput = document.getElementById('{{ form.credential_number.id_for_label }}');
+    if (credentialInput) {
+        credentialInput.addEventListener('input', function(e) {
+            // Only allow digits
+            this.value = this.value.replace(/\D/g, '');
+            
+            // Limit to 5 characters
+            if (this.value.length > 5) {
+                this.value = this.value.slice(0, 5);
+            }
+            
+            // Remove invalid styling if format is now correct
+            if (/^\d{2,5}$/.test(this.value)) {
+                this.classList.remove('is-invalid');
+            }
+        });
+        
+        // Prevent non-numeric input
+        credentialInput.addEventListener('keypress', function(e) {
+            if (!/\d/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                e.preventDefault();
+            }
+        });
+    }
+
     // Image preview
     const imageInput = document.getElementById('{{ form.image.id_for_label }}');
     if (imageInput) {
@@ -667,7 +735,6 @@
                 // Show preview
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    // You can add image preview logic here if needed
                     console.log('Image selected:', file.name);
                 };
                 reader.readAsDataURL(file);

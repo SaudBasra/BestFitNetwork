@@ -18,6 +18,7 @@ urlpatterns = [
     path('user-management/', include('user_management.urls')),
     path('beds/', include('bedupdates.urls')),
 
+    path('bed-management/', include('bedupdates.urls')),  # Add this
 
 
 

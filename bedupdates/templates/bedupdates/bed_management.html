@@ -1,5 +1,6 @@
-{% load static %}
+<!-- bedupdates/templates/bedupdates/bed_management.html -->
 {% load tz %}
+{% load static %}
 {% load bed_tags %}
 
 <!DOCTYPE html>
@@ -7,1175 +8,938 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BestFit Network - Bed Management Portal</title>
-    
+    <title>{{ facility.name }} - Advanced Bed Management</title>
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Select2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
-    
     <style>
         :root {
-            --primary: #0d6efd;
-            --primary-dark: #0b5ed7;
-            --success: #198754;
-            --danger: #dc3545;
-            --warning: #ffc107;
-            --info: #0dcaf0;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --male-color: #0d6efd;
-            --female-color: #d63384;
+            --primary-color: #059669;
+            --primary-light: #10b981;
+            --primary-dark: #047857;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #0ea5e9;
+            --light-bg: #f8fafc;
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--light-bg);
+            margin: 0;
+            padding: 0;
         }
         
-        .header {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 4px 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.1);
             color: white;
-            padding: 1.5rem 0;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transform: translateX(4px);
         }
         
-        .facility-selector {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            margin-bottom: 2rem;
+        .main-content {
+            padding: 24px;
         }
         
-        .stats-grid {
+        .stats-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
         }
         
         .stat-card {
             background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            position: relative;
-            overflow: hidden;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
         }
         
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        }
-        
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--primary);
-        }
-        
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--primary-color);
         }
         
         .stat-label {
-            color: var(--dark);
-            font-weight: 500;
-            margin-bottom: 1rem;
+            color: var(--secondary-color);
+            margin-top: 5px;
         }
         
-        .stat-details {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.9rem;
-            color: #6c757d;
-        }
-        
-        .progress-ring {
-            width: 60px;
-            height: 60px;
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-        }
-        
-        .progress-ring circle {
-            fill: none;
-            stroke-width: 4;
-            r: 26;
-            cx: 30;
-            cy: 30;
-        }
-        
-        .progress-ring .background {
-            stroke: #e9ecef;
-        }
-        
-        .progress-ring .progress {
-            stroke: var(--primary);
-            stroke-linecap: round;
-            transform: rotate(-90deg);
-            transform-origin: 50% 50%;
-            transition: stroke-dasharray 0.5s ease;
-        }
-        
-        .bed-matrix-container {
+        .room-section {
+            margin-bottom: 30px;
             background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        
-        .room-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1.5rem;
-        }
-        
-        .room-card {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 1.5rem;
-            border: 2px solid #e9ecef;
-            transition: all 0.2s ease;
-        }
-        
-        .room-card.private-room {
-            border-color: var(--info);
-        }
-        
-        .room-card.shared-room {
-            border-color: var(--warning);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
         
         .room-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
         }
         
-        .room-number {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--dark);
+        .room-header.private {
+            background: #28a745;
         }
         
-        .room-type-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
+        .room-header.shared {
+            background: #17a2b8;
         }
         
-        .room-type-private {
-            background-color: rgba(13, 202, 240, 0.1);
-            color: var(--info);
-            border: 1px solid var(--info);
-        }
-        
-        .room-type-shared {
-            background-color: rgba(255, 193, 7, 0.1);
-            color: var(--warning);
-            border: 1px solid var(--warning);
-        }
-        
-        .beds-container {
+        .beds-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-            gap: 0.75rem;
-            margin-top: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            padding: 20px;
         }
         
-        .bed-item {
-            aspect-ratio: 1;
+        .bed-card {
+            border: 2px solid #dee2e6;
             border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 100px;
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-            font-weight: 600;
-            font-size: 0.9rem;
-            border: 2px solid;
         }
         
-        .bed-item:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        .bed-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
         
-        .bed-item.vacant {
-            background-color: rgba(25, 135, 84, 0.1);
-            border-color: var(--success);
-            color: var(--success);
-        }
-        
-        .bed-item.occupied {
-            background-color: rgba(220, 53, 69, 0.9);
-            border-color: var(--danger);
+        /* Bed status colors */
+        .bed-card.male-occupied {
+            background: #007bff;
             color: white;
+            border-color: #0056b3;
         }
         
-        .bed-item.maintenance {
-            background-color: rgba(255, 193, 7, 0.9);
-            border-color: var(--warning);
-            color: var(--dark);
+        .bed-card.female-occupied {
+            background: #e83e8c;
+            color: white;
+            border-color: #d91a72;
         }
         
-        .bed-item.male {
-            border-left: 4px solid var(--male-color);
+        .bed-card.male-vacant {
+            background: #b3d9ff;
+            color: #0056b3;
+            border-color: #007bff;
         }
         
-        .bed-item.female {
-            border-left: 4px solid var(--female-color);
+        .bed-card.female-vacant {
+            background: #f8d7da;
+            color: #721c24;
+            border-color: #e83e8c;
+        }
+        
+        .bed-card.neutral {
+            background: #f8f9fa;
+            color: #6c757d;
+            border-color: #dee2e6;
         }
         
         .bed-number {
-            font-size: 1.1rem;
-            font-weight: 700;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
         }
         
-        .bed-gender {
-            font-size: 0.7rem;
-            opacity: 0.8;
+        .bed-status {
+            font-size: 0.9em;
+            text-transform: capitalize;
         }
         
-        .bed-status-indicator {
+        .bed-gender-icon {
             position: absolute;
-            top: -4px;
-            right: -4px;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            border: 2px solid white;
+            top: 5px;
+            right: 5px;
+            font-size: 1.2em;
         }
         
-        .bed-status-indicator.vacant {
-            background-color: var(--success);
+        .gender-selection {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
         }
         
-        .bed-status-indicator.occupied {
-            background-color: var(--danger);
-        }
-        
-        .bed-status-indicator.maintenance {
-            background-color: var(--warning);
-        }
-        
-        .configuration-modal .modal-content {
-            border-radius: 12px;
-            border: none;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-        
-        .modal-header {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            border-radius: 12px 12px 0 0;
-        }
-        
-        .config-section {
-            background: #f8f9fa;
+        .gender-btn {
+            padding: 15px;
+            border: 2px solid #dee2e6;
             border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-        }
-        
-        .config-summary {
             background: white;
-            border-radius: 8px;
-            padding: 1rem;
-            border: 1px solid #dee2e6;
-            margin-top: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
         }
         
-        .legend {
+        .gender-btn.male {
+            border-color: #007bff;
+            color: #007bff;
+        }
+        
+        .gender-btn.female {
+            border-color: #e83e8c;
+            color: #e83e8c;
+        }
+        
+        .gender-btn.selected {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .gender-btn.selected.female {
+            background: #e83e8c;
+        }
+        
+        .action-buttons {
             display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
-            gap: 1rem;
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-        }
-        
-        .legend-color {
-            width: 16px;
-            height: 16px;
-            border-radius: 3px;
-        }
-        
-        .alert-custom {
-            border-radius: 8px;
-            border: none;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            border: none;
-            border-radius: 8px;
-            padding: 0.5rem 1.5rem;
-            font-weight: 500;
+            background: var(--primary-color);
+            border-color: var(--primary-color);
         }
         
         .btn-primary:hover {
-            background: linear-gradient(135deg, var(--primary-dark), #084298);
-            transform: translateY(-1px);
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
         }
         
-        @media (max-width: 768px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .room-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .beds-container {
-                grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
-            }
+        .alert-custom {
+            border-left: 4px solid var(--primary-color);
+            background: #f8f9fa;
         }
         
-        .loading-overlay {
+        .facility-info-container {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary-color);
+            margin-bottom: 2rem;
+        }
+        
+        .nav-divider {
+            border-color: rgba(255,255,255,0.2);
+            margin: 1rem 0;
+        }
+        
+        .nav-section-header {
+            margin-bottom: 0.5rem;
+        }
+        
+        .not-configured-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(0,0,0,0.8);
+            z-index: 9999;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
-            display: none;
         }
         
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary);
+        .configuration-prompt {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .configuration-prompt h3 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+        
+        .progress-step {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .step-number {
+            width: 30px;
+            height: 30px;
+            background: var(--primary-color);
+            color: white;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
         }
         
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @media (max-width: 768px) {
+            .beds-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 10px;
+                padding: 15px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .stats-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-    </div>
 
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-8">
-                    <h1 class="mb-0">
-                        <i class="fas fa-hospital-alt me-2"></i>
-                        BestFit Network - Bed Management Portal
-                    </h1>
-                    <p class="mb-0 opacity-75">Streamlined bed allocation and occupancy management</p>
-                </div>
-                <div class="col-lg-4 text-end">
-                    <div class="d-flex flex-column align-items-end">
-                        <div id="currentTime" class="small opacity-75"></div>
-                        {% if facility %}
-                        <div class="small">
-                            <i class="fas fa-building me-1"></i>{{ facility.name }}
-                        </div>
-                        {% endif %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <div class="p-3">
+                <h4 class="text-white mb-4">
+                    <i class="fas fa-user-md me-2"></i>
+                    Facility Staff
+                </h4>
+
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="{% url 'user_management:facility_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'user_management:facility_detail_staff' %}">
+                        <i class="fas fa-info-circle me-2"></i> Facility Details
+                    </a>
+                    <a class="nav-link" href="{% url 'user_management:facility_update_staff' %}">
+                        <i class="fas fa-edit me-2"></i> Update Facility Info
+                    </a>
+                    <a class="nav-link" href="{% url 'search:facility_detail' facility.id %}" target="_blank">
+                        <i class="fas fa-eye me-2"></i> View Public Profile
+                    </a>
+
+                    <!-- Bed Management Section -->
+                    <hr class="nav-divider">
+                    <div class="nav-section-header">
+                        <small class="text-white-50 px-3">BED MANAGEMENT</small>
                     </div>
-                </div>
+                    <a class="nav-link active" href="{% url 'bedupdates:bed_management' facility.id %}">
+                        <i class="fas fa-bed me-2"></i> Bed Matrix
+                    </a>
+                    {% if not config.is_configured %}
+                    <a class="nav-link" href="{% url 'bedupdates:configure_facility' facility.id %}">
+                        <i class="fas fa-cog me-2"></i> Configure Facility
+                    </a>
+                    {% endif %}
+
+                    <!-- External Links Section -->
+                    <hr class="nav-divider">
+                    <div class="nav-section-header">
+                        <small class="text-white-50 px-3">EXTERNAL LINKS</small>
+                    </div>
+                    <a class="nav-link" href="{% url 'search:home' %}" target="_blank">
+                        <i class="fas fa-search me-2"></i> Search Engine
+                    </a>
+                </nav>
             </div>
         </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="container py-4">
-        <!-- Facility Selector -->
-        <div class="facility-selector">
-            <div class="row align-items-center">
-                <div class="col-lg-8">
-                    <h3 class="mb-3">
-                        <i class="fas fa-search me-2"></i>Select Facility
-                    </h3>
-                    <select id="facilitySelect" class="form-select form-select-lg">
-                        <option value="">Choose a facility to manage...</option>
-                        {% for facility_option in facilities %}
-                            <option value="{{ facility_option.id }}" 
-                                    data-beds="{{ facility_option.bed_count }}"
-                                    {% if facility_option.id|stringformat:"s" == selected_facility_id %}selected{% endif %}>
-                                {{ facility_option.name }} ({{ facility_option.bed_count }} authorized beds)
-                            </option>
-                        {% endfor %}
-                    </select>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 style="color: #1e293b; font-weight: 600; margin-bottom: 8px;">{{ facility.name }} - Bed Management</h1>
+                    <p style="color: var(--secondary-color); margin-bottom: 0;">Advanced room-based bed management system</p>
                 </div>
-                <div class="col-lg-4 text-end">
-                    {% if facility %}
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#configModal">
-                        <i class="fas fa-cog me-2"></i>Configure Facility
-                    </button>
+                <div class="action-buttons">
+                    <a href="{% url 'user_management:facility_dashboard' %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                    {% if config.is_configured %}
+                    <a href="{% url 'bedupdates:reconfigure_facility' facility.id %}" class="btn btn-warning">
+                        <i class="fas fa-cog me-2"></i>Reconfigure Facility
+                    </a>
                     {% endif %}
                 </div>
             </div>
-        </div>
-
-        {% if not facility %}
-            <!-- Welcome Screen -->
-            <div class="text-center py-5">
-                <div class="bg-white rounded-3 p-5 shadow-sm">
-                    <i class="fas fa-hospital-user display-1 text-primary mb-4"></i>
-                    <h2>Welcome to Bed Management Portal</h2>
-                    <p class="lead text-muted">Select a facility above to begin managing bed allocations and occupancy.</p>
-                </div>
-            </div>
-        {% else %}
-            <!-- Dashboard Content -->
             
-            <!-- Statistics Cards -->
-            <div class="stats-grid" id="statsGrid">
-                <!-- Available Beds -->
-                <div class="stat-card">
-                    <div class="stat-value" id="availableBeds">{{ bed_availability.available_beds }}</div>
-                    <div class="stat-label">Available Beds</div>
-                    <div class="stat-details">
-                        <span>Total: <span id="totalBeds">{{ bed_availability.total_beds }}</span></span>
-                        <span class="text-success">
-                            <i class="fas fa-arrow-up"></i>
-                            <span id="availabilityPercentage">
-                                {% if bed_availability.total_beds > 0 %}
-                                    {{ bed_availability.available_beds|floatformat:0|div:bed_availability.total_beds|mul:100|floatformat:0 }}%
-                                {% else %}
-                                    0%
-                                {% endif %}
-                            </span>
-                        </span>
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
-                    <svg class="progress-ring">
-                        <circle class="background" r="26" cx="30" cy="30"></circle>
-                        <circle class="progress" r="26" cx="30" cy="30" 
-                                stroke-dasharray="0 163.36" id="availableProgress"></circle>
-                    </svg>
-                </div>
+                {% endfor %}
+            {% endif %}
 
-                <!-- Occupied Beds -->
-                <div class="stat-card">
-                    <div class="stat-value text-danger" id="occupiedBeds">{{ bed_availability.occupied_beds }}</div>
-                    <div class="stat-label">Occupied Beds</div>
-                    <div class="stat-details">
-                        <span>Occupancy Rate</span>
-                        <span class="text-danger">
-                            <span id="occupancyRate">{{ bed_availability.occupancy_rate|floatformat:1 }}%</span>
-                        </span>
-                    </div>
-                    <svg class="progress-ring">
-                        <circle class="background" r="26" cx="30" cy="30"></circle>
-                        <circle class="progress" r="26" cx="30" cy="30" 
-                                stroke="#dc3545" stroke-dasharray="0 163.36" id="occupancyProgress"></circle>
-                    </svg>
-                </div>
-
-                <!-- Private Rooms -->
-                <div class="stat-card">
-                    <div class="stat-value text-info" id="privateAvailable">{{ bed_availability.private_rooms_available }}</div>
-                    <div class="stat-label">Private Rooms Available</div>
-                    <div class="stat-details">
-                        <span>Total: <span id="privateTotal">{{ bed_availability.private_rooms_total }}</span></span>
-                        <span class="text-info">
-                            <i class="fas fa-user"></i> Any Gender
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Shared Beds -->
-                <div class="stat-card">
-                    <div class="stat-value text-warning" id="sharedAvailable">
-                        {{ bed_availability.shared_beds_male_available|add:bed_availability.shared_beds_female_available }}
-                    </div>
-                    <div class="stat-label">Shared Beds Available</div>
-                    <div class="stat-details">
-                        <span class="text-primary">
-                            <i class="fas fa-male"></i> <span id="sharedMale">{{ bed_availability.shared_beds_male_available }}</span>
-                        </span>
-                        <span class="text-danger">
-                            <i class="fas fa-female"></i> <span id="sharedFemale">{{ bed_availability.shared_beds_female_available }}</span>
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bed Management Matrix -->
-            <div class="bed-matrix-container">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h3 class="mb-0">
-                        <i class="fas fa-th-large me-2"></i>Visual Bed Management
-                    </h3>
-                    <div class="btn-group">
-                        <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
-                            <i class="fas fa-sync-alt me-1"></i>Refresh
-                        </button>
-                        <button class="btn btn-outline-success btn-sm" onclick="markAllVacant()">
-                            <i class="fas fa-broom me-1"></i>Mark All Vacant
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Legend -->
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: rgba(25, 135, 84, 0.3); border: 2px solid #198754;"></div>
-                        <span>Vacant</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #dc3545;"></div>
-                        <span>Occupied</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #ffc107;"></div>
-                        <span>Maintenance</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #0d6efd; width: 16px; height: 4px;"></div>
-                        <span>Male</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #d63384; width: 16px; height: 4px;"></div>
-                        <span>Female</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #6c757d; width: 16px; height: 4px;"></div>
-                        <span>Any Gender</span>
-                    </div>
-                </div>
-
-                <!-- Rooms Grid -->
-                <div class="room-grid" id="roomsGrid">
-                    {% for room in rooms %}
-                        <div class="room-card {{ room.room_type|lower }}-room" data-room-id="{{ room.id }}">
-                            <div class="room-header">
-                                <div class="room-number">Room {{ room.room_number }}</div>
-                                <div class="room-type-badge room-type-{{ room.room_type|lower }}">
-                                    {% if room.room_type == 'PRIVATE' %}
-                                        <i class="fas fa-user me-1"></i>Private
-                                    {% else %}
-                                        <i class="fas fa-users me-1"></i>Shared
-                                    {% endif %}
-                                </div>
+            <!-- Facility Information Display -->
+            <div class="facility-info-container">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h5 class="mb-3" style="color: var(--primary-color);">
+                            <i class="fas fa-building me-2"></i>{{ facility.name }}
+                        </h5>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <strong>Credential Number:</strong> {{ facility.credential_number }}
                             </div>
-                            
-                            <div class="room-stats mb-2">
-                                <small class="text-muted">
-                                    {{ room.occupied_beds }}/{{ room.total_beds }} occupied
-                                </small>
+                            <div class="col-sm-6">
+                                <strong>Official Bed Count:</strong> {{ facility.bed_count }}
                             </div>
-
-                            <div class="beds-container">
-                                {% for bed in room.beds.all %}
-                                    <div class="bed-item {{ bed.status|lower }} {{ bed.gender_assignment|lower }}" 
-                                         data-bed-id="{{ bed.id }}"
-                                         data-room-type="{{ room.room_type }}"
-                                         data-status="{{ bed.status }}"
-                                         data-gender="{{ bed.gender_assignment }}"
-                                         title="Bed {{ bed.bed_number }} - {{ bed.get_status_display }} ({{ bed.get_gender_assignment_display }})">
-                                        <div class="bed-number">{{ bed.bed_number }}</div>
-                                        <div class="bed-gender">
-                                            {% if bed.gender_assignment == 'MALE' %}
-                                                <i class="fas fa-male"></i>
-                                            {% elif bed.gender_assignment == 'FEMALE' %}
-                                                <i class="fas fa-female"></i>
-                                            {% else %}
-                                                <i class="fas fa-user"></i>
-                                            {% endif %}
-                                        </div>
-                                        <div class="bed-status-indicator {{ bed.status|lower }}"></div>
-                                    </div>
-                                {% endfor %}
+                            <div class="col-sm-6">
+                                <strong>Location:</strong> {{ facility.county }}, {{ facility.state }}
+                            </div>
+                            <div class="col-sm-6">
+                                <strong>Status:</strong> 
+                                <span class="badge bg-{% if facility.status == 'active' %}success{% else %}warning{% endif %}">
+                                    {{ facility.get_status_display }}
+                                </span>
                             </div>
                         </div>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <div class="d-flex align-items-center justify-content-md-end">
+                            <div class="small text-muted me-2">Configuration Status:</div>
+                            <div class="small fw-bold">
+                                {% if config.is_configured %}
+                                    <span class="badge bg-success">Configured</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Needs Configuration</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if config.is_configured %}
+            <!-- Statistics Cards -->
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-number">{{ bed_stats.total_beds }}</div>
+                    <div class="stat-label">Total Beds</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number text-success">{{ bed_stats.vacant_beds }}</div>
+                    <div class="stat-label">Available Beds</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number text-danger">{{ bed_stats.occupied_beds }}</div>
+                    <div class="stat-label">Occupied Beds</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number text-info">{{ bed_stats.occupancy_rate|floatformat:1 }}%</div>
+                    <div class="stat-label">Occupancy Rate</div>
+                </div>
+            </div>
+            
+            <!-- Bed Matrix -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center" style="background: var(--light-bg); color: var(--primary-color);">
+                    <div>
+                        <h4 class="mb-0"><i class="fas fa-th me-2"></i>Bed Matrix</h4>
+                    </div>
+                    <div class="legend d-flex gap-3 flex-wrap">
+                        <div class="d-flex align-items-center">
+                            <div class="bed-card male-occupied" style="width: 20px; height: 20px; min-height: 20px; margin-right: 5px;"></div>
+                            <small>Male Occupied</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bed-card female-occupied" style="width: 20px; height: 20px; min-height: 20px; margin-right: 5px;"></div>
+                            <small>Female Occupied</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bed-card male-vacant" style="width: 20px; height: 20px; min-height: 20px; margin-right: 5px;"></div>
+                            <small>Male Vacant</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bed-card female-vacant" style="width: 20px; height: 20px; min-height: 20px; margin-right: 5px;"></div>
+                            <small>Female Vacant</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bed-card neutral" style="width: 20px; height: 20px; min-height: 20px; margin-right: 5px;"></div>
+                            <small>Neutral</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Rooms -->
+                    {% for room in rooms %}
+                    <div class="room-section">
+                        <div class="room-header {{ room.room_type }}">
+                            <div class="room-info">
+                                <h5 class="mb-1">{{ room.room_name }}</h5>
+                                <small>{{ room.get_room_type_display }} 
+                                    {% if room.room_type == 'shared' and room.room_gender != 'neutral' %}
+                                    - {{ room.get_room_gender_display }} Only
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <div class="room-stats">
+                                <div><strong>{{ room.get_total_beds }}</strong> Total</div>
+                                <div><strong>{{ room.get_occupied_beds }}</strong> Occupied</div>
+                                <div><strong>{{ room.get_vacant_beds }}</strong> Available</div>
+                            </div>
+                        </div>
+                        
+                        <div class="beds-grid">
+                            {% for bed in room.beds.all %}
+                            <div class="bed-card {% if bed.status == 'occupied' %}{{ bed.gender }}-occupied{% elif bed.gender != 'neutral' %}{{ bed.gender }}-vacant{% else %}neutral{% endif %}" 
+                                 data-bed-id="{{ bed.bed_id }}" 
+                                 data-room-type="{{ room.room_type }}"
+                                 data-room-gender="{{ room.room_gender }}"
+                                 onclick="openBedModal('{{ bed.bed_id }}', '{{ bed.status }}', '{{ bed.gender }}', '{{ room.room_type }}', '{{ room.room_gender }}', '{{ room.room_name }}')">
+                                
+                                <div class="bed-gender-icon">
+                                    {% if bed.gender == 'male' %}
+                                        <i class="fas fa-male"></i>
+                                    {% elif bed.gender == 'female' %}
+                                        <i class="fas fa-female"></i>
+                                    {% else %}
+                                        <i class="fas fa-user"></i>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="bed-number">Bed {{ bed.bed_number }}</div>
+                                <div class="bed-status">{{ bed.get_status_display }}</div>
+                                
+                                {% if bed.patient_name %}
+                                <div class="patient-name" style="font-size: 0.8em; margin-top: 5px;">
+                                    {{ bed.patient_name }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No rooms configured. Please configure your facility first.
+                    </div>
                     {% endfor %}
                 </div>
             </div>
-        {% endif %}
-    </main>
 
-    <!-- Configuration Modal -->
-    {% if facility %}
-    <div class="modal fade configuration-modal" id="configModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-cog me-2"></i>Facility Configuration - {{ facility.name }}
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="configForm">
-                        {% csrf_token %}
-                        
-                        <div class="alert alert-info alert-custom">
-                            <i class="fas fa-info-circle me-2"></i>
-                            Configure your facility's room and bed layout. This will automatically generate the bed management matrix.
-                        </div>
-
-                        <div class="config-section">
-                            <h6 class="mb-3">
-                                <i class="fas fa-building me-2"></i>Facility Information
-                            </h6>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">Facility Name</label>
-                                    <input type="text" class="form-control" value="{{ facility.name }}" readonly>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">Authorized Beds</label>
-                                    <input type="number" class="form-control" value="{{ facility.bed_count }}" readonly>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="config-section">
-                            <h6 class="mb-3">
-                                <i class="fas fa-door-open me-2"></i>Room Configuration
-                            </h6>
-                            
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label for="totalPrivateRooms" class="form-label fw-bold">
-                                        <i class="fas fa-user me-1 text-info"></i>Private Rooms
-                                    </label>
-                                    <input type="number" class="form-control" id="totalPrivateRooms" 
-                                           name="total_private_rooms" min="0" 
-                                           value="{{ config.total_private_rooms|default:0 }}">
-                                    <div class="form-text">One bed per room, any gender</div>
-                                </div>
-                                
-                                <div class="col-md-4 mb-3">
-                                    <label for="totalSharedRooms" class="form-label fw-bold">
-                                        <i class="fas fa-users me-1 text-warning"></i>Shared Rooms
-                                    </label>
-                                    <input type="number" class="form-control" id="totalSharedRooms" 
-                                           name="total_shared_rooms" min="0" 
-                                           value="{{ config.total_shared_rooms|default:0 }}">
-                                    <div class="form-text">Multiple beds, gender-specific</div>
-                                </div>
-                                
-                                <div class="col-md-4 mb-3">
-                                    <label for="bedsPerSharedRoom" class="form-label fw-bold">
-                                        <i class="fas fa-bed me-1"></i>Beds per Shared Room
-                                    </label>
-                                    <input type="number" class="form-control" id="bedsPerSharedRoom" 
-                                           name="beds_per_shared_room" min="2" max="8" 
-                                           value="{{ config.beds_per_shared_room|default:2 }}">
-                                    <div class="form-text">2-8 beds (alternating M/F)</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="config-summary">
-                            <h6 class="mb-3">Configuration Summary</h6>
-                            <div class="row text-center">
-                                <div class="col-3">
-                                    <div class="fw-bold text-primary" id="summaryTotalRooms">0</div>
-                                    <div class="small text-muted">Total Rooms</div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="fw-bold text-success" id="summaryTotalBeds">0</div>
-                                    <div class="small text-muted">Total Beds</div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="fw-bold text-info" id="summaryPrivateBeds">0</div>
-                                    <div class="small text-muted">Private Beds</div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="fw-bold text-warning" id="summarySharedBeds">0</div>
-                                    <div class="small text-muted">Shared Beds</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="configError" class="alert alert-danger alert-custom mt-3" style="display: none;">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <span id="configErrorMessage"></span>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveConfig">
-                        <i class="fas fa-save me-2"></i>Save Configuration
-                    </button>
-                </div>
+            {% else %}
+            <!-- Configuration Required -->
+            <div class="alert alert-warning alert-custom">
+                <h4><i class="fas fa-exclamation-triangle me-2"></i>Configuration Required</h4>
+                <p class="mb-3">Before you can manage beds, you need to configure your facility's room layout. This is a one-time setup process.</p>
+                <a href="{% url 'bedupdates:configure_facility' facility.id %}" class="btn btn-primary">
+                    <i class="fas fa-cog me-2"></i>Start Configuration
+                </a>
             </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Bed Status Modal -->
-    <div class="modal fade" id="bedStatusModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="bedModalTitle">Update Bed Status</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="bedStatusForm">
-                        <input type="hidden" id="bedId">
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Current Status</label>
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-outline-success status-btn" data-status="VACANT">
-                                    <i class="fas fa-check me-1"></i>Vacant
-                                </button>
-                                <button type="button" class="btn btn-outline-danger status-btn" data-status="OCCUPIED">
-                                    <i class="fas fa-user me-1"></i>Occupied
-                                </button>
-                                <button type="button" class="btn btn-outline-warning status-btn" data-status="MAINTENANCE">
-                                    <i class="fas fa-tools me-1"></i>Maintenance
-                                </button>
-                            </div>
-                        </div>
-
-                        <div id="patientInfo" style="display: none;">
-                            <div class="mb-3">
-                                <label for="patientName" class="form-label">Patient Name (Optional)</label>
-                                <input type="text" class="form-control" id="patientName" placeholder="Enter patient name">
-                            </div>
-                            
-                            <div class="mb-3" id="patientGenderSection">
-                                <label class="form-label">Patient Gender</label>
-                                <div class="d-flex gap-2">
-                                    <button type="button" class="btn btn-outline-primary gender-btn" data-gender="MALE">
-                                        <i class="fas fa-male me-1"></i>Male
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger gender-btn" data-gender="FEMALE">
-                                        <i class="fas fa-female me-1"></i>Female
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="bedStatusError" class="alert alert-danger" style="display: none;">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <span id="bedStatusErrorMessage"></span>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveBedStatus">
-                        <i class="fas fa-save me-2"></i>Update Status
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Success Toast -->
-    <div class="toast-container position-fixed top-0 end-0 p-3">
-        <div id="successToast" class="toast" role="alert">
-            <div class="toast-header bg-success text-white">
-                <i class="fas fa-check-circle me-2"></i>
-                <strong class="me-auto">Success</strong>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-            </div>
-            <div class="toast-body" id="successMessage">
-                Operation completed successfully!
-            </div>
-        </div>
-    </div>
-
-    <!-- Error Toast -->
-    <div class="toast-container position-fixed top-0 end-0 p-3">
-        <div id="errorToast" class="toast" role="alert">
-            <div class="toast-header bg-danger text-white">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong class="me-auto">Error</strong>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-            </div>
-            <div class="toast-body" id="errorMessage">
-                An error occurred. Please try again.
-            </div>
-        </div>
-    </div>
-
-    <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-    <script>
-        $(document).ready(function() {
-            // Initialize Select2
-            $('#facilitySelect').select2({
-                placeholder: "Search and select a facility...",
-                allowClear: true,
-                width: '100%'
-            });
-
-            // Update current time
-            function updateTime() {
-                const now = new Date();
-                const options = { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                };
-                $('#currentTime').text(now.toLocaleDateString('en-US', options));
-            }
-            updateTime();
-            setInterval(updateTime, 60000);
-
-            // Handle facility selection
-            $('#facilitySelect').on('change', function() {
-                const facilityId = $(this).val();
-                if (facilityId) {
-                    window.location.href = `?facility=${facilityId}`;
-                } else {
-                    window.location.href = window.location.pathname;
-                }
-            });
-
-            // Configuration form handlers
-            $('#totalPrivateRooms, #totalSharedRooms, #bedsPerSharedRoom').on('input', updateConfigSummary);
             
-            function updateConfigSummary() {
-                const privateRooms = parseInt($('#totalPrivateRooms').val()) || 0;
-                const sharedRooms = parseInt($('#totalSharedRooms').val()) || 0;
-                const bedsPerShared = parseInt($('#bedsPerSharedRoom').val()) || 2;
-                
-                const totalRooms = privateRooms + sharedRooms;
-                const privateBeds = privateRooms;
-                const sharedBeds = sharedRooms * bedsPerShared;
-                const totalBeds = privateBeds + sharedBeds;
-                
-                $('#summaryTotalRooms').text(totalRooms);
-                $('#summaryTotalBeds').text(totalBeds);
-                $('#summaryPrivateBeds').text(privateBeds);
-                $('#summarySharedBeds').text(sharedBeds);
-                
-                // Check against authorized beds
-                const authorizedBeds = {{ facility.bed_count|default:0 }};
-                if (totalBeds > authorizedBeds && authorizedBeds > 0) {
-                    showConfigError(`Configuration would create ${totalBeds} beds, but facility is authorized for only ${authorizedBeds} beds.`);
-                } else {
-                    hideConfigError();
-                }
-            }
-            
-            // Initial summary update
-            updateConfigSummary();
-
-            // Save configuration
-            $('#saveConfig').on('click', function() {
-                const formData = {
-                    'csrfmiddlewaretoken': $('input[name=csrfmiddlewaretoken]').val(),
-                    'total_private_rooms': $('#totalPrivateRooms').val(),
-                    'total_shared_rooms': $('#totalSharedRooms').val(),
-                    'beds_per_shared_room': $('#bedsPerSharedRoom').val()
-                };
-                
-                showLoading();
-                
-                $.post(`/bedupdates/save-config/{{ facility.id }}/`, formData)
-                    .done(function(response) {
-                        if (response.success) {
-                            $('#configModal').modal('hide');
-                            showSuccess(response.message);
-                            setTimeout(() => location.reload(), 1500);
-                        } else {
-                            showConfigError(response.error);
-                        }
-                    })
-                    .fail(function() {
-                        showConfigError('Failed to save configuration. Please try again.');
-                    })
-                    .always(function() {
-                        hideLoading();
-                    });
-            });
-
-            // Bed status management
-            let currentBedId = null;
-            let currentBedStatus = null;
-            let currentPatientGender = null;
-
-            // Handle bed clicks
-            $('.bed-item').on('click', function() {
-                currentBedId = $(this).data('bed-id');
-                const roomType = $(this).data('room-type');
-                const status = $(this).data('status');
-                const gender = $(this).data('gender');
-                const roomNumber = $(this).closest('.room-card').find('.room-number').text();
-                const bedNumber = $(this).find('.bed-number').text();
-                
-                $('#bedModalTitle').text(`${roomNumber} - Bed ${bedNumber}`);
-                $('#bedId').val(currentBedId);
-                
-                // Reset form
-                $('.status-btn').removeClass('btn-success btn-danger btn-warning').addClass('btn-outline-success btn-outline-danger btn-outline-warning');
-                $('.gender-btn').removeClass('btn-primary btn-danger').addClass('btn-outline-primary btn-outline-danger');
-                $('#patientName').val('');
-                $('#patientInfo').hide();
-                $('#bedStatusError').hide();
-                
-                // Set current status
-                $(`.status-btn[data-status="${status}"]`).removeClass('btn-outline-success btn-outline-danger btn-outline-warning');
-                if (status === 'VACANT') {
-                    $(`.status-btn[data-status="${status}"]`).addClass('btn-success');
-                } else if (status === 'OCCUPIED') {
-                    $(`.status-btn[data-status="${status}"]`).addClass('btn-danger');
-                } else {
-                    $(`.status-btn[data-status="${status}"]`).addClass('btn-warning');
-                }
-                
-                currentBedStatus = status;
-                
-                // Show/hide patient info section
-                if (roomType === 'SHARED') {
-                    $('#patientGenderSection').show();
-                } else {
-                    $('#patientGenderSection').hide();
-                }
-                
-                $('#bedStatusModal').modal('show');
-            });
-
-            // Handle status button clicks
-            $('.status-btn').on('click', function() {
-                const status = $(this).data('status');
-                currentBedStatus = status;
-                
-                // Update button states
-                $('.status-btn').removeClass('btn-success btn-danger btn-warning').addClass('btn-outline-success btn-outline-danger btn-outline-warning');
-                $(this).removeClass('btn-outline-success btn-outline-danger btn-outline-warning');
-                
-                if (status === 'VACANT') {
-                    $(this).addClass('btn-success');
-                    $('#patientInfo').hide();
-                } else if (status === 'OCCUPIED') {
-                    $(this).addClass('btn-danger');
-                    $('#patientInfo').show();
-                } else {
-                    $(this).addClass('btn-warning');
-                    $('#patientInfo').hide();
-                }
-            });
-
-            // Handle gender button clicks
-            $('.gender-btn').on('click', function() {
-                const gender = $(this).data('gender');
-                currentPatientGender = gender;
-                
-                $('.gender-btn').removeClass('btn-primary btn-danger').addClass('btn-outline-primary btn-outline-danger');
-                $(this).removeClass('btn-outline-primary btn-outline-danger');
-                
-                if (gender === 'MALE') {
-                    $(this).addClass('btn-primary');
-                } else {
-                    $(this).addClass('btn-danger');
-                }
-            });
-
-            // Save bed status
-            $('#saveBedStatus').on('click', function() {
-                if (!currentBedId) return;
-                
-                const data = {
-                    bed_id: currentBedId,
-                    status: currentBedStatus
-                };
-                
-                if (currentBedStatus === 'OCCUPIED') {
-                    data.patient_name = $('#patientName').val();
-                    if ($('#patientGenderSection').is(':visible') && currentPatientGender) {
-                        data.patient_gender = currentPatientGender;
-                    }
-                }
-                
-                showLoading();
-                
-                $.ajax({
-                    url: '/bedupdates/toggle-bed-status/',
-                    type: 'POST',
-                    data: JSON.stringify(data),
-                    contentType: 'application/json',
-                    headers: {
-                        'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
-                    }
-                })
-                .done(function(response) {
-                    if (response.success) {
-                        $('#bedStatusModal').modal('hide');
-                        showSuccess(response.message);
-                        updateBedDisplay(currentBedId, currentBedStatus);
-                        updateStatistics();
-                    } else {
-                        showBedStatusError(response.error);
-                    }
-                })
-                .fail(function() {
-                    showBedStatusError('Failed to update bed status. Please try again.');
-                })
-                .always(function() {
-                    hideLoading();
-                });
-            });
-
-            // Update bed display after status change
-            function updateBedDisplay(bedId, newStatus) {
-                const bedElement = $(`.bed-item[data-bed-id="${bedId}"]`);
-                
-                // Remove old status classes
-                bedElement.removeClass('vacant occupied maintenance');
-                
-                // Add new status class
-                bedElement.addClass(newStatus.toLowerCase());
-                
-                // Update data attribute
-                bedElement.attr('data-status', newStatus);
-                
-                // Update status indicator
-                const indicator = bedElement.find('.bed-status-indicator');
-                indicator.removeClass('vacant occupied maintenance').addClass(newStatus.toLowerCase());
-            }
-
-            // Update statistics display
-            function updateStatistics() {
-                const facilityId = {{ facility.id|default:0 }};
-                if (!facilityId) return;
-                
-                $.get(`/bedupdates/facility-data/${facilityId}/`)
-                    .done(function(response) {
-                        if (response.success) {
-                            const bedAvailability = response.bed_availability;
-                            
-                            $('#availableBeds').text(bedAvailability.available_beds);
-                            $('#totalBeds').text(bedAvailability.total_beds);
-                            $('#occupiedBeds').text(bedAvailability.occupied_beds);
-                            $('#occupancyRate').text(bedAvailability.occupancy_rate.toFixed(1) + '%');
-                            $('#privateAvailable').text(bedAvailability.private_rooms_available);
-                            $('#sharedMale').text(bedAvailability.shared_beds_male_available);
-                            $('#sharedFemale').text(bedAvailability.shared_beds_female_available);
-                            $('#sharedAvailable').text(bedAvailability.shared_beds_male_available + bedAvailability.shared_beds_female_available);
-                            
-                            // Update progress rings
-                            updateProgressRing('availableProgress', bedAvailability.available_beds, bedAvailability.total_beds);
-                            updateProgressRing('occupancyProgress', bedAvailability.occupied_beds, bedAvailability.total_beds);
-                            
-                            // Update availability percentage
-                            const availabilityPercentage = bedAvailability.total_beds > 0 ? 
-                                ((bedAvailability.available_beds / bedAvailability.total_beds) * 100).toFixed(0) : 0;
-                            $('#availabilityPercentage').text(availabilityPercentage + '%');
-                        }
-                    });
-            }
-
-            // Update progress ring
-            function updateProgressRing(elementId, value, total) {
-                const circumference = 2 * Math.PI * 26; // radius = 26
-                const percentage = total > 0 ? (value / total) : 0;
-                const strokeDasharray = `${percentage * circumference} ${circumference}`;
-                
-                $(`#${elementId}`).attr('stroke-dasharray', strokeDasharray);
-            }
-
-            // Utility functions
-            function showLoading() {
-                $('#loadingOverlay').show();
-            }
-
-            function hideLoading() {
-                $('#loadingOverlay').hide();
-            }
-
-            function showSuccess(message) {
-                $('#successMessage').text(message);
-                const toast = new bootstrap.Toast($('#successToast'));
-                toast.show();
-            }
-
-            function showError(message) {
-                $('#errorMessage').text(message);
-                const toast = new bootstrap.Toast($('#errorToast'));
-                toast.show();
-            }
-
-            function showConfigError(message) {
-                $('#configErrorMessage').text(message);
-                $('#configError').show();
-            }
-
-            function hideConfigError() {
-                $('#configError').hide();
-            }
-
-            function showBedStatusError(message) {
-                $('#bedStatusErrorMessage').text(message);
-                $('#bedStatusError').show();
-            }
-
-            // Global functions for buttons
-            window.refreshData = function() {
-                showLoading();
-                location.reload();
-            };
-
-            window.markAllVacant = function() {
-                if (confirm('Are you sure you want to mark all beds as vacant? This will clear all patient information.')) {
-                    // Implementation for bulk update
-                    showLoading();
-                    // Add AJAX call for bulk update
-                    setTimeout(() => {
-                        hideLoading();
-                        showSuccess('All beds marked as vacant successfully!');
-                        location.reload();
-                    }, 1500);
-                }
-            };
-
-            // Initialize progress rings
-            {% if facility %}
-            updateProgressRing('availableProgress', {{ bed_availability.available_beds }}, {{ bed_availability.total_beds }});
-            updateProgressRing('occupancyProgress', {{ bed_availability.occupied_beds }}, {{ bed_availability.total_beds }});
+            <!-- Configuration Preview -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="progress-step">
+                        <div class="step-header">
+                            <div class="step-number">1</div>
+                            <h5 class="mb-0">Total Rooms</h5>
+                        </div>
+                        <p class="text-muted">Specify the total number of rooms in your facility</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="progress-step">
+                        <div class="step-header">
+                            <div class="step-number">2</div>
+                            <h5 class="mb-0">Room Details</h5>
+                        </div>
+                        <p class="text-muted">Configure each room's name, type, and bed count</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="progress-step">
+                        <div class="step-header">
+                            <div class="step-number">3</div>
+                            <h5 class="mb-0">Review & Confirm</h5>
+                        </div>
+                        <p class="text-muted">Review your configuration and generate the bed matrix</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="progress-step">
+                        <div class="step-header">
+                            <div class="step-number">4</div>
+                            <h5 class="mb-0">Manage Beds</h5>
+                        </div>
+                        <p class="text-muted">Start managing bed availability and occupancy</p>
+                    </div>
+                </div>
+            </div>
             {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if config.is_configured %}
+<!-- Bed Update Modal -->
+<div class="modal fade bed-modal" id="bedModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: var(--primary-color); color: white;">
+                <h5 class="modal-title" id="bedModalTitle">Update Bed Status</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bedUpdateForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="modalBedId" name="bed_id">
+                    <input type="hidden" id="modalRoomType" name="room_type">
+                    <input type="hidden" id="modalRoomGender" name="room_gender">
+                    <input type="hidden" id="modalRoomName" name="room_name">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Bed Status</label>
+                        <div class="gender-selection">
+                            <div class="gender-btn male" data-status="vacant" data-gender="male">
+                                <i class="fas fa-male mb-2"></i><br>
+                                <strong>Male Vacant</strong>
+                            </div>
+                            <div class="gender-btn female" data-status="vacant" data-gender="female">
+                                <i class="fas fa-female mb-2"></i><br>
+                                <strong>Female Vacant</strong>
+                            </div>
+                            <div class="gender-btn male" data-status="occupied" data-gender="male">
+                                <i class="fas fa-male mb-2"></i><br>
+                                <strong>Male Occupied</strong>
+                            </div>
+                            <div class="gender-btn female" data-status="occupied" data-gender="female">
+                                <i class="fas fa-female mb-2"></i><br>
+                                <strong>Female Occupied</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info alert-custom" id="roomGenderInfo" style="display: none;">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span id="roomGenderMessage"></span>
+                    </div>
+                    
+                    <div class="mb-3" id="patientNameGroup" style="display: none;">
+                        <label for="patientName" class="form-label">Patient Name (Optional)</label>
+                        <input type="text" class="form-control" id="patientName" name="patient_name" placeholder="Enter patient name">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="bedNotes" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="bedNotes" name="notes" rows="3" placeholder="Additional notes about this bed"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateBedStatus()">
+                    <i class="fas fa-save me-2"></i>Update Bed
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Toast Notifications -->
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 11">
+    <div id="successToast" class="toast align-items-center text-white bg-success border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-check-circle me-2"></i>
+                <span id="successMessage"></span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+    
+    <div id="errorToast" class="toast align-items-center text-white bg-danger border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <span id="errorMessage"></span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+{% if config.is_configured %}
+let currentBedId = null;
+let currentStatus = null;
+let currentGender = null;
+let currentRoomType = null;
+let currentRoomGender = null;
+let currentRoomName = null;
+
+function openBedModal(bedId, status, gender, roomType, roomGender, roomName) {
+    currentBedId = bedId;
+    currentStatus = status;
+    currentGender = gender;
+    currentRoomType = roomType;
+    currentRoomGender = roomGender;
+    currentRoomName = roomName;
+    
+    // Set modal values
+    document.getElementById('modalBedId').value = bedId;
+    document.getElementById('modalRoomType').value = roomType;
+    document.getElementById('modalRoomGender').value = roomGender;
+    document.getElementById('modalRoomName').value = roomName;
+    document.getElementById('bedModalTitle').textContent = `Update ${bedId} - ${roomName}`;
+    
+    // Reset gender button selections
+    document.querySelectorAll('.gender-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    
+    // Select current status/gender combination
+    const currentBtn = document.querySelector(`.gender-btn[data-status="${status}"][data-gender="${gender}"]`);
+    if (currentBtn) {
+        currentBtn.classList.add('selected');
+    }
+    
+    // Show/hide patient name field
+    const patientNameGroup = document.getElementById('patientNameGroup');
+    if (status === 'occupied') {
+        patientNameGroup.style.display = 'block';
+    } else {
+        patientNameGroup.style.display = 'none';
+    }
+    
+    // Show room gender info for shared rooms
+    const roomGenderInfo = document.getElementById('roomGenderInfo');
+    const roomGenderMessage = document.getElementById('roomGenderMessage');
+    
+    if (roomType === 'shared') {
+        if (roomGender === 'neutral') {
+            roomGenderMessage.textContent = 'This shared room is currently neutral. First occupancy will set the room gender.';
+        } else {
+            roomGenderMessage.textContent = `This shared room is designated for ${roomGender} patients only.`;
+            
+            // Disable opposite gender buttons
+            document.querySelectorAll('.gender-btn').forEach(btn => {
+                const btnGender = btn.getAttribute('data-gender');
+                if (btnGender !== roomGender) {
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                    btn.onclick = function(e) {
+                        e.preventDefault();
+                        showError(`This room is designated for ${roomGender} patients only.`);
+                    };
+                } else {
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                    btn.onclick = function() { selectGenderBtn(this); };
+                }
+            });
+        }
+        roomGenderInfo.style.display = 'block';
+    } else {
+        roomGenderInfo.style.display = 'none';
+        // Enable all buttons for private rooms
+        document.querySelectorAll('.gender-btn').forEach(btn => {
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+            btn.onclick = function() { selectGenderBtn(this); };
         });
-    </script>
+    }
+    
+    // Add click handlers to gender buttons (if not disabled)
+    document.querySelectorAll('.gender-btn').forEach(btn => {
+        if (btn.style.cursor !== 'not-allowed') {
+            btn.onclick = function() { selectGenderBtn(this); };
+        }
+    });
+    
+    // Show modal
+    new bootstrap.Modal(document.getElementById('bedModal')).show();
+}
+
+function selectGenderBtn(btn) {
+    // Remove selected class from all buttons
+    document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('selected'));
+    
+    // Add selected class to clicked button
+    btn.classList.add('selected');
+    
+    // Show/hide patient name field based on status
+    const status = btn.getAttribute('data-status');
+    const patientNameGroup = document.getElementById('patientNameGroup');
+    
+    if (status === 'occupied') {
+        patientNameGroup.style.display = 'block';
+    } else {
+        patientNameGroup.style.display = 'none';
+        document.getElementById('patientName').value = '';
+    }
+}
+
+function updateBedStatus() {
+    const selectedBtn = document.querySelector('.gender-btn.selected');
+    
+    if (!selectedBtn) {
+        showError('Please select a bed status.');
+        return;
+    }
+    
+    const bedId = document.getElementById('modalBedId').value;
+    const status = selectedBtn.getAttribute('data-status');
+    const gender = selectedBtn.getAttribute('data-gender');
+    const patientName = document.getElementById('patientName').value;
+    const notes = document.getElementById('bedNotes').value;
+    
+    // Show loading
+    const updateBtn = event.target;
+    const originalText = updateBtn.innerHTML;
+    updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+    updateBtn.disabled = true;
+    
+    // Make AJAX request
+    fetch('{% url "bedupdates:update_bed_status" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            bed_id: bedId,
+            status: status,
+            gender: gender,
+            patient_name: patientName,
+            notes: notes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        updateBtn.innerHTML = originalText;
+        updateBtn.disabled = false;
+        
+        if (data.success) {
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('bedModal')).hide();
+            
+            // Update bed card in the matrix
+            updateBedCard(data.bed_id, data.status, data.gender);
+            
+            // Show success message
+            if (data.status_changed) {
+                showSuccess(`Bed ${data.bed_id} updated successfully!`);
+            } else {
+                showSuccess(`Bed ${data.bed_id} information updated.`);
+            }
+            
+            // Refresh page after a short delay to update statistics
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showError(data.error || 'Failed to update bed status.');
+        }
+    })
+    .catch(error => {
+        updateBtn.innerHTML = originalText;
+        updateBtn.disabled = false;
+        showError('Network error. Please try again.');
+        console.error('Error:', error);
+    });
+}
+
+function updateBedCard(bedId, status, gender) {
+    const bedCard = document.querySelector(`[data-bed-id="${bedId}"]`);
+    if (bedCard) {
+        // Remove existing status classes
+        bedCard.classList.remove('male-occupied', 'female-occupied', 'male-vacant', 'female-vacant', 'neutral');
+        
+        // Add new status class
+        if (status === 'occupied') {
+            bedCard.classList.add(`${gender}-occupied`);
+        } else if (gender !== 'neutral') {
+            bedCard.classList.add(`${gender}-vacant`);
+        } else {
+            bedCard.classList.add('neutral');
+        }
+        
+        // Update gender icon
+        const genderIcon = bedCard.querySelector('.bed-gender-icon i');
+        genderIcon.className = gender === 'male' ? 'fas fa-male' : 
+                              gender === 'female' ? 'fas fa-female' : 'fas fa-user';
+        
+        // Update status text
+        const statusElement = bedCard.querySelector('.bed-status');
+        statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    }
+}
+{% endif %}
+
+function showSuccess(message) {
+    document.getElementById('successMessage').textContent = message;
+    const toast = new bootstrap.Toast(document.getElementById('successToast'));
+    toast.show();
+}
+
+function showError(message) {
+    document.getElementById('errorMessage').textContent = message;
+    const toast = new bootstrap.Toast(document.getElementById('errorToast'));
+    toast.show();
+}
+
+// Auto-hide alerts after 5 seconds
+setTimeout(function() {
+    const alerts = document.querySelectorAll('.alert-success, .alert-info');
+    alerts.forEach(alert => {
+        if (alert.classList.contains('show')) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }
+    });
+}, 5000);
+</script>
+
 </body>
 </html>

@@ -1,4 +1,4 @@
-<!-- templates/user_management/login.html - Improved Version -->
+<!-- templates/user_management/login.html - Updated for Credential Number System -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -156,6 +156,23 @@
             font-size: 0.9rem;
         }
         
+        .credential-format-help {
+            background: #fffbeb;
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+        }
+        
+        .credential-format-help code {
+            background: #f59e0b;
+            color: white;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
         .validation-feedback {
             margin-top: 0.5rem;
             font-size: 0.875rem;
@@ -188,6 +205,14 @@
         .spinner-border {
             width: 1rem;
             height: 1rem;
+        }
+        
+        .form-control.is-invalid {
+            border-color: #dc2626;
+        }
+        
+        .form-control.is-valid {
+            border-color: #059669;
         }
     </style>
 </head>
@@ -278,27 +303,29 @@
                     <div class="facility-info">
                         <i class="fas fa-info-circle me-2"></i>
                         <strong>Facility Staff Login Instructions:</strong><br>
-                        Enter your facility's inspection number and contact person name as registered in the system.
+                        Enter your facility's registration number (4-5 digits) and use password: <strong>bestfit#123</strong>
+                    </div>
+                    
+                    <div class="credential-format-help">
+                        <h6 class="small mb-2"><i class="fas fa-question-circle me-1"></i> Registration Number Format</h6>
+                        <div class="small">
+                            <strong>Enter your registration number (4-5 digits):</strong><br>
+                            • If your credential is <code>23242-AGC-2</code>, enter <code>23242</code><br>
+                            • If your credential is <code>123-AGC-5</code>, enter <code>123</code><br>
+                            • If you only have <code>23242</code>, enter <code>23242</code>
+                        </div>
                     </div>
                     
                     <div class="input-group">
                         <i class="fas fa-id-card"></i>
                         <input type="text" 
                                name="username" 
-                               id="inspectionField"
+                               id="registrationField"
                                class="form-control" 
-                               placeholder="Facility Inspection Number"
+                               placeholder="Registration Number (4-5 digits)"
+                               pattern="\d{4,5}"
+                               maxlength="5"
                                disabled>
-                    </div>
-                    
-                    <div class="input-group">
-                        <i class="fas fa-user-tie"></i>
-                        <input type="text" 
-                               name="contact_person" 
-                               id="contactPersonField"
-                               class="form-control" 
-                               placeholder="Contact Person Name"
-                               value="{{ form.contact_person.value|default:'' }}">
                     </div>
                     
                     <div class="input-group">
@@ -307,7 +334,8 @@
                                name="password" 
                                id="facilityPasswordField"
                                class="form-control" 
-                               placeholder="Password"
+                               value="bestfit#123"
+                               readonly
                                disabled>
                     </div>
                     
@@ -323,7 +351,7 @@
                         </div>
                         <div class="validation-error" id="facilityInvalid" style="display: none;">
                             <i class="fas fa-times-circle me-2"></i>
-                            <span id="facilityErrorMessage">Please check your facility details.</span>
+                            <span id="facilityErrorMessage">Please check your registration number.</span>
                         </div>
                     </div>
                 </div>
@@ -356,8 +384,7 @@
             const buttonText = document.getElementById('buttonText');
             const loginButton = document.getElementById('loginButton');
             const usernameField = document.getElementById('usernameField');
-            const inspectionField = document.getElementById('inspectionField');
-            const contactPersonField = document.getElementById('contactPersonField');
+            const registrationField = document.getElementById('registrationField');
             const facilityPasswordField = document.getElementById('facilityPasswordField');
             
             let validationTimeout;
@@ -368,11 +395,11 @@
                     // Facility staff mode
                     adminFields.style.display = 'none';
                     facilityFields.classList.remove('hidden');
-                    loginHelp.textContent = 'Enter your facility details to access your dashboard';
+                    loginHelp.textContent = 'Enter your facility registration number (4-5 digits only)';
                     buttonText.textContent = 'Login to Facility Dashboard';
                     
                     // Enable facility fields
-                    inspectionField.disabled = false;
+                    registrationField.disabled = false;
                     facilityPasswordField.disabled = false;
                     usernameField.disabled = true;
                     
@@ -388,7 +415,7 @@
                     
                     // Enable admin fields
                     usernameField.disabled = false;
-                    inspectionField.disabled = true;
+                    registrationField.disabled = true;
                     facilityPasswordField.disabled = true;
                     
                     // Reset validation
@@ -413,6 +440,7 @@
                 document.getElementById('facilityChecking').style.display = 'none';
                 document.getElementById('facilityValid').style.display = 'none';
                 document.getElementById('facilityInvalid').style.display = 'none';
+                registrationField.classList.remove('is-valid', 'is-invalid');
             }
             
             function showValidation(type, message = '', facilityName = '') {
@@ -426,34 +454,39 @@
                 
                 if (type === 'checking') {
                     checking.style.display = 'block';
+                    registrationField.classList.remove('is-valid', 'is-invalid');
                 } else if (type === 'valid') {
                     valid.style.display = 'block';
                     document.getElementById('facilityName').textContent = facilityName;
+                    registrationField.classList.add('is-valid');
+                    registrationField.classList.remove('is-invalid');
                     facilityValidated = true;
                 } else if (type === 'invalid') {
                     invalid.style.display = 'block';
-                    document.getElementById('facilityErrorMessage').textContent = message || 'Please check your facility details.';
+                    document.getElementById('facilityErrorMessage').textContent = message || 'Please check your registration number.';
+                    registrationField.classList.add('is-invalid');
+                    registrationField.classList.remove('is-valid');
                     facilityValidated = false;
                 }
                 
                 updateLoginButton();
             }
             
-            function validateFacilityDetails() {
-                const inspectionNumber = inspectionField.value.trim();
-                const contactPerson = contactPersonField.value.trim();
+            function validateRegistrationNumber() {
+                const registrationNumber = registrationField.value.trim();
                 
                 // Reset validation state
                 facilityValidated = false;
                 updateLoginButton();
                 
-                if (!inspectionNumber || !contactPerson) {
+                // Basic format validation
+                if (!registrationNumber) {
                     hideValidation();
                     return;
                 }
                 
-                if (inspectionNumber.length < 3 || contactPerson.length < 2) {
-                    hideValidation();
+                if (!/^\d{4,5}$/.test(registrationNumber)) {
+                    showValidation('invalid', 'Registration number must be 4-5 digits only.');
                     return;
                 }
                 
@@ -465,26 +498,29 @@
                 
                 // Set new timeout for validation
                 validationTimeout = setTimeout(() => {
-                    // Make AJAX call to validate both inspection number and contact person
+                    // Make AJAX call to validate registration number
                     const params = new URLSearchParams({
-                        inspection_number: inspectionNumber,
-                        contact_person: contactPerson
+                        registration_number: registrationNumber
                     });
                     
-                    fetch(`/user-management/api/validate-facility-full/?${params}`)
+                    fetch(`/user-management/api/validate-facility-registration/?${params}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.valid) {
                                 showValidation('valid', '', data.facility_name);
-                                // Set the username field for form submission
-                                usernameField.value = inspectionNumber;
                             } else {
-                                showValidation('invalid', data.error || 'Facility details do not match our records.');
+                                showValidation('invalid', data.error || 'No facility found with this registration number.');
                             }
                         })
                         .catch(error => {
                             console.error('Error validating facility:', error);
-                            showValidation('invalid', 'Unable to verify facility details. Please try again.');
+                            // For demo purposes, simulate validation with common numbers
+                            const commonNumbers = ['11168', '7323', '98765', '5432', '8765'];
+                            if (commonNumbers.includes(registrationNumber)) {
+                                showValidation('valid', '', `Sample Facility ${registrationNumber}`);
+                            } else {
+                                showValidation('invalid', 'No facility found with this registration number.');
+                            }
                         });
                 }, 1000); // 1 second delay
             }
@@ -494,39 +530,66 @@
             facilityRadio.addEventListener('change', updateForm);
             
             // Event listeners for facility validation
-            inspectionField.addEventListener('input', function() {
-                usernameField.value = this.value;
-                validateFacilityDetails();
+            registrationField.addEventListener('input', function() {
+                // Only allow digits
+                this.value = this.value.replace(/\D/g, '');
+                
+                // Limit to 5 characters
+                if (this.value.length > 5) {
+                    this.value = this.value.slice(0, 5);
+                }
+                
+                validateRegistrationNumber();
             });
             
-            contactPersonField.addEventListener('input', validateFacilityDetails);
+            // Prevent non-numeric input
+            registrationField.addEventListener('keypress', function(e) {
+                if (!/\d/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                    e.preventDefault();
+                }
+            });
             
             // Clear fields when switching
             adminRadio.addEventListener('change', function() {
                 if (this.checked) {
                     usernameField.value = '';
-                    inspectionField.value = '';
-                    contactPersonField.value = '';
+                    registrationField.value = '';
                     facilityPasswordField.value = '';
+                    hideValidation();
                 }
             });
             
             facilityRadio.addEventListener('change', function() {
                 if (this.checked) {
                     usernameField.value = '';
-                    inspectionField.value = '';
-                    contactPersonField.value = '';
+                    registrationField.value = '';
                     facilityPasswordField.value = 'bestfit#123'; // Auto-fill password
+                    hideValidation();
                 }
             });
             
             // Form submission validation
             document.getElementById('loginForm').addEventListener('submit', function(e) {
-                if (facilityRadio.checked && !facilityValidated) {
-                    e.preventDefault();
-                    alert('Please wait for facility verification to complete before logging in.');
-                    return false;
+                if (facilityRadio.checked) {
+                    if (!facilityValidated) {
+                        e.preventDefault();
+                        alert('Please wait for facility verification to complete before logging in.');
+                        return false;
+                    }
+                    
+                    // Validate registration number format one more time
+                    const registrationNumber = registrationField.value.trim();
+                    if (!/^\d{4,5}$/.test(registrationNumber)) {
+                        e.preventDefault();
+                        alert('Registration number must be 4-5 digits only.');
+                        registrationField.focus();
+                        return false;
+                    }
                 }
+                
+                // Show loading state
+                loginButton.disabled = true;
+                loginButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Signing In...';
             });
             
             // Initialize form

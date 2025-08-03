@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{% static 'search/home.css' %}">
     <title>BestFit Network - AI-Enhanced Facility Search</title>
     <style>
-        /* Enhanced CSS combining user tracking form with facility images */
+        /* Enhanced CSS combining user tracking form with facility images and pricing */
 
         /* Additional styles for facility images */
         .result-card {
@@ -85,6 +85,103 @@
             font-size: 12px;
             display: inline-block;
             margin-top: 5px;
+        }
+
+        /* Pricing badges for search results */
+        .pricing-section {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .pricing-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .pricing-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            min-width: fit-content;
+        }
+
+        .private-badge {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            color: #1976d2;
+            border: 1px solid #2196f3;
+        }
+
+        .shared-badge {
+            background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+            color: #388e3c;
+            border: 1px solid #4caf50;
+        }
+
+        .contact-pricing-badge {
+            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+            color: #f57c00;
+            border: 1px solid #ff9800;
+        }
+
+        .pricing-badge i {
+            margin-right: 3px;
+            font-size: 10px;
+        }
+
+        /* Pricing display in cards */
+        .pricing-info {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 8px;
+            border-left: 3px solid #28a745;
+        }
+
+        .pricing-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 4px;
+        }
+
+        .pricing-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+        }
+
+        .pricing-type {
+            font-size: 11px;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+        }
+
+        .pricing-type i {
+            margin-right: 4px;
+            width: 12px;
+        }
+
+        .pricing-value {
+            font-size: 11px;
+            font-weight: 600;
+            color: #28a745;
+        }
+
+        .pricing-updated {
+            font-size: 10px;
+            color: #adb5bd;
+            text-align: center;
+            margin-top: 4px;
+            font-style: italic;
         }
 
         /* Results preview section */
@@ -320,6 +417,28 @@
             margin-right: 8px;
             color: #28a745;
         }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .pricing-badges {
+                justify-content: center;
+            }
+            
+            .pricing-badge {
+                font-size: 10px;
+                padding: 3px 6px;
+            }
+            
+            .pricing-info {
+                padding: 6px;
+            }
+            
+            .pricing-row {
+                flex-direction: column;
+                align-items: flex-start;
+                margin-bottom: 4px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -412,7 +531,7 @@
     <div class="results-preview">
         <div class="results-header">
             <h3><i class="fas fa-list-alt"></i> Search Results ({{ page_obj.paginator.count }} facilities found)</h3>
-            <p class="results-subtext" id="results-subtext">Complete the quick form below to view detailed results with facility images</p>
+            <p class="results-subtext" id="results-subtext">Complete the quick form below to view detailed results with facility images and pricing</p>
         </div>
     </div>
 
@@ -513,6 +632,64 @@
                     <div class="no-bed-data">
                         <i class="fas fa-info-circle"></i> Bed availability not updated
                     </div>
+                {% endif %}
+
+                <!-- Pricing Information Section -->
+                {% if facility.pricing and facility.pricing.has_pricing_info %}
+                <div class="pricing-section">
+                    <div class="pricing-info">
+                        <div class="pricing-title">
+                            <i class="fas fa-dollar-sign"></i> Monthly Pricing
+                        </div>
+                        
+                        {% if facility.pricing.private_bed_min_price or facility.pricing.private_bed_max_price %}
+                        <div class="pricing-row">
+                            <div class="pricing-type">
+                                <i class="fas fa-bed"></i>
+                                Private Beds
+                            </div>
+                            <div class="pricing-value">{{ facility.pricing.private_bed_display }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if facility.pricing.shared_bed_min_price or facility.pricing.shared_bed_max_price %}
+                        <div class="pricing-row">
+                            <div class="pricing-type">
+                                <i class="fas fa-users"></i>
+                                Shared Beds
+                            </div>
+                            <div class="pricing-value">{{ facility.pricing.shared_bed_display }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="pricing-updated">
+                            Updated: {{ facility.pricing.updated_at|date:"M d, Y" }}
+                        </div>
+                    </div>
+                    
+                    <!-- Alternative badge style display -->
+                    <div class="pricing-badges">
+                        {% if facility.pricing.private_bed_min_price or facility.pricing.private_bed_max_price %}
+                            <span class="pricing-badge private-badge">
+                                <i class="fas fa-bed"></i>Private: {{ facility.pricing.private_bed_display }}
+                            </span>
+                        {% endif %}
+                        {% if facility.pricing.shared_bed_min_price or facility.pricing.shared_bed_max_price %}
+                            <span class="pricing-badge shared-badge">
+                                <i class="fas fa-users"></i>Shared: {{ facility.pricing.shared_bed_display }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <!-- No pricing available -->
+                <div class="pricing-section">
+                    <div class="pricing-badges">
+                        <span class="pricing-badge contact-pricing-badge">
+                            <i class="fas fa-phone"></i>Contact for pricing
+                        </span>
+                    </div>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -696,7 +873,7 @@
             
             if (modal) {
                 modal.style.display = "block";
-                resultsSubtext.textContent = "Complete the quick form below to view detailed results with facility images";
+                resultsSubtext.textContent = "Complete the quick form below to view detailed results with facility images and pricing";
             }
             
             if (resultsContainer) {
@@ -722,7 +899,7 @@
             }
             
             if (resultsSubtext) {
-                resultsSubtext.textContent = "Browse all facility details and images freely";
+                resultsSubtext.textContent = "Browse all facility details, images, and pricing information freely";
             }
             
             if (resultsContainer) {

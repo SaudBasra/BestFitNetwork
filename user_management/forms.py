@@ -1,4 +1,4 @@
-# user_management/forms.py - Replace the StaffFacilityForm completely with this clean version
+# user_management/forms.py - Updated for credential number system
 
 from django import forms
 from django.contrib.auth import authenticate
@@ -28,7 +28,7 @@ class CustomLoginForm(forms.Form):
         max_length=150,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Username or Inspection Number'
+            'placeholder': 'Username or Registration Number (4-5 digits)'
         })
     )
     
@@ -68,18 +68,43 @@ class CustomLoginForm(forms.Form):
             print("\n🏥 FACILITY STAFF LOGIN VALIDATION")
             print("-" * 40)
             
-            # Step 1: Check if facility exists
-            print(f"🔍 Looking for facility with inspection number: '{username}'")
+            # Step 1: Find facility by registration number (first 4-5 digits)
+            print(f"🔍 Looking for facility with registration number: '{username}'")
+            
+            # Validate registration number format (4-5 digits)
+            if not username.isdigit() or len(username) not in [4, 5]:
+                print(f"❌ INVALID REGISTRATION FORMAT: {username}")
+                error_msg = "Registration number must be 4-5 digits only. Please verify and try again."
+                print(f"   📧 Error message: {error_msg}")
+                print("="*80)
+                raise forms.ValidationError(error_msg)
+            
             try:
-                facility = Facility.objects.get(inspection_number=username)
+                # Find facility where credential number starts with the registration number
+                facility = Facility.objects.filter(
+                    credential_number__startswith=f"{username}-AGC"
+                ).first()
+                
+                if not facility:
+                    # Also try finding by exact credential number match (for simple number format)
+                    facility = Facility.objects.filter(credential_number=username).first()
+                
+                if not facility:
+                    print(f"❌ FACILITY NOT FOUND: {username}")
+                    error_msg = "No facility found with this registration number. Please verify the number and try again."
+                    print(f"   📧 Error message: {error_msg}")
+                    print("="*80)
+                    raise forms.ValidationError(error_msg)
+                
                 print(f"✅ FACILITY FOUND:")
                 print(f"   📋 Name: {facility.name}")
+                print(f"   🆔 Credential Number: {facility.credential_number}")
                 print(f"   📊 Status: {facility.status}")
                 print(f"   📍 Location: {facility.state}, {facility.county}")
                 
-            except Facility.DoesNotExist:
-                print(f"❌ FACILITY NOT FOUND: {username}")
-                error_msg = "No facility found with this inspection number. Please verify the number and try again."
+            except Exception as e:
+                print(f"❌ DATABASE ERROR: {str(e)}")
+                error_msg = "System error while looking up facility. Please try again or contact support."
                 print(f"   📧 Error message: {error_msg}")
                 print("="*80)
                 raise forms.ValidationError(error_msg)
@@ -117,10 +142,10 @@ class CustomLoginForm(forms.Form):
             
             print("✅ All facility validations passed - attempting authentication")
             
-            # Step 4: Try authentication
+            # Step 4: Try authentication using the full credential number as username
             user = authenticate(
                 request=self.request,
-                username=username,
+                username=facility.credential_number,  # Use full credential for auth
                 password=password
             )
             
@@ -139,6 +164,8 @@ class CustomLoginForm(forms.Form):
                 raise forms.ValidationError(error_msg)
             
             print(f"✅ FACILITY AUTHENTICATION SUCCESSFUL: {user.username}")
+            # Store the facility object for later use
+            user.associated_facility = facility
             self.user_cache = user
         
         else:
@@ -192,7 +219,7 @@ class CustomLoginForm(forms.Form):
 class StaffFacilityForm(forms.ModelForm):
     """
     Clean form for facility staff that only includes editable fields
-    Completely excludes: inspection_number, bed_count, facility_type
+    Completely excludes: credential_number, bed_count, facility_type
     """
     
     class Meta:

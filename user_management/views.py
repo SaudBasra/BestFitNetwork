@@ -19,8 +19,17 @@ from .forms import CustomLoginForm
 from .models import UserSession, LoginAttempt, UserProfile
 from search.models import Facility
 import logging
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db import transaction
+from django.utils import timezone
+
+import logging
 
 logger = logging.getLogger(__name__)
+from search.models import FacilityPricing
+from search.forms import FacilityPricingForm
 
 class CustomLoginView(FormView):
     """
@@ -424,12 +433,22 @@ def custom_logout(request):
 @require_http_methods(["GET"])
 def validate_facility_api(request):
     """Enhanced API to validate facility with additional information"""
-    inspection_number = request.GET.get('inspection_number')
-    if not inspection_number:
-        return JsonResponse({'error': 'Inspection number required'}, status=400)
+    registration_number = request.GET.get('registration_number')  # Changed from inspection_number
+    if not registration_number:
+        return JsonResponse({'error': 'Registration number required'}, status=400)
     
     try:
-        facility = Facility.objects.get(inspection_number=inspection_number)
+        # Use the new credential number system
+        facility = Facility.objects.filter(
+            credential_number__startswith=f"{registration_number}-AGC"
+        ).first()
+        
+        if not facility:
+            # Also try exact match for simple format
+            facility = Facility.objects.filter(credential_number=registration_number).first()
+        
+        if not facility:
+            return JsonResponse({'valid': False, 'error': 'Facility not found'}, status=404)
         
         # Get additional facility information
         bed_info = None
@@ -450,23 +469,24 @@ def validate_facility_api(request):
             'facility_name': facility.name,
             'facility_type': facility.facility_type,
             'state': facility.state,
-            'city': facility.city,
+            'county': facility.county,
             'status': facility.status,
             'is_active': facility.status == 'active',
             'bed_info': bed_info,
             'contact_info': {
-                'phone': facility.phone_number,
-                'email': facility.email,
-            } if hasattr(facility, 'phone_number') else None
+                'phone': facility.contact,
+                'contact_person': facility.contact_person,
+            }
         }
         
         return JsonResponse(response_data)
         
-    except Facility.DoesNotExist:
-        return JsonResponse({'valid': False, 'error': 'Facility not found'}, status=404)
     except Exception as e:
-        logger.error(f"Error validating facility {inspection_number}: {str(e)}")
+        logger.error(f"Error validating facility {registration_number}: {str(e)}")
         return JsonResponse({'error': 'Internal server error'}, status=500)
+
+
+
 
 
 @login_required
@@ -596,10 +616,9 @@ def facility_detail_staff(request):
     
     return render(request, 'user_management/facility_detail_staff.html', context)
 
-
 @login_required
 def facility_update_staff(request):
-    """Staff form to update their facility information"""
+    """Staff form to update their facility information - Fixed for credential_number"""
     
     print(f"\n🏥 FACILITY UPDATE ACCESS: {request.user.username}")
     print(f"🕒 Access Time: {timezone.now()}")
@@ -626,9 +645,9 @@ def facility_update_staff(request):
         messages.error(request, f"Facility updates not allowed. Status: {facility.get_status_display()}. Please contact administrator.")
         return redirect('user_management:facility_dashboard')
     
-    # Import the form from facility_admin (reuse the same form)
+    # Import the custom staff form that excludes readonly fields
     try:
-        from facility_admin.forms import FacilityForm
+        from .forms import StaffFacilityForm
     except ImportError:
         messages.error(request, "Facility update form not available. Please contact administrator.")
         return redirect('user_management:facility_dashboard')
@@ -640,29 +659,25 @@ def facility_update_staff(request):
                 old_values = {
                     'name': facility.name,
                     'facility_type': facility.facility_type,
+                    'endorsement': facility.endorsement,
                     'address': facility.address,
+                    'state': facility.state,
+                    'county': facility.county,
                     'contact': facility.contact,
                     'contact_person': facility.contact_person,
-                    'bed_count': facility.bed_count,
+                    'meta_description': facility.meta_description,
+                    'search_keywords': facility.search_keywords,
                 }
                 
-                form = FacilityForm(request.POST, request.FILES, instance=facility)
+                # Create form with POST data - using custom staff form
+                form = StaffFacilityForm(request.POST, request.FILES, instance=facility)
                 
                 if form.is_valid():
-                    # For staff updates, we might want to require admin approval
-                    # depending on your business logic
-                    updated_facility = form.save(commit=False)
+                    # Save the form - readonly fields won't be affected since they're not in the form
+                    updated_facility = form.save()
                     
-                    # Prevent staff from changing inspection number and bed count
-                    updated_facility.inspection_number = facility.inspection_number
-                    updated_facility.bed_count = facility.bed_count
-                    
-                    # Option 1: Direct update (if you trust facility staff)
-                    updated_facility.save()
-                    
-                    # Option 2: Mark for admin review (commented out)
-                    # updated_facility.status = 'pending_update'
-                    # updated_facility.save()
+                    # The credential_number and bed_count remain unchanged automatically
+                    # since they're not included in the form
                     
                     # Log the changes
                     try:
@@ -670,10 +685,14 @@ def facility_update_staff(request):
                         new_values = {
                             'name': updated_facility.name,
                             'facility_type': updated_facility.facility_type,
+                            'endorsement': updated_facility.endorsement,
                             'address': updated_facility.address,
+                            'state': updated_facility.state,
+                            'county': updated_facility.county,
                             'contact': updated_facility.contact,
                             'contact_person': updated_facility.contact_person,
-                            'bed_count': updated_facility.bed_count,
+                            'meta_description': updated_facility.meta_description,
+                            'search_keywords': updated_facility.search_keywords,
                         }
                         
                         FacilityChangeLog.objects.create(
@@ -692,18 +711,16 @@ def facility_update_staff(request):
                     return redirect('user_management:facility_detail_staff')
                 else:
                     messages.error(request, "Please correct the errors in the form below.")
+                    print(f"Form validation errors: {form.errors}")
                     
         except Exception as e:
             logger.error(f"Error updating facility for user {request.user.username}: {str(e)}")
             messages.error(request, "An error occurred while updating facility information. Please try again.")
     else:
-        form = FacilityForm(instance=facility)
-        
-        # Make inspection number and bed count readonly for staff
-        form.fields['inspection_number'].widget.attrs['readonly'] = True
-        form.fields['inspection_number'].widget.attrs['class'] = form.fields['inspection_number'].widget.attrs.get('class', '') + ' readonly-field'
-        form.fields['bed_count'].widget.attrs['readonly'] = True
-        form.fields['bed_count'].widget.attrs['class'] = form.fields['bed_count'].widget.attrs.get('class', '') + ' readonly-field'
+        form = StaffFacilityForm(instance=facility)
+        print(f"🔍 Current facility type: '{facility.facility_type}'")
+    
+    # No need to modify readonly fields since they're not in this form
     
     context = {
         'form': form,
@@ -715,7 +732,6 @@ def facility_update_staff(request):
     }
     
     return render(request, 'user_management/facility_update_staff.html', context)
-
 
 
 # Add these new views to your existing user_management/views.py file
@@ -978,3 +994,125 @@ def facility_update_staff(request):
     }
     
     return render(request, 'user_management/facility_update_staff.html', context)
+
+
+
+
+@login_required
+def facility_pricing_management(request):
+    """Facility staff pricing management view"""
+    
+    print(f"\n💰 FACILITY PRICING MANAGEMENT ACCESS: {request.user.username}")
+    print(f"🕒 Access Time: {timezone.now()}")
+    
+    # Enhanced user type checking
+    try:
+        user_profile = request.user.user_profile
+        if user_profile.user_type != 'facility_staff':
+            messages.error(request, "Access denied - facility staff access required.")
+            logger.warning(f"Non-facility user {request.user.username} attempted to access pricing management")
+            return redirect('search:home')
+    except AttributeError:
+        messages.error(request, "User profile not found. Please contact administrator.")
+        return redirect('search:home')
+    
+    # Get facility with error handling
+    facility = user_profile.facility
+    if not facility:
+        messages.error(request, "No facility associated with your account. Please contact administrator.")
+        return redirect('search:home')
+    
+    # Enhanced facility status checking
+    if facility.status not in ['active', 'pending']:
+        messages.error(request, f"Pricing management not allowed. Status: {facility.get_status_display()}. Please contact administrator.")
+        return redirect('user_management:facility_dashboard')
+    
+    # Get or create pricing instance
+    pricing, created = FacilityPricing.objects.get_or_create(
+        facility=facility,
+        defaults={'updated_by': request.user}
+    )
+    
+    if created:
+        logger.info(f"Created new pricing record for facility: {facility.name}")
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                form = FacilityPricingForm(request.POST, instance=pricing)
+                
+                if form.is_valid():
+                    pricing = form.save(commit=False)
+                    pricing.updated_by = request.user
+                    pricing.save()
+                    
+                    # Log the pricing update
+                    logger.info(f"Pricing updated for facility {facility.name} by {request.user.username}")
+                    
+                    messages.success(
+                        request, 
+                        "Pricing information updated successfully! "
+                        "Your updated pricing will now be visible to potential residents."
+                    )
+                    
+                    # Redirect back to pricing management to prevent re-submission
+                    return redirect('user_management:facility_pricing_management')
+                else:
+                    messages.error(request, "Please correct the errors in the form below.")
+                    logger.warning(f"Form validation failed for pricing update: {form.errors}")
+                    
+        except Exception as e:
+            logger.error(f"Error updating pricing for facility {facility.name}: {str(e)}")
+            messages.error(request, "An error occurred while updating pricing information. Please try again.")
+    else:
+        form = FacilityPricingForm(instance=pricing)
+    
+    # Calculate some stats for display
+    context = {
+        'form': form,
+        'facility': facility,
+        'pricing': pricing,
+        'user_profile': user_profile,
+        'title': f'Pricing Management - {facility.name}',
+        'has_pricing_info': pricing.has_pricing_info,
+        'private_display': pricing.private_bed_display,
+        'shared_display': pricing.shared_bed_display,
+    }
+    
+    return render(request, 'user_management/facility_pricing_management.html', context)
+
+
+@login_required
+def facility_pricing_preview(request):
+    """Preview how pricing appears to public"""
+    
+    # Enhanced user type checking
+    try:
+        user_profile = request.user.user_profile
+        if user_profile.user_type != 'facility_staff':
+            messages.error(request, "Access denied - facility staff access required.")
+            return redirect('search:home')
+    except AttributeError:
+        messages.error(request, "User profile not found. Please contact administrator.")
+        return redirect('search:home')
+    
+    # Get facility
+    facility = user_profile.facility
+    if not facility:
+        messages.error(request, "No facility associated with your account.")
+        return redirect('search:home')
+    
+    # Get pricing info
+    try:
+        pricing = facility.pricing
+    except FacilityPricing.DoesNotExist:
+        pricing = None
+    
+    context = {
+        'facility': facility,
+        'pricing': pricing,
+        'is_preview': True,
+    }
+    
+    return render(request, 'user_management/facility_pricing_preview.html', context)
+

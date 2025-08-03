@@ -1,4 +1,4 @@
-# user_management/models.py - Clean Option 1 (No CustomUser)
+# user_management/models.py - Updated for credential number system
 
 from django.contrib.auth.models import User
 from django.db import models
@@ -156,8 +156,11 @@ class LoginAttempt(models.Model):
     failure_reason = models.CharField(max_length=200, blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     
-    # Additional context for facility staff login attempts
-    inspection_number = models.CharField(max_length=100, blank=True, null=True)
+    # Additional context for facility staff login attempts - UPDATED FOR CREDENTIAL SYSTEM
+    registration_number = models.CharField(max_length=100, blank=True, null=True, 
+                                         help_text="Registration number used for facility login")
+    credential_number = models.CharField(max_length=100, blank=True, null=True,
+                                       help_text="Full credential number of facility")
     contact_person_attempted = models.CharField(max_length=255, blank=True, null=True)
     
     class Meta:

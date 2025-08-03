@@ -1,4 +1,4 @@
-# facility_admin/views.py - Updated with bed management integration
+# facility_admin/views.py - Updated with credential number support
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
@@ -113,7 +113,8 @@ def facility_list(request):
             facilities = facilities.filter(
                 Q(name__icontains=search_term) |
                 Q(address__icontains=search_term) |
-                Q(contact_person__icontains=search_term)
+                Q(contact_person__icontains=search_term) |
+                Q(credential_number__icontains=search_term)  # Updated to search credential numbers
             )
     
     # Pagination
@@ -191,6 +192,7 @@ def facility_edit(request, facility_id):
         'status': facility.status,
         'facility_type': facility.facility_type,
         'bed_count': facility.bed_count,
+        'credential_number': facility.credential_number,  # Track credential number changes
     }
     
     if request.method == 'POST':
@@ -218,6 +220,7 @@ def facility_edit(request, facility_id):
                 'status': updated_facility.status,
                 'facility_type': updated_facility.facility_type,
                 'bed_count': updated_facility.bed_count,
+                'credential_number': updated_facility.credential_number,
             }
             
             FacilityChangeLog.objects.create(
@@ -240,9 +243,10 @@ def facility_edit(request, facility_id):
         'submit_text': 'Update Facility'
     })
 
+# facility_admin/views.py - Updated public_registration function for credential system
 
 def public_registration(request):
-    """Public facility registration form - NO login required"""
+    """Public facility registration form - Updated for credential number system"""
     
     if request.method == 'POST':
         facility_form = PublicRegistrationForm(request.POST, request.FILES)
@@ -255,54 +259,76 @@ def public_registration(request):
             facility.save()
             
             # Create initial bed availability record
-            BedAvailability.objects.get_or_create(
-                facility=facility,
-                defaults={
-                    'available_beds': 0,
-                    'shared_beds_total': 0,
-                    'shared_beds_male': 0,
-                    'shared_beds_female': 0,
-                    'separate_beds_total': 0,
-                    'separate_beds_male': 0,
-                    'separate_beds_female': 0,
-                }
-            )
+            try:
+                from bedupdates.models import BedAvailability
+                BedAvailability.objects.get_or_create(
+                    facility=facility,
+                    defaults={
+                        'available_beds': 0,
+                        'shared_beds_total': 0,
+                        'shared_beds_male': 0,
+                        'shared_beds_female': 0,
+                        'separate_beds_total': 0,
+                        'separate_beds_male': 0,
+                        'separate_beds_female': 0,
+                    }
+                )
+            except ImportError:
+                # BedAvailability model not available
+                pass
             
             # Create submission record
-            submission = FacilitySubmission.objects.create(
-                facility=facility,
-                submitter_name=facility_form.cleaned_data['submitter_name'],
-                submitter_email=facility_form.cleaned_data['submitter_email'],
-                submitter_phone=facility_form.cleaned_data['submitter_phone'],
-                submission_notes=facility_form.cleaned_data.get('submission_notes', '')
-            )
+            try:
+                submission = FacilitySubmission.objects.create(
+                    facility=facility,
+                    submitter_name=facility_form.cleaned_data['submitter_name'],
+                    submitter_email=facility_form.cleaned_data['submitter_email'],
+                    submitter_phone=facility_form.cleaned_data['submitter_phone'],
+                    submission_notes=facility_form.cleaned_data.get('submission_notes', '')
+                )
+            except Exception as e:
+                logger.error(f"Error creating facility submission: {str(e)}")
             
             # Log the submission
-            FacilityChangeLog.objects.create(
-                facility=facility,
-                changed_by=None,  # No user for public submissions
-                change_type='created',
-                new_values={
-                    'status': 'pending',
-                    'submission_type': 'self_register',
-                    'submitter': facility_form.cleaned_data['submitter_name']
-                }
+            try:
+                FacilityChangeLog.objects.create(
+                    facility=facility,
+                    changed_by=None,  # No user for public submissions
+                    change_type='created',
+                    new_values={
+                        'status': 'pending',
+                        'submission_type': 'self_register',
+                        'submitter': facility_form.cleaned_data['submitter_name'],
+                        'credential_number': facility.credential_number  # The essential part entered by user
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Error creating facility change log: {str(e)}")
+            
+            # Success message with information about next steps
+            success_message = (
+                f'Thank you! Your facility "{facility.name}" has been submitted for review. '
+                f'We will verify your registration number ({facility.credential_number}) and contact you at '
+                f'{facility_form.cleaned_data["submitter_email"]} once approved. '
+                f'You will receive login credentials to manage your facility\'s bed availability.'
             )
             
-            messages.success(
-                request, 
-                'Thank you! Your facility has been submitted for review. '
-                'You will be contacted once it\'s approved.'
-            )
+            messages.success(request, success_message)
             return redirect('facility_admin:public_registration')
+        else:
+            # Form has validation errors
+            logger.warning(f"Public registration form validation failed: {facility_form.errors}")
+            
     else:
         facility_form = PublicRegistrationForm()
     
     return render(request, 'facility_admin/public_registration.html', {
-        'form': facility_form
+        'form': facility_form,
+        'title': 'Register Your Facility',
+        'description': 'Join the BestFit Network by registering your healthcare facility.'
     })
-
-
+    
+    
 @login_required
 @user_passes_test(is_admin)
 def approval_queue(request):
@@ -320,24 +346,33 @@ def approval_queue(request):
         'pending_facilities': page_obj
     })
 
+# facility_admin/views.py - Updated key functions for flexible credential system
 
+# Update the facility_approve view to handle AGC suffix
 @login_required
 @user_passes_test(is_admin)
 def facility_approve(request, facility_id):
-    """Approve or reject a facility - works for any status"""
+    """Approve or reject a facility - updated for flexible credentials"""
     
     facility = get_object_or_404(Facility, id=facility_id)
     
     if request.method == 'POST':
-        form = ApprovalForm(request.POST)
+        form = ApprovalForm(request.POST, facility=facility)
         if form.is_valid():
             action = form.cleaned_data['action']
             admin_notes = form.cleaned_data['admin_notes']
             rejection_reason = form.cleaned_data.get('rejection_reason', '')
+            agc_suffix = form.cleaned_data.get('agc_suffix', '')
             
             old_status = facility.status
+            old_credential = facility.credential_number
             
             if action == 'approve':
+                # Optionally add AGC suffix if provided
+                if agc_suffix and not facility.has_full_credential_format():
+                    registration_number = facility.get_registration_number()
+                    facility.credential_number = f"{registration_number}-AGC-{agc_suffix}"
+                
                 facility.status = 'active'
                 facility.approved_by = request.user
                 facility.approved_at = timezone.now()
@@ -367,12 +402,17 @@ def facility_approve(request, facility_id):
                     pass
                 
                 # Log approval
+                log_data = {
+                    'old_values': {'status': old_status, 'credential_number': old_credential},
+                    'new_values': {'status': 'active', 'credential_number': facility.credential_number}
+                }
+                
                 FacilityChangeLog.objects.create(
                     facility=facility,
                     changed_by=request.user,
                     change_type='approved',
-                    old_values={'status': old_status},
-                    new_values={'status': 'active'},
+                    old_values=log_data['old_values'],
+                    new_values=log_data['new_values'],
                     notes=admin_notes
                 )
                 
@@ -413,7 +453,7 @@ def facility_approve(request, facility_id):
             else:
                 return redirect('facility_admin:facility_list')
     else:
-        form = ApprovalForm()
+        form = ApprovalForm(facility=facility)
     
     return render(request, 'facility_admin/facility_approve.html', {
         'facility': facility,
@@ -421,10 +461,11 @@ def facility_approve(request, facility_id):
     })
 
 
+# Update the bulk_import view to handle flexible credentials
 @login_required
 @user_passes_test(is_admin)
 def bulk_import(request):
-    """Bulk import facilities from CSV with enhanced error handling"""
+    """Bulk import facilities from CSV with flexible credential number support"""
     
     if request.method == 'POST':
         form = BulkImportForm(request.POST, request.FILES)
@@ -445,7 +486,7 @@ def bulk_import(request):
                 else:
                     raise ValueError("Could not decode CSV file. Please ensure it's saved in UTF-8 format.")
                 
-                # Enhanced CSV parsing with multiple delimiter detection
+                # Enhanced CSV parsing
                 import csv
                 import io
                 
@@ -469,19 +510,20 @@ def bulk_import(request):
                 # Clean fieldnames (remove quotes, extra spaces)
                 cleaned_fieldnames = [field.strip().strip('"\'') for field in fieldnames]
                 
-                # Map CSV fields to our model fields (case-insensitive)
+                # Map CSV fields to our model fields (flexible credential matching)
                 field_mapping = {}
-                required_fields = ['name', 'type', 'inspection number', 'address', 'state', 'county', 'bed count']
+                required_fields = ['name', 'type', 'credential number', 'address', 'state', 'county', 'bed count']
                 
-                # Create case-insensitive mapping
+                # Create case-insensitive mapping with flexible credential matching
                 for field in cleaned_fieldnames:
                     field_lower = field.lower().strip()
                     if 'name' in field_lower and 'contact' not in field_lower:
                         field_mapping['name'] = field
                     elif 'type' in field_lower:
                         field_mapping['type'] = field
-                    elif 'inspection' in field_lower:
-                        field_mapping['inspection_number'] = field
+                    elif any(term in field_lower for term in ['credential', 'registration', 'inspection', 'number', 'id']):
+                        if 'contact' not in field_lower and 'bed' not in field_lower and 'phone' not in field_lower:
+                            field_mapping['credential_number'] = field
                     elif 'address' in field_lower:
                         field_mapping['address'] = field
                     elif 'state' in field_lower:
@@ -536,7 +578,16 @@ def bulk_import(request):
                         try:
                             facility_data['name'] = cleaned_row[field_mapping['name']]
                             facility_data['facility_type'] = cleaned_row[field_mapping['type']]
-                            facility_data['inspection_number'] = cleaned_row[field_mapping['inspection_number']]
+                            
+                            # Handle flexible credential number
+                            raw_credential = cleaned_row[field_mapping['credential_number']]
+                            normalized_credential = Facility.normalize_credential_input(raw_credential)
+                            
+                            if not Facility.is_valid_credential_format(normalized_credential):
+                                errors.append(f"Row {row_num}: Invalid credential format '{raw_credential}'. Expected: 2-5 digits or XXXXX-AGC-X")
+                                continue
+                            
+                            facility_data['credential_number'] = normalized_credential
                             facility_data['address'] = cleaned_row[field_mapping['address']]
                             facility_data['state'] = cleaned_row[field_mapping['state']]
                             facility_data['county'] = cleaned_row[field_mapping['county']]
@@ -556,14 +607,17 @@ def bulk_import(request):
                         
                         # Validate required fields are not empty
                         if not all([facility_data['name'], facility_data['facility_type'], 
-                                   facility_data['inspection_number'], facility_data['address'],
+                                   facility_data['credential_number'], facility_data['address'],
                                    facility_data['state'], facility_data['county']]):
                             errors.append(f"Row {row_num}: One or more required fields are empty")
                             continue
                         
-                        # Check for duplicate inspection number
-                        if Facility.objects.filter(inspection_number=facility_data['inspection_number']).exists():
-                            warnings.append(f"Row {row_num}: Inspection number {facility_data['inspection_number']} already exists - skipped")
+                        # Check for duplicate using registration number
+                        registration_number = Facility.extract_registration_number(facility_data['credential_number'])
+                        existing_facility = Facility.find_by_registration_number(registration_number)
+                        
+                        if existing_facility:
+                            warnings.append(f"Row {row_num}: Registration number {registration_number} already exists - skipped")
                             continue
                         
                         # Create facility
@@ -571,7 +625,7 @@ def bulk_import(request):
                             name=facility_data['name'],
                             facility_type=facility_data['facility_type'],
                             endorsement=facility_data['endorsement'],
-                            inspection_number=facility_data['inspection_number'],
+                            credential_number=facility_data['credential_number'],
                             address=facility_data['address'],
                             state=facility_data['state'],
                             county=facility_data['county'],
@@ -642,6 +696,7 @@ def bulk_import(request):
     return render(request, 'facility_admin/bulk_import.html', {'form': form})
 
 
+
 @login_required
 @user_passes_test(is_admin)
 @require_POST
@@ -660,6 +715,12 @@ def bulk_approve(request):
     
     for facility in facilities:
         if action == 'approve':
+            # Note: Bulk approval doesn't handle credential suffix completion
+            # Facilities with PENDING suffix should be approved individually
+            if facility.credential_number.endswith('-PENDING'):
+                messages.warning(request, f'Facility "{facility.name}" has incomplete credential number and was skipped. Please approve individually.')
+                continue
+            
             facility.status = 'active'
             facility.approved_by = request.user
             facility.approved_at = timezone.now()
@@ -723,9 +784,9 @@ def export_facilities(request):
     
     writer = csv.writer(response)
     
-    # Write header
+    # Write header - Updated for credential numbers
     writer.writerow([
-        'Name', 'Type', 'Endorsement', 'Inspection Number', 'Address', 
+        'Name', 'Type', 'Endorsement', 'Credential Number', 'Address', 
         'State', 'County', 'Contact', 'Contact Person', 'Bed Count',
         'Status', 'Available Beds', 'Total Beds (Shared + Private)', 
         'Created At', 'Submitted By'
@@ -758,7 +819,7 @@ def export_facilities(request):
             facility.name,
             facility.facility_type,
             facility.endorsement or '',
-            facility.inspection_number,
+            facility.credential_number,  # Updated
             facility.address,
             facility.state,
             facility.county,

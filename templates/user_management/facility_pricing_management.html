@@ -1,0 +1,436 @@
+<!-- user_management/templates/user_management/facility_pricing_management.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing Management - {{ facility.name }}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #059669;
+            --primary-light: #10b981;
+            --primary-dark: #047857;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #0ea5e9;
+            --light-bg: #f8fafc;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .pricing-card {
+            border: 1px solid #e0e6ed;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .pricing-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .pricing-stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .help-text {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(5, 150, 105, 0.25);
+        }
+
+        .navbar {
+            background: var(--primary-color) !important;
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'user_management:facility_dashboard' %}">
+                <i class="fas fa-hospital me-2"></i>{{ facility.name }}
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'user_management:facility_dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'user_management:facility_bed_update_staff' %}">
+                            <i class="fas fa-bed me-1"></i>Bed Management
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'user_management:facility_pricing_management' %}">
+                            <i class="fas fa-dollar-sign me-1"></i>Pricing
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>{{ user.get_full_name|default:user.username }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'user_management:profile' %}">Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'user_management:logout' %}">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2><i class="fas fa-dollar-sign me-2"></i>Pricing Management</h2>
+                <p class="text-muted mb-0">Manage monthly rates for private and shared beds</p>
+            </div>
+            <div>
+                <a href="{% url 'user_management:facility_dashboard' %}" class="btn btn-outline-secondary me-2">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                </a>
+                <a href="{% url 'user_management:facility_pricing_preview' %}" class="btn btn-info" target="_blank">
+                    <i class="fas fa-eye me-1"></i>Preview Public View
+                </a>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Current Pricing Display -->
+        <div class="pricing-stats">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-bed me-2"></i>Private Beds</h5>
+                    <p class="h4 mb-0">{{ private_display }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h5><i class="fas fa-users me-2"></i>Shared Beds</h5>
+                    <p class="h4 mb-0">{{ shared_display }}</p>
+                </div>
+            </div>
+            {% if not has_pricing_info %}
+            <div class="alert alert-warning mt-3 mb-0">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>No pricing information set.</strong> Add pricing details below to help potential residents find your facility.
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="row">
+            <!-- Pricing Form -->
+            <div class="col-lg-8">
+                <div class="pricing-card">
+                    <h4 class="mb-4">
+                        <i class="fas fa-edit me-2"></i>Update Pricing Information
+                    </h4>
+                    
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Private Bed Pricing -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary">
+                                    <i class="fas fa-bed me-2"></i>Private Bed Pricing
+                                </h5>
+                                <p class="text-muted small">Monthly rates for single-occupancy rooms</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.private_bed_min_price.id_for_label }}" class="form-label">
+                                    {{ form.private_bed_min_price.label }}
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    {{ form.private_bed_min_price }}
+                                    <span class="input-group-text">/month</span>
+                                </div>
+                                {% if form.private_bed_min_price.help_text %}
+                                    <div class="help-text">{{ form.private_bed_min_price.help_text }}</div>
+                                {% endif %}
+                                {% if form.private_bed_min_price.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.private_bed_min_price.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.private_bed_max_price.id_for_label }}" class="form-label">
+                                    {{ form.private_bed_max_price.label }}
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    {{ form.private_bed_max_price }}
+                                    <span class="input-group-text">/month</span>
+                                </div>
+                                {% if form.private_bed_max_price.help_text %}
+                                    <div class="help-text">{{ form.private_bed_max_price.help_text }}</div>
+                                {% endif %}
+                                {% if form.private_bed_max_price.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.private_bed_max_price.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Shared Bed Pricing -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-success">
+                                    <i class="fas fa-users me-2"></i>Shared Bed Pricing
+                                </h5>
+                                <p class="text-muted small">Monthly rates for shared-occupancy rooms</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.shared_bed_min_price.id_for_label }}" class="form-label">
+                                    {{ form.shared_bed_min_price.label }}
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    {{ form.shared_bed_min_price }}
+                                    <span class="input-group-text">/month</span>
+                                </div>
+                                {% if form.shared_bed_min_price.help_text %}
+                                    <div class="help-text">{{ form.shared_bed_min_price.help_text }}</div>
+                                {% endif %}
+                                {% if form.shared_bed_min_price.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.shared_bed_min_price.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.shared_bed_max_price.id_for_label }}" class="form-label">
+                                    {{ form.shared_bed_max_price.label }}
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    {{ form.shared_bed_max_price }}
+                                    <span class="input-group-text">/month</span>
+                                </div>
+                                {% if form.shared_bed_max_price.help_text %}
+                                    <div class="help-text">{{ form.shared_bed_max_price.help_text }}</div>
+                                {% endif %}
+                                {% if form.shared_bed_max_price.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.shared_bed_max_price.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Additional Notes -->
+                        <div class="mb-4">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">
+                                {{ form.notes.label }}
+                            </label>
+                            {{ form.notes }}
+                            {% if form.notes.help_text %}
+                                <div class="help-text">{{ form.notes.help_text }}</div>
+                            {% endif %}
+                            {% if form.notes.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.notes.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Form-wide errors -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <!-- Submit Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Save Pricing Information
+                            </button>
+                            <button type="reset" class="btn btn-outline-secondary">
+                                <i class="fas fa-undo me-1"></i>Reset Form
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Help & Guidelines -->
+            <div class="col-lg-4">
+                <div class="pricing-card">
+                    <h5><i class="fas fa-lightbulb me-2"></i>Pricing Guidelines</h5>
+                    <div class="alert alert-info">
+                        <small>
+                            <strong>Tips for effective pricing:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Set realistic price ranges based on your services</li>
+                                <li>Consider different care levels in your pricing</li>
+                                <li>Update pricing regularly to stay competitive</li>
+                                <li>Use the notes field to explain what's included</li>
+                            </ul>
+                        </small>
+                    </div>
+                    
+                    <h6 class="mt-4">How pricing appears to public:</h6>
+                    <div class="pricing-preview">
+                        <div class="mb-2">
+                            <strong>Private:</strong> {{ private_display }}
+                        </div>
+                        <div>
+                            <strong>Shared:</strong> {{ shared_display }}
+                        </div>
+                    </div>
+                    
+                    {% if pricing.notes %}
+                    <div class="mt-3">
+                        <h6>Additional Notes:</h6>
+                        <div class="pricing-preview">
+                            <small>{{ pricing.notes }}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="pricing-card">
+                    <h5><i class="fas fa-chart-line me-2"></i>Quick Info</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-building me-2 text-primary"></i>Facility: {{ facility.name }}</li>
+                        <li><i class="fas fa-calendar me-2 text-info"></i>Last Updated: 
+                            {% if pricing.updated_at %}
+                                {{ pricing.updated_at|date:"M d, Y" }}
+                            {% else %}
+                                Never
+                            {% endif %}
+                        </li>
+                        <li><i class="fas fa-user me-2 text-success"></i>Updated By: 
+                            {% if pricing.updated_by %}
+                                {{ pricing.updated_by.get_full_name|default:pricing.updated_by.username }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="pricing-card">
+                    <h5><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'user_management:facility_dashboard' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                        <a href="{% url 'user_management:facility_bed_update_staff' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-bed me-1"></i>Bed Management
+                        </a>
+                        <a href="{% url 'user_management:facility_pricing_preview' %}" class="btn btn-outline-info btn-sm" target="_blank">
+                            <i class="fas fa-eye me-1"></i>Preview Pricing
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Auto-format number inputs
+            $('input[type="number"]').on('input', function() {
+                let value = $(this).val();
+                if (value && !isNaN(value)) {
+                    // Remove any non-numeric characters except decimal point
+                    value = value.replace(/[^0-9.]/g, '');
+                    $(this).val(value);
+                }
+            });
+            
+            // Form validation enhancement
+            $('form').on('submit', function(e) {
+                let hasValue = false;
+                $('input[type="number"]').each(function() {
+                    if ($(this).val() && parseFloat($(this).val()) > 0) {
+                        hasValue = true;
+                        return false; // break loop
+                    }
+                });
+                
+                if (!hasValue) {
+                    e.preventDefault();
+                    alert('Please enter at least one pricing value before saving.');
+                    return false;
+                }
+            });
+            
+            // Auto-hide alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert:not(.alert-danger)').fadeOut();
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
