@@ -216,25 +216,6 @@
             padding: 15px;
             margin-bottom: 20px;
         }
-        
-        .bed-matrix-preview {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-        
-        .mini-bed {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            display: inline-block;
-            margin: 2px;
-        }
-        
-        .mini-bed.occupied { background: var(--danger-color); }
-        .mini-bed.vacant { background: var(--success-color); }
-        .mini-bed.unknown { background: var(--secondary-color); }
     </style>
 </head>
 
@@ -468,63 +449,7 @@
                     </div>
                 </div>
                 
-                <!-- Bed Management Status Row -->
-                {% if bed_config and bed_config.is_configured %}
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header" style="background: var(--light-bg); color: var(--primary-color);">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-th me-2"></i>Bed Management Status
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <h6>Room Configuration</h6>
-                                        <ul class="list-unstyled">
-                                            <li><i class="fas fa-home me-2 text-primary"></i>{{ bed_config.total_rooms }} rooms configured</li>
-                                            <li><i class="fas fa-user me-2 text-success"></i>{{ room_stats.private_rooms|default:0 }} private rooms</li>
-                                            <li><i class="fas fa-users me-2 text-info"></i>{{ room_stats.shared_rooms|default:0 }} shared rooms</li>
-                                        </ul>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h6>Quick Actions</h6>
-                                        <div class="d-grid gap-2">
-                                            <a href="{% url 'bedupdates:bed_management' facility.id %}" class="btn btn-primary btn-sm">
-                                                <i class="fas fa-bed me-2"></i>Open Bed Matrix
-                                            </a>
-                                            <a href="{% url 'bedupdates:reconfigure_facility' facility.id %}" class="btn btn-outline-warning btn-sm">
-                                                <i class="fas fa-cog me-2"></i>Reconfigure
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Mini Bed Matrix Preview -->
-                                {% if rooms %}
-                                <div class="bed-matrix-preview">
-                                    <h6 class="mb-2">Current Occupancy Preview</h6>
-                                    {% for room in rooms %}
-                                    <div class="mb-2">
-                                        <small class="text-muted">{{ room.room_name }}:</small>
-                                        {% for bed in room.beds.all %}
-                                        <div class="mini-bed {% if bed.status == 'occupied' %}occupied{% elif bed.status == 'vacant' %}vacant{% else %}unknown{% endif %}" 
-                                             title="Bed {{ bed.bed_number }} - {{ bed.get_status_display }}"></div>
-                                        {% endfor %}
-                                    </div>
-                                    {% endfor %}
-                                    <small class="text-muted">
-                                        <span class="mini-bed occupied me-1"></span>Occupied
-                                        <span class="mini-bed vacant me-1 ms-2"></span>Vacant
-                                    </small>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
+                <!-- REMOVED: Bed Management Status Row Section -->
                 
                 <div class="row">
                     
@@ -543,7 +468,7 @@
                                     <i class="fas fa-edit me-2"></i> Update Facility Info
                                 </a>
                                 
-                                <!-- Updated Bed Management Actions -->
+                                <!-- Simplified Bed Management Actions -->
                                 {% if bed_config and bed_config.is_configured %}
                                 <a href="{% url 'bedupdates:bed_management' facility.id %}" class="btn btn-primary">
                                     <i class="fas fa-bed me-2"></i> Manage Bed Matrix
@@ -551,9 +476,6 @@
                                 {% else %}
                                 <a href="{% url 'bedupdates:configure_facility' facility.id %}" class="btn btn-warning">
                                     <i class="fas fa-cog me-2"></i> Configure Bed System
-                                </a>
-                                <a href="{% url 'bedupdates:bed_update_view' %}?facility={{ facility.id }}" class="btn btn-outline-primary">
-                                    <i class="fas fa-bed me-2"></i> Legacy Bed Update
                                 </a>
                                 {% endif %}
                                 
@@ -639,21 +561,6 @@
                             </div>
                             {% endif %}
                             
-                            <!-- Landing Page Preview -->
-                            {% if landing_page %}
-                            <div class="mt-3 p-2 bg-light rounded">
-                                <small class="text-muted d-block mb-1"><strong>Landing Page:</strong></small>
-                                <small class="text-info d-block">
-                                    <i class="fas fa-{% if landing_page.is_published %}globe{% else %}edit{% endif %} me-1"></i>
-                                    {% if landing_page.is_published %}
-                                        Live - Last updated {{ landing_page.updated_at|timesince }} ago
-                                    {% else %}
-                                        Draft - {{ landing_page.hero_tagline|default:"No tagline set"|truncatechars:30 }}
-                                    {% endif %}
-                                </small>
-                            </div>
-                            {% endif %}
-                            
                             <div class="mt-3">
                                 <a href="{% url 'user_management:facility_update_staff' %}" class="btn btn-sm btn-outline-primary me-2">
                                     <i class="fas fa-edit me-1"></i> Update Information
@@ -694,7 +601,7 @@
                                 </div>
                             </div>
                             
-                            <!-- Updated Bed Management Activity -->
+                            <!-- Simplified Bed Management Activity -->
                             <div class="activity-item">
                                 <div class="activity-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--info-color);">
                                     <i class="fas fa-bed"></i>
@@ -704,49 +611,12 @@
                                     <div class="text-muted small">
                                         {% if bed_config and bed_config.is_configured %}
                                             Advanced system: {{ bed_stats.vacant_beds|default:available_beds }}/{{ bed_stats.total_beds|default:total_beds }} available
-                                            <br><small>Last updated: {{ bed_config.updated_at|timesince }} ago</small>
                                         {% else %}
                                             Legacy system: {{ available_beds }}/{{ total_beds }} available
-                                            <br><small><a href="{% url 'bedupdates:configure_facility' facility.id %}">Upgrade to advanced system</a></small>
                                         {% endif %}
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Landing Page Activity -->
-                            <div class="activity-item">
-                                <div class="activity-icon" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">
-                                    <i class="fas fa-globe"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-medium">Landing Page Status</div>
-                                    <div class="text-muted small">
-                                        {% if landing_page and landing_page.is_published %}
-                                            Published and live - Last updated: {{ landing_page.updated_at|date:"M d, Y" }}
-                                        {% elif landing_page %}
-                                            Draft mode - <a href="{% url 'facility_landing:edit_page' %}">Continue editing</a>
-                                        {% else %}
-                                            Not created - <a href="{% url 'facility_landing:edit_page' %}">Create landing page</a>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Configuration Status Activity -->
-                            {% if bed_config and bed_config.is_configured %}
-                            <div class="activity-item">
-                                <div class="activity-icon" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">
-                                    <i class="fas fa-cog"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-medium">Room Configuration</div>
-                                    <div class="text-muted small">
-                                        {{ bed_config.total_rooms }} rooms configured
-                                        <br><small>System configured: {{ bed_config.created_at|date:"M d, Y" }}</small>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
                             
                             <!-- Pricing Activity -->
                             <div class="activity-item">
@@ -799,18 +669,17 @@
                                 Help & Support
                             </h5>
                             <p class="text-muted mb-3">
-                                Need assistance with your facility dashboard, bed management system, landing page setup, or have questions about updating information?
+                                Need assistance with your facility dashboard, bed management system, or have questions about updating information?
                             </p>
                             
-                            <!-- Updated Help Topics -->
+                            <!-- Simplified Help Topics -->
                             <div class="mb-3">
                                 <small class="text-muted d-block mb-2"><strong>Common Topics:</strong></small>
                                 <ul class="list-unstyled small">
-                                    <li><i class="fas fa-cog me-1 text-primary"></i> Setting up room configuration</li>
-                                    <li><i class="fas fa-bed me-1 text-primary"></i> Using the bed matrix system</li>
+                                    <li><i class="fas fa-bed me-1 text-primary"></i> Bed management system</li>
                                     <li><i class="fas fa-dollar-sign me-1 text-primary"></i> Managing pricing information</li>
-                                    <li><i class="fas fa-globe me-1 text-primary"></i> Creating custom landing pages</li>
-                                    <li><i class="fas fa-sync me-1 text-primary"></i> Migrating from legacy system</li>
+                                    <li><i class="fas fa-globe me-1 text-primary"></i> Creating landing pages</li>
+                                    <li><i class="fas fa-edit me-1 text-primary"></i> Updating facility information</li>
                                 </ul>
                             </div>
                             
@@ -874,361 +743,44 @@
         </div>
     </div>
     
-    <!-- Updated Help Modal -->
+    <!-- Simple Help Modal -->
     <div class="modal fade" id="helpModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title">
                         <i class="fas fa-question-circle me-2"></i>
-                        BestFit Network - Facility Staff Help Center
+                        BestFit Network - Help Center
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Navigation Tabs -->
-                    <ul class="nav nav-tabs mb-4" id="helpTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="getting-started-tab" data-bs-toggle="tab" data-bs-target="#getting-started" type="button" role="tab">
-                                <i class="fas fa-rocket me-1"></i> Getting Started
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="bed-management-tab" data-bs-toggle="tab" data-bs-target="#bed-management" type="button" role="tab">
-                                <i class="fas fa-bed me-1"></i> Bed Management
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="landing-page-tab" data-bs-toggle="tab" data-bs-target="#landing-page" type="button" role="tab">
-                                <i class="fas fa-globe me-1"></i> Landing Pages
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="pricing-tab" data-bs-toggle="tab" data-bs-target="#pricing" type="button" role="tab">
-                                <i class="fas fa-dollar-sign me-1"></i> Pricing Help
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="troubleshooting-tab" data-bs-toggle="tab" data-bs-target="#troubleshooting" type="button" role="tab">
-                                <i class="fas fa-tools me-1"></i> Troubleshooting
-                            </button>
-                        </li>
-                    </ul>
-                    
-                    <!-- Tab Content -->
-                    <div class="tab-content" id="helpTabContent">
-                        <!-- Getting Started -->
-                        <div class="tab-pane fade show active" id="getting-started" role="tabpanel">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6><i class="fas fa-rocket me-2 text-primary"></i>Welcome to Your Dashboard</h6>
-                                    <ul class="list-unstyled">
-                                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>View Public Profile:</strong> See how your facility appears to patients searching for care</li>
-                                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Configure Bed System:</strong> Set up advanced room-based bed management with visual matrix</li>
-                                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Manage Pricing:</strong> Set and update monthly rates for private and shared beds</li>
-                                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Create Landing Page:</strong> Build a custom website for your facility with gallery and testimonials</li>
-                                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Update Facility Info:</strong> Maintain contact details, services, and facility information</li>
-                                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Personal Profile:</strong> Keep your staff contact information and credentials current</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6><i class="fas fa-lightbulb me-2 text-warning"></i>Quick Tips</h6>
-                                    <div class="alert alert-light">
-                                        <ul class="mb-0">
-                                            <li>Configure the advanced bed system for better management</li>
-                                            <li>Update bed availability in real-time using the visual matrix</li>
-                                            <li>Keep pricing information current and competitive</li>
-                                            <li>Create a landing page to showcase your facility</li>
-                                            <li>Review your public profile monthly for accuracy</li>
-                                            <li>Use room-based management for gender segregation compliance</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Bed Management Help Tab -->
-                        <div class="tab-pane fade" id="bed-management" role="tabpanel">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6><i class="fas fa-cog me-2 text-primary"></i>Room Configuration</h6>
-                                    <p><strong>Step 1:</strong> Enter total number of rooms in your facility</p>
-                                    <p><strong>Step 2:</strong> Configure each room with name, type, and bed count</p>
-                                    <p><strong>Step 3:</strong> Review and confirm your configuration</p>
-                                    
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        <strong>Room Types:</strong>
-                                        <ul class="mb-0 mt-2">
-                                            <li><strong>Private:</strong> 1 bed, any gender</li>
-                                            <li><strong>Shared:</strong> 2+ beds, same gender only</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6><i class="fas fa-bed me-2 text-primary"></i>Visual Bed Matrix</h6>
-                                    <div class="list-group list-group-flush">
-                                        <div class="list-group-item d-flex align-items-center">
-                                            <div class="mini-bed occupied me-2"></div>
-                                            <strong>Occupied:</strong> Bed currently in use
-                                        </div>
-                                        <div class="list-group-item d-flex align-items-center">
-                                            <div class="mini-bed vacant me-2"></div>
-                                            <strong>Vacant:</strong> Bed available for new patient
-                                        </div>
-                                        <div class="list-group-item">
-                                            <strong>Gender Rules:</strong> Shared rooms maintain same-gender occupancy
-                                        </div>
-                                        <div class="list-group-item">
-                                            <strong>Click to Update:</strong> Click any bed to change status
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="alert alert-success mt-3">
-                                        <i class="fas fa-check-circle me-2"></i>
-                                        <strong>Benefits:</strong> Real-time updates, gender compliance, visual overview
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- NEW: Landing Page Help Tab -->
-                        <div class="tab-pane fade" id="landing-page" role="tabpanel">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6><i class="fas fa-globe me-2 text-primary"></i>Creating Your Landing Page</h6>
-                                    <p><strong>Hero Section:</strong> Create an eye-catching headline and description for your facility</p>
-                                    <p><strong>Photo Gallery:</strong> Upload and organize photos showcasing your facility and amenities</p>
-                                    <p><strong>Testimonials:</strong> Add patient and family testimonials to build trust</p>
-                                    <p><strong>Content Management:</strong> Edit mission statement, services, and facility information</p>
-                                    
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        <strong>Photo Tips:</strong>
-                                        <ul class="mb-0 mt-2">
-                                            <li>Use high-quality images (min 1200px wide)</li>
-                                            <li>Show common areas, rooms, and outdoor spaces</li>
-                                            <li>Include staff photos for a personal touch</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6><i class="fas fa-chart-line me-2 text-primary"></i>Analytics & Performance</h6>
-                                    <div class="list-group list-group-flush">
-                                        <div class="list-group-item">
-                                            <strong>Page Views:</strong> Track visitor engagement and reach
-                                        </div>
-                                        <div class="list-group-item">
-                                            <strong>Contact Forms:</strong> Monitor inquiry generation
-                                        </div>
-                                        <div class="list-group-item">
-                                            <strong>Photo Engagement:</strong> See which images perform best
-                                        </div>
-                                        <div class="list-group-item">
-                                            <strong>SEO Optimization:</strong> Improve search engine visibility
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="alert alert-success mt-3">
-                                        <i class="fas fa-check-circle me-2"></i>
-                                        <strong>Benefits:</strong> Increased inquiries, better online presence, showcase your facility
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Pricing Help -->
-                        <div class="tab-pane fade" id="pricing" role="tabpanel">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6><i class="fas fa-dollar-sign me-2 text-primary"></i>Pricing Management</h6>
-                                    <p><strong>Private Beds:</strong> Set minimum and maximum monthly rates for single-occupancy rooms.</p>
-                                    <p><strong>Shared Beds:</strong> Set minimum and maximum monthly rates for shared-occupancy rooms.</p>
-                                    <p><strong>Additional Notes:</strong> Add details about what's included in pricing or special conditions.</p>
-                                    
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        <strong>Display Format:</strong> Pricing appears as "Private: $2,000 - $3,500/month" on your public listing.
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6><i class="fas fa-lightbulb me-2 text-warning"></i>Best Practices</h6>
-                                    <div class="list-group list-group-flush">
-                                        <div class="list-group-item">
-                                            <strong>Be Transparent:</strong> Include what services are covered in your rates
-                                        </div>
-                                        <div class="list-group-item">
-                                            <strong>Update Regularly:</strong> Keep pricing current with market rates
-                                        </div>
-                                        <div class="list-group-item">
-                                            <strong>Consider Care Levels:</strong> Price ranges can reflect different levels of care
-                                        </div>
-                                        <div class="list-group-item">
-                                            <strong>Preview Public View:</strong> Use the preview feature to see how pricing appears to patients
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="alert alert-success mt-3">
-                                        <i class="fas fa-check-circle me-2"></i>
-                                        <strong>Help Patients Find You:</strong> Facilities with pricing information receive 40% more inquiries.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Troubleshooting -->
-                        <div class="tab-pane fade" id="troubleshooting" role="tabpanel">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6><i class="fas fa-exclamation-circle me-2 text-danger"></i>Common Issues</h6>
-                                    
-                                    <div class="accordion" id="troubleshootingAccordion">
-                                        <div class="accordion-item">
-                                            <h2 class="accordion-header">
-                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#configuration-issues">
-                                                    Room Configuration Problems
-                                                </button>
-                                            </h2>
-                                            <div id="configuration-issues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
-                                                <div class="accordion-body">
-                                                    <ul>
-                                                        <li>Private rooms must have exactly 1 bed</li>
-                                                        <li>Shared rooms must have at least 2 beds</li>
-                                                        <li>Room names must be unique within facility</li>
-                                                        <li>Total beds should not exceed facility capacity</li>
-                                                        <li>Use "Reconfigure" to start over if needed</li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="accordion-item">
-                                            <h2 class="accordion-header">
-                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#landing-page-issues">
-                                                    Landing Page Problems
-                                                </button>
-                                            </h2>
-                                            <div id="landing-page-issues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
-                                                <div class="accordion-body">
-                                                    <ul>
-                                                        <li>Images should be under 5MB and in JPG/PNG format</li>
-                                                        <li>Save as draft before publishing to preview changes</li>
-                                                        <li>Gallery images can be reordered by drag and drop</li>
-                                                        <li>Testimonials require approval before showing publicly</li>
-                                                        <li>Analytics data updates every 24 hours</li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="accordion-item">
-                                            <h2 class="accordion-header">
-                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bed-matrix-issues">
-                                                    Bed Matrix Problems
-                                                </button>
-                                            </h2>
-                                            <div id="bed-matrix-issues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
-                                                <div class="accordion-body">
-                                                    <ul>
-                                                        <li>Shared rooms enforce same-gender occupancy rules</li>
-                                                        <li>First occupancy sets the room's gender</li>
-                                                        <li>Room gender resets when all beds become vacant</li>
-                                                        <li>Changes appear immediately in the interface</li>
-                                                        <li>Use browser refresh if data seems outdated</li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="accordion-item">
-                                            <h2 class="accordion-header">
-                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#migration-issues">
-                                                    Legacy System Migration
-                                                </button>
-                                            </h2>
-                                            <div id="migration-issues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
-                                                <div class="accordion-body">
-                                                    <ul>
-                                                        <li>Legacy bed counts are preserved during configuration</li>
-                                                        <li>You can run both systems simultaneously</li>
-                                                        <li>Advanced system provides better management tools</li>
-                                                        <li>Contact support for assistance with migration</li>
-                                                        <li>No data is lost during the upgrade process</li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <h6><i class="fas fa-phone me-2 text-success"></i>Emergency Support</h6>
-                                    <div class="card border-danger">
-                                        <div class="card-header bg-danger text-white">
-                                            <strong>Critical Issues - Call Immediately</strong>
-                                        </div>
-                                        <div class="card-body">
-                                            <ul class="mb-3">
-                                                <li>System completely inaccessible</li>
-                                                <li>Bed data appears incorrect or corrupted</li>
-                                                <li>Configuration process fails repeatedly</li>
-                                                <li>Urgent bed availability update needed</li>
-                                                <li>Gender segregation rules not working</li>
-                                                <li>Landing page not publishing or displaying incorrectly</li>
-                                            </ul>
-                                            <div class="d-grid">
-                                                <a href="tel:1-800-237-8348" class="btn btn-danger">
-                                                    <i class="fas fa-phone me-2"></i>
-                                                    Call 1-800-BESTFIT (237-8348)
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-3">
-                                        <h6><i class="fas fa-envelope me-2 text-primary"></i>Non-Emergency Support</h6>
-                                        <p class="small text-muted">For configuration help, training requests, or feature suggestions:</p>
-                                        <div class="d-grid gap-2">
-                                            <a href="mailto:support@bestfitnetwork.com" class="btn btn-outline-primary btn-sm">
-                                                <i class="fas fa-envelope me-1"></i> Email Support
-                                            </a>
-                                            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
-                                                <i class="fas fa-print me-1"></i> Print This Help Guide
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Contact Information Footer -->
-                    <hr>
                     <div class="row">
-                        <div class="col-md-8">
-                            <h6>Support Hours & Contact</h6>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p class="mb-1"><strong>Phone Support:</strong></p>
-                                    <p class="text-muted">Monday - Friday: 8:00 AM - 6:00 PM EST<br>
-                                    Saturday: 9:00 AM - 2:00 PM EST<br>
-                                    Emergency support: 24/7</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p class="mb-1"><strong>Email Support:</strong></p>
-                                    <p class="text-muted">Response within 4 hours during business hours<br>
-                                    Emergency issues: Within 1 hour<br>
-                                    support@bestfitnetwork.com</p>
-                                </div>
-                            </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-rocket me-2 text-primary"></i>Getting Started</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>View Public Profile:</strong> See how your facility appears to patients</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Update Bed Availability:</strong> Keep real-time bed counts current</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Manage Pricing:</strong> Set monthly rates for beds</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Update Facility Info:</strong> Maintain contact details and services</li>
+                            </ul>
                         </div>
-                        <div class="col-md-4">
-                            <div class="text-center">
-                                <div class="badge bg-success p-3">
-                                    <i class="fas fa-headset fa-2x mb-2"></i><br>
-                                    <strong>99.9% Uptime</strong><br>
-                                    <small>Guaranteed Service</small>
-                                </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-phone me-2 text-success"></i>Support Contact</h6>
+                            <div class="d-grid gap-2">
+                                <a href="tel:1-800-237-8348" class="btn btn-success">
+                                    <i class="fas fa-phone me-2"></i>Call 1-800-BESTFIT
+                                </a>
+                                <a href="mailto:support@bestfitnetwork.com" class="btn btn-outline-primary">
+                                    <i class="fas fa-envelope me-2"></i>Email Support
+                                </a>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <strong>Hours:</strong> Mon-Fri 8 AM - 6 PM EST<br>
+                                    <strong>Emergency:</strong> 24/7 support available
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -1272,7 +824,7 @@
             });
         }, 5000);
         
-        // Updated keyboard shortcuts
+        // Simplified keyboard shortcuts
         document.addEventListener('keydown', function(e) {
             // Ctrl/Cmd + B for bed management
             if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
@@ -1281,25 +833,11 @@
                 if (bedLink) bedLink.click();
             }
             
-            // Ctrl/Cmd + C for configuration
-            if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
-                e.preventDefault();
-                const configLink = document.querySelector('a[href*="configure_facility"]');
-                if (configLink) configLink.click();
-            }
-            
             // Ctrl/Cmd + P for pricing management
             if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
                 e.preventDefault();
                 const pricingLink = document.querySelector('a[href*="pricing_management"]');
                 if (pricingLink) pricingLink.click();
-            }
-            
-            // Ctrl/Cmd + L for landing page
-            if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
-                e.preventDefault();
-                const landingLink = document.querySelector('a[href*="facility_landing:dashboard"]');
-                if (landingLink) landingLink.click();
             }
             
             // Ctrl/Cmd + H for help
@@ -1324,22 +862,9 @@
             });
         });
         
-        // Enhanced performance monitoring
+        // Performance monitoring
         window.addEventListener('load', function() {
-            console.log('Enhanced Facility Dashboard loaded successfully');
-            
-            // Check bed management system status
-            const bedSystemStatus = document.querySelector('.stat-card.configured, .stat-card.not-configured');
-            if (bedSystemStatus) {
-                const isConfigured = bedSystemStatus.classList.contains('configured');
-                console.log(`Bed Management System: ${isConfigured ? 'Advanced Configuration' : 'Legacy Mode'}`);
-            }
-            
-            // Check landing page status
-            const landingPageStatus = document.querySelector('.badge');
-            if (landingPageStatus && landingPageStatus.textContent.includes('Landing Page')) {
-                console.log('Landing Page Status:', landingPageStatus.textContent);
-            }
+            console.log('Simplified Facility Dashboard loaded successfully');
         });
         
         // Error handling
@@ -1358,18 +883,6 @@
         
         // Initialize configuration status check
         document.addEventListener('DOMContentLoaded', checkConfigurationStatus);
-        
-        // Landing page status notification
-        function checkLandingPageStatus() {
-            const landingPageBadge = document.querySelector('.badge:contains("Draft")');
-            if (landingPageBadge) {
-                // Add subtle notification for unpublished landing page
-                console.log('Landing page is in draft mode - consider publishing');
-            }
-        }
-        
-        // Initialize landing page status check
-        document.addEventListener('DOMContentLoaded', checkLandingPageStatus);
     </script>
 </body>
 </html>

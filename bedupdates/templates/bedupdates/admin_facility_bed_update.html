@@ -1,0 +1,696 @@
+{% load static %}
+{% load bed_tags %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Engine Admin - Update Facility Beds</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #059669;
+            --primary-light: #10b981;
+            --primary-dark: #047857;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #0ea5e9;
+            --light-bg: #f8fafc;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--light-bg);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 4px 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(4px);
+        }
+        
+        .main-content {
+            padding: 24px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            color: white;
+            border-bottom: none;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+        }
+        
+        .facility-search-container {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .facility-selector {
+            position: relative;
+        }
+        
+        .facility-dropdown {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-top: none;
+            background: white;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            border-radius: 0 0 0.375rem 0.375rem;
+        }
+        
+        .facility-option {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f8f9fa;
+            transition: background-color 0.2s ease;
+        }
+        
+        .facility-option:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .facility-option:last-child {
+            border-bottom: none;
+        }
+        
+        .facility-info-display {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .system-type-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .system-type-badge.advanced {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--success-color);
+            border: 2px solid var(--success-color);
+        }
+        
+        .system-type-badge.legacy {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: var(--warning-color);
+            border: 2px solid var(--warning-color);
+        }
+        
+        .system-type-badge.not-configured {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: var(--danger-color);
+            border: 2px solid var(--danger-color);
+        }
+        
+        .bed-update-form {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(5, 150, 105, 0.25);
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        .header-title {
+            color: #1e293b;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header-subtitle {
+            color: var(--secondary-color);
+            margin-bottom: 0;
+        }
+        
+        .nav-divider {
+            border-color: rgba(255,255,255,0.2);
+            margin: 1rem 0;
+        }
+        
+        .nav-section-header {
+            margin-bottom: 0.5rem;
+        }
+        
+        .alert-custom {
+            border-left: 4px solid var(--info-color);
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+        }
+        
+        .selection-placeholder {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--secondary-color);
+        }
+        
+        .selection-placeholder i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+        
+        .search-highlight {
+            background-color: yellow;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            .facility-search-container {
+                padding: 1rem;
+            }
+            
+            .bed-update-form {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <div class="p-3">
+                <h4 class="text-white mb-4">
+                    <i class="fas fa-user-cog me-2"></i>
+                    Search Admin
+                </h4>
+
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="{% url 'facility_admin:dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i> Main Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'facility_admin:facility_list' %}">
+                        <i class="fas fa-building me-2"></i> Manage Facilities
+                    </a>
+                    <a class="nav-link" href="{% url 'facility_admin:facility_create' %}">
+                        <i class="fas fa-plus me-2"></i> Add Facility
+                    </a>
+
+                    <!-- Bed Management Section -->
+                    <hr class="nav-divider">
+                    <div class="nav-section-header">
+                        <small class="text-white-50 px-3">BED MANAGEMENT</small>
+                    </div>
+                    <a class="nav-link" href="{% url 'bedupdates:admin_bed_dashboard' %}">
+                        <i class="fas fa-bed me-2"></i> Bed Dashboard
+                    </a>
+                    <a class="nav-link active" href="{% url 'bedupdates:admin_facility_bed_update' %}">
+                        <i class="fas fa-edit me-2"></i> Update Bed Info
+                    </a>
+
+                    <!-- Analytics & Search Section -->
+                    <hr class="nav-divider">
+                    <div class="nav-section-header">
+                        <small class="text-white-50 px-3">ANALYTICS & SEARCH</small>
+                    </div>
+                    <a class="nav-link" href="{% url 'usertracking:dashboard' %}">
+                        <i class="fas fa-chart-line me-2"></i> User Analytics
+                    </a>
+                    <a class="nav-link" href="{% url 'search:home' %}" target="_blank">
+                        <i class="fas fa-search me-2"></i> View Search Engine
+                    </a>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="header-title">Update Facility Bed Information</h1>
+                    <p class="header-subtitle">Select a facility and update bed availability information</p>
+                </div>
+                <div>
+                    <span class="text-muted me-3">Welcome, {{ user.get_full_name|default:user.username }}</span>
+                    <a href="{% url 'bedupdates:admin_bed_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Facility Search and Selection -->
+            <div class="facility-search-container">
+                <h4 class="mb-3">
+                    <i class="fas fa-search me-2 text-primary"></i>
+                    Select Facility
+                </h4>
+                
+                <form method="GET" class="row g-3">
+                    <div class="col-md-8">
+                        <div class="facility-selector">
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   id="facilitySearch" 
+                                   name="search"
+                                   value="{{ search_query }}"
+                                   placeholder="Search by facility name, inspection number, city, or state..."
+                                   autocomplete="off">
+                            
+                            <div class="facility-dropdown d-none" id="facilityDropdown">
+                                {% for facility in facilities %}
+                                <div class="facility-option" 
+                                     data-facility-id="{{ facility.id }}"
+                                     data-facility-name="{{ facility.name }}">
+                                    <div class="fw-bold">{{ facility.name }}</div>
+                                    <div class="small text-muted">
+                                        {{ facility.inspection_number }} • {{ facility.city|default:"—" }}, {{ facility.state }}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-search me-2"></i>Search Facilities
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Quick facility selection dropdown -->
+                <div class="mt-3">
+                    <label class="form-label">Or select from dropdown:</label>
+                    <select class="form-select" id="quickFacilitySelect">
+                        <option value="">Choose a facility...</option>
+                        {% for facility in facilities %}
+                        <option value="{{ facility.id }}" {% if selected_facility and facility.id == selected_facility.id %}selected{% endif %}>
+                            {{ facility.name }} ({{ facility.inspection_number }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            {% if selected_facility %}
+                <!-- Selected Facility Information -->
+                <div class="facility-info-display">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h4 class="mb-2">
+                                <i class="fas fa-building me-2"></i>
+                                {{ selected_facility.name }}
+                            </h4>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div><strong>Inspection #:</strong> {{ selected_facility.inspection_number }}</div>
+                                    <div><strong>Location:</strong> {{ selected_facility.city|default:"—" }}, {{ selected_facility.state }}</div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div><strong>County:</strong> {{ selected_facility.county }}</div>
+                                    <div><strong>Type:</strong> {{ selected_facility.facility_type }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="mb-2">
+                                {% if system_type == 'advanced' %}
+                                    <span class="system-type-badge advanced">
+                                        <i class="fas fa-cogs me-1"></i> Advanced System
+                                    </span>
+                                {% elif system_type == 'legacy' %}
+                                    <span class="system-type-badge legacy">
+                                        <i class="fas fa-database me-1"></i> Legacy System
+                                    </span>
+                                {% else %}
+                                    <span class="system-type-badge not-configured">
+                                        <i class="fas fa-exclamation-triangle me-1"></i> Not Configured
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="text-white-50">
+                                <small>Official Bed Count: {{ facility_bed_count }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if system_type == 'advanced' %}
+                    <!-- Advanced System Notice -->
+                    <div class="alert alert-info alert-custom">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Advanced Bed Management System
+                        </h5>
+                        <p class="mb-2">This facility uses the advanced bed management system with full room and bed matrix capabilities.</p>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'bedupdates:bed_management' selected_facility.id %}" class="btn btn-primary">
+                                <i class="fas fa-th me-2"></i>Open Bed Matrix
+                            </a>
+                            <a href="{% url 'bedupdates:configure_facility' selected_facility.id %}" class="btn btn-outline-primary">
+                                <i class="fas fa-cog me-2"></i>Reconfigure Facility
+                            </a>
+                        </div>
+                    </div>
+                {% elif system_type == 'legacy' %}
+                    <!-- Legacy Bed Update Form -->
+                    <div class="bed-update-form">
+                        <h4 class="mb-3">
+                            <i class="fas fa-edit me-2 text-primary"></i>
+                            Update Bed Availability
+                        </h4>
+                        
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="facility" value="{{ selected_facility.id }}">
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Bed Statistics</label>
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <div class="row text-center">
+                                                    <div class="col-4">
+                                                        <div class="h5 text-info">{{ facility_bed_count }}</div>
+                                                        <div class="small text-muted">Total Beds</div>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <div class="h5 text-success" id="available-display">{{ bed_data.available_beds|default:0 }}</div>
+                                                        <div class="small text-muted">Available</div>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <div class="h5 text-warning" id="occupied-display">{{ facility_bed_count|sub:bed_data.available_beds|default:facility_bed_count }}</div>
+                                                        <div class="small text-muted">Occupied</div>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <div class="progress" style="height: 8px;">
+                                                        <div class="progress-bar bg-success" role="progressbar" 
+                                                             style="width: {% widthratio bed_data.available_beds|default:0 facility_bed_count 100 %}%" 
+                                                             id="available-progress"></div>
+                                                    </div>
+                                                    <div class="small text-muted mt-1 text-center" id="occupancy-rate">
+                                                        {% if facility_bed_count %}
+                                                            {{ bed_data.available_beds|default:0|mul:100|div:facility_bed_count|floatformat:1 }}% available
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            {% if bed_data.updated_at %}
+                                                <small class="text-muted">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    Last updated: {{ bed_data.updated_at|timesince }} ago
+                                                </small>
+                                            {% else %}
+                                                <small class="text-muted">
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    No previous updates recorded
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary btn-lg">
+                                                <i class="fas fa-save me-2"></i>Update Bed Information
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                {% else %}
+                    <!-- Not Configured System -->
+                    <div class="alert alert-warning alert-custom">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Facility Not Configured
+                        </h5>
+                        <p class="mb-2">This facility has not been configured for bed management yet. You can:</p>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'bedupdates:configure_facility' selected_facility.id %}" class="btn btn-success">
+                                <i class="fas fa-cog me-2"></i>Configure Advanced System
+                            </a>
+                            <button class="btn btn-outline-secondary" onclick="enableLegacyMode()">
+                                <i class="fas fa-database me-2"></i>Use Simple Bed Count
+                            </button>
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <!-- No Facility Selected -->
+                <div class="selection-placeholder">
+                    <i class="fas fa-hospital text-primary"></i>
+                    <h3>Select a Facility</h3>
+                    <p class="lead">Use the search box above or dropdown to select a facility and manage its bed information.</p>
+                    <div class="row justify-content-center mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-info-circle text-info me-2"></i>
+                                        System Types
+                                    </h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2">
+                                            <span class="system-type-badge advanced me-2">Advanced</span>
+                                            Full bed matrix with room management
+                                        </li>
+                                        <li class="mb-2">
+                                            <span class="system-type-badge legacy me-2">Legacy</span>
+                                            Simple available bed count
+                                        </li>
+                                        <li class="mb-2">
+                                            <span class="system-type-badge not-configured me-2">Not Configured</span>
+                                            Needs bed management setup
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Facility search functionality
+    $('#facilitySearch').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        const dropdown = $('#facilityDropdown');
+        
+        if (searchTerm.length > 2) {
+            dropdown.removeClass('d-none');
+            
+            // Filter and highlight results
+            $('.facility-option').each(function() {
+                const facilityName = $(this).data('facility-name').toLowerCase();
+                const facilityText = $(this).text().toLowerCase();
+                
+                if (facilityName.includes(searchTerm) || facilityText.includes(searchTerm)) {
+                    $(this).show();
+                    
+                    // Highlight matching text
+                    let html = $(this).html();
+                    const regex = new RegExp(`(${searchTerm})`, 'gi');
+                    html = html.replace(regex, '<span class="search-highlight">$1</span>');
+                    $(this).html(html);
+                } else {
+                    $(this).hide();
+                }
+            });
+        } else {
+            dropdown.addClass('d-none');
+        }
+    });
+    
+    // Handle facility selection from dropdown
+    $('.facility-option').on('click', function() {
+        const facilityId = $(this).data('facility-id');
+        const facilityName = $(this).data('facility-name');
+        
+        $('#facilitySearch').val(facilityName);
+        $('#facilityDropdown').addClass('d-none');
+        
+        // Redirect to selected facility
+        window.location.href = `?facility=${facilityId}`;
+    });
+    
+    // Handle quick facility select dropdown
+    $('#quickFacilitySelect').on('change', function() {
+        const facilityId = $(this).val();
+        if (facilityId) {
+            window.location.href = `?facility=${facilityId}`;
+        }
+    });
+    
+    // Hide dropdown when clicking outside
+    $(document).on('click', function(event) {
+        if (!$(event.target).closest('.facility-selector').length) {
+            $('#facilityDropdown').addClass('d-none');
+        }
+    });
+    
+    // Real-time bed statistics update
+    $('#available_beds').on('input', function() {
+        const availableBeds = parseInt($(this).val()) || 0;
+        const totalBeds = {{ facility_bed_count|default:0 }};
+        const occupiedBeds = totalBeds - availableBeds;
+        const availablePercentage = totalBeds > 0 ? (availableBeds / totalBeds * 100) : 0;
+        
+        // Update displays
+        $('#available-display').text(availableBeds);
+        $('#occupied-display').text(occupiedBeds);
+        $('#available-progress').css('width', availablePercentage + '%');
+        $('#occupancy-rate').text(availablePercentage.toFixed(1) + '% available');
+        
+        // Validation
+        if (availableBeds > totalBeds) {
+            $(this).addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').remove();
+            $(this).after('<div class="invalid-feedback">Available beds cannot exceed total bed count</div>');
+        } else if (availableBeds < 0) {
+            $(this).addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').remove();
+            $(this).after('<div class="invalid-feedback">Available beds cannot be negative</div>');
+        } else {
+            $(this).removeClass('is-invalid');
+            $(this).siblings('.invalid-feedback').remove();
+        }
+    });
+    
+    // Enable legacy mode function
+    window.enableLegacyMode = function() {
+        if (confirm('This will create a simple bed count system for this facility. You can upgrade to the advanced system later. Continue?')) {
+            // Create a basic bed availability record and redirect
+            const facilityId = '{{ selected_facility.id }}';
+            $.post('{% url "bedupdates:admin_facility_bed_update" %}', {
+                'facility': facilityId,
+                'available_beds': 0,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            }).done(function() {
+                location.reload();
+            }).fail(function() {
+                alert('Error enabling legacy mode. Please try again.');
+            });
+        }
+    };
+    
+    // Auto-hide alerts after 5 seconds
+    setTimeout(function() {
+        $('.alert-success, .alert-info').each(function() {
+            if ($(this).hasClass('show')) {
+                const bsAlert = new bootstrap.Alert(this);
+                bsAlert.close();
+            }
+        });
+    }, 5000);
+    
+    // Form validation
+    $('form').on('submit', function(e) {
+        const availableBeds = parseInt($('#available_beds').val()) || 0;
+        const totalBeds = {{ facility_bed_count|default:0 }};
+        
+        if (availableBeds > totalBeds || availableBeds < 0) {
+            e.preventDefault();
+            $('#available_beds').focus();
+            return false;
+        }
+    });
+    
+    // Add loading state to submit button
+    $('form').on('submit', function() {
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalText = submitBtn.html();
+        
+        submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>Updating...').prop('disabled', true);
+        
+        // Re-enable after 10 seconds as fallback
+        setTimeout(function() {
+            submitBtn.html(originalText).prop('disabled', false);
+        }, 10000);
+    });
+});
+</script>
+
+</body>
+</html>

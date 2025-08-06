@@ -1,4 +1,4 @@
-# bedupdates/views.py - Updated views for room-based bed management
+# bedupdates/views.py - Updated with improved bed management
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
@@ -25,6 +25,77 @@ def get_user_facility(request):
         return None
     except AttributeError:
         return None
+
+def sync_with_legacy_bed_availability(facility):
+    """Sync advanced bed system with legacy BedAvailability model for search engine compatibility"""
+    try:
+        config = FacilityConfiguration.objects.get(facility=facility)
+        if not config.is_configured:
+            return
+        
+        # Get rooms and calculate bed counts
+        rooms = Room.objects.filter(facility_config=config, is_active=True)
+        
+        # Calculate bed counts by type and status
+        private_beds_total = 0
+        private_beds_available = 0
+        shared_beds_male_total = 0
+        shared_beds_male_available = 0
+        shared_beds_female_total = 0
+        shared_beds_female_available = 0
+        
+        for room in rooms:
+            beds = room.beds.all()
+            
+            if room.room_type == 'private':
+                private_beds_total += beds.count()
+                private_beds_available += beds.filter(status='vacant').count()
+            elif room.room_type == 'shared':
+                # For shared rooms, count by gender
+                male_beds = beds.filter(gender='male')
+                female_beds = beds.filter(gender='female')
+                
+                shared_beds_male_total += male_beds.count()
+                shared_beds_male_available += male_beds.filter(status='vacant').count()
+                
+                shared_beds_female_total += female_beds.count()
+                shared_beds_female_available += female_beds.filter(status='vacant').count()
+        
+        # Calculate total available beds
+        total_available = private_beds_available + shared_beds_male_available + shared_beds_female_available
+        
+        # Update or create legacy BedAvailability record
+        bed_availability, created = BedAvailability.objects.get_or_create(
+            facility=facility,
+            defaults={
+                'available_beds': total_available,
+                'shared_beds_total': shared_beds_male_total + shared_beds_female_total,
+                'shared_beds_male': shared_beds_male_available,
+                'shared_beds_female': shared_beds_female_available,
+                'separate_beds_total': private_beds_total,
+                'separate_beds_male': private_beds_available,
+                'separate_beds_female': private_beds_available,
+            }
+        )
+        
+        if not created:
+            # Update existing record
+            bed_availability.available_beds = total_available
+            bed_availability.shared_beds_total = shared_beds_male_total + shared_beds_female_total
+            bed_availability.shared_beds_male = shared_beds_male_available
+            bed_availability.shared_beds_female = shared_beds_female_available
+            bed_availability.separate_beds_total = private_beds_total
+            bed_availability.separate_beds_male = private_beds_available
+            bed_availability.separate_beds_female = private_beds_available
+            bed_availability.updated_at = timezone.now()
+            bed_availability.save()
+        
+        logger.info(f"Synced bed availability for {facility.name}: {total_available} total available beds")
+        
+    except FacilityConfiguration.DoesNotExist:
+        logger.warning(f"No bed configuration found for facility {facility.name}")
+    except Exception as e:
+        logger.error(f"Error syncing bed availability for {facility.name}: {str(e)}")
 
 @login_required
 def facility_bed_management(request, facility_id=None):
@@ -56,7 +127,7 @@ def facility_bed_management(request, facility_id=None):
         return redirect('bedupdates:configure_facility', facility_id=facility.id)
     
     # Get rooms and beds
-    rooms = Room.objects.filter(facility_config=config, is_active=True).prefetch_related('beds')
+    rooms = Room.objects.filter(facility_config=config, is_active=True).prefetch_related('beds').order_by('room_number')
     
     # Calculate statistics
     total_beds = sum(room.get_total_beds() for room in rooms)
@@ -69,6 +140,9 @@ def facility_bed_management(request, facility_id=None):
         'vacant_beds': vacant_beds,
         'occupancy_rate': (occupied_beds / total_beds * 100) if total_beds > 0 else 0
     }
+    
+    # Sync with legacy system
+    sync_with_legacy_bed_availability(facility)
     
     context = {
         'facility': facility,
@@ -244,10 +318,16 @@ def configure_step_3(request, facility, config):
                     
                     # Create beds for this room
                     for bed_num in range(1, room_config['num_beds'] + 1):
+                        # For shared rooms, start with neutral gender
+                        # For private rooms, also start neutral
+                        gender = 'neutral'
+                        
                         Bed.objects.create(
                             room=room,
                             bed_number=str(bed_num),
-                            bed_id=f"{room_config['name']}-{bed_num}"
+                            bed_id=f"{room_config['name']}-{bed_num}",
+                            gender=gender,
+                            status='vacant'
                         )
                 
                 # Update configuration
@@ -255,10 +335,14 @@ def configure_step_3(request, facility, config):
                 config.is_configured = True
                 config.save()
                 
+                # Sync with legacy system immediately after configuration
+                sync_with_legacy_bed_availability(facility)
+                
                 # Clear session
                 if 'rooms_config' in request.session:
                     del request.session['rooms_config']
                 
+                logger.info(f"Facility {facility.name} configured successfully with {len(rooms_config)} rooms")
                 messages.success(request, f"Facility configuration completed successfully! {len(rooms_config)} rooms configured.")
                 return redirect('bedupdates:bed_management', facility_id=facility.id)
                 
@@ -294,6 +378,8 @@ def update_bed_status(request):
             bed_id = data.get('bed_id')
             new_status = data.get('status')
             new_gender = data.get('gender')
+            patient_name = data.get('patient_name', '')
+            notes = data.get('notes', '')
             
             bed = get_object_or_404(Bed, bed_id=bed_id)
             
@@ -311,48 +397,57 @@ def update_bed_status(request):
             
             # For shared rooms, enforce gender segregation
             if bed.room.room_type == 'shared' and new_status == 'occupied':
-                if bed.room.room_gender == 'neutral':
-                    # First occupancy sets room gender
-                    bed.room.room_gender = new_gender
-                    bed.room.save()
-                    # Update all other beds to same gender, vacant status
-                    bed.room.beds.exclude(id=bed.id).update(
-                        gender=new_gender,
-                        status='vacant'
-                    )
-                elif bed.room.room_gender != new_gender:
-                    return JsonResponse({
-                        'success': False, 
-                        'error': f'This shared room is designated for {bed.room.room_gender} patients only'
-                    })
+                # Check if there are already occupied beds with a different gender
+                occupied_beds = bed.room.beds.filter(status='occupied').exclude(id=bed.id)
+                if occupied_beds.exists():
+                    existing_gender = occupied_beds.first().gender
+                    if existing_gender != 'neutral' and existing_gender != new_gender:
+                        return JsonResponse({
+                            'success': False, 
+                            'error': f'This shared room is designated for {existing_gender} patients only'
+                        })
+                
+                # Set all vacant beds in shared room to same gender when first bed is occupied
+                if not occupied_beds.exists():
+                    bed.room.beds.filter(status='vacant').update(gender=new_gender)
             
             # Update bed
             old_status = bed.status
             bed.status = new_status
             bed.gender = new_gender
+            bed.patient_name = patient_name
+            bed.notes = notes
             
             if new_status == 'occupied':
                 bed.admitted_date = timezone.now()
             else:
                 bed.admitted_date = None
                 bed.patient_name = ''
+                
+                # If this was the last occupied bed in a shared room, reset all beds to neutral
+                if (bed.room.room_type == 'shared' and 
+                    not bed.room.beds.filter(status='occupied').exists()):
+                    bed.room.beds.update(gender='neutral')
             
             bed.save()
             
-            # If this was the last occupied bed in a shared room, reset room gender
-            if (bed.room.room_type == 'shared' and new_status == 'vacant' and 
-                not bed.room.beds.filter(status='occupied').exists()):
-                bed.room.room_gender = 'neutral'
-                bed.room.beds.update(gender='neutral')
-                bed.room.save()
+            # Sync with legacy system after bed update
+            sync_with_legacy_bed_availability(bed.room.facility_config.facility)
+            
+            logger.info(f"Bed {bed_id} updated: {old_status} -> {new_status}, {bed.gender}")
+            
+            # Format updated time for response
+            updated_time = timezone.now()
+            bed.updated_at = updated_time
+            bed.save()
             
             return JsonResponse({
                 'success': True,
                 'bed_id': bed_id,
                 'status': bed.status,
                 'gender': bed.gender,
-                'room_gender': bed.room.room_gender,
-                'status_changed': old_status != new_status
+                'status_changed': old_status != new_status,
+                'updated_at': updated_time.strftime('%b %d, %Y at %I:%M %p')
             })
             
         except Exception as e:
@@ -375,21 +470,40 @@ def reconfigure_facility(request, facility_id):
     if request.method == 'POST':
         config = get_object_or_404(FacilityConfiguration, facility=facility)
         
-        # Reset configuration
-        config.is_configured = False
-        config.total_rooms = 0
-        config.configuration_data = {}
-        config.save()
-        
-        # Delete all rooms and beds
-        Room.objects.filter(facility_config=config).delete()
-        
-        # Clear session
-        if 'rooms_config' in request.session:
-            del request.session['rooms_config']
-        
-        messages.success(request, "Facility configuration has been reset. Please configure your facility again.")
-        return redirect('bedupdates:configure_facility', facility_id=facility.id)
+        try:
+            with transaction.atomic():
+                # Reset configuration
+                config.is_configured = False
+                config.total_rooms = 0
+                config.configuration_data = {}
+                config.save()
+                
+                # Delete all rooms and beds
+                Room.objects.filter(facility_config=config).delete()
+                
+                # Clear session
+                if 'rooms_config' in request.session:
+                    del request.session['rooms_config']
+                
+                # Reset legacy bed availability to default
+                BedAvailability.objects.filter(facility=facility).update(
+                    available_beds=facility.bed_count or 0,
+                    shared_beds_total=0,
+                    shared_beds_male=0,
+                    shared_beds_female=0,
+                    separate_beds_total=0,
+                    separate_beds_male=0,
+                    separate_beds_female=0,
+                    updated_at=timezone.now()
+                )
+                
+                logger.info(f"Facility {facility.name} configuration reset by user {request.user.username}")
+                messages.success(request, "Facility configuration has been reset. Please configure your facility again.")
+                return redirect('bedupdates:configure_facility', facility_id=facility.id)
+                
+        except Exception as e:
+            logger.error(f"Error resetting facility configuration: {str(e)}")
+            messages.error(request, "Error resetting configuration. Please try again.")
     
     context = {
         'facility': facility,
@@ -399,11 +513,60 @@ def reconfigure_facility(request, facility_id):
 
 # Legacy views for backward compatibility
 def bed_update_view(request):
-    """Legacy view - redirect to new bed management"""
+    """Legacy view - redirect to new bed management or show legacy form"""
     facility_id = request.GET.get('facility')
+    
     if facility_id:
-        return redirect('bedupdates:bed_management', facility_id=facility_id)
-    return redirect('bedupdates:bed_management')
+        facility = get_object_or_404(Facility, id=facility_id)
+        
+        # Check if facility has advanced configuration
+        try:
+            config = FacilityConfiguration.objects.get(facility=facility)
+            if config.is_configured:
+                # Redirect to advanced system
+                messages.info(request, "This facility uses the advanced bed management system.")
+                return redirect('bedupdates:bed_management', facility_id=facility.id)
+        except FacilityConfiguration.DoesNotExist:
+            pass
+        
+        # Show legacy form
+        bed_data, created = BedAvailability.objects.get_or_create(facility=facility)
+        
+        if request.method == 'POST':
+            try:
+                with transaction.atomic():
+                    available_beds = int(request.POST.get('available_beds', 0))
+                    
+                    # Validate against facility bed count
+                    if facility.bed_count and available_beds > facility.bed_count:
+                        messages.error(request, f"Available beds ({available_beds}) cannot exceed total bed count ({facility.bed_count})")
+                    else:
+                        bed_data.available_beds = available_beds
+                        bed_data.updated_at = timezone.now()
+                        bed_data.save()
+                        
+                        logger.info(f"Legacy bed update for {facility.name}: {available_beds} available beds")
+                        messages.success(request, "Bed availability updated successfully!")
+                        return redirect(f'{reverse("bedupdates:bed_update_view")}?facility={facility.id}')
+                        
+            except (ValueError, TypeError):
+                messages.error(request, "Please enter a valid number for available beds.")
+            except Exception as e:
+                logger.error(f"Error updating legacy bed data: {str(e)}")
+                messages.error(request, "Error updating bed information. Please try again.")
+        
+        context = {
+            'facility': facility,
+            'bed_data': bed_data,
+            'is_legacy': True,
+        }
+        
+        return render(request, 'bedupdates/legacy_bed_update.html', context)
+    
+    # No facility specified, show facility selection
+    facilities = Facility.objects.all().order_by('name')
+    context = {'facilities': facilities}
+    return render(request, 'bedupdates/facility_selection.html', context)
 
 def facility_dashboard_view(request):
     """Dashboard showing all facilities bed statistics"""
@@ -424,23 +587,45 @@ def facility_dashboard_view(request):
                     'occupied_beds': occupied_beds,
                     'vacant_beds': total_beds - occupied_beds,
                     'occupancy_rate': (occupied_beds / total_beds * 100) if total_beds > 0 else 0,
-                    'is_configured': True
+                    'is_configured': True,
+                    'system_type': 'advanced'
                 })
             else:
                 facility_stats.append({
                     'facility': facility,
-                    'is_configured': False
+                    'is_configured': False,
+                    'system_type': 'not_configured'
                 })
         except FacilityConfiguration.DoesNotExist:
-            facility_stats.append({
-                'facility': facility,
-                'is_configured': False
-            })
+            # Check for legacy data
+            try:
+                bed_data = BedAvailability.objects.get(facility=facility)
+                total_beds = facility.bed_count or 0
+                available_beds = bed_data.available_beds
+                occupied_beds = max(0, total_beds - available_beds)
+                
+                facility_stats.append({
+                    'facility': facility,
+                    'total_beds': total_beds,
+                    'occupied_beds': occupied_beds,
+                    'vacant_beds': available_beds,
+                    'occupancy_rate': (occupied_beds / total_beds * 100) if total_beds > 0 else 0,
+                    'is_configured': True,
+                    'system_type': 'legacy'
+                })
+            except BedAvailability.DoesNotExist:
+                facility_stats.append({
+                    'facility': facility,
+                    'is_configured': False,
+                    'system_type': 'no_data'
+                })
     
     context = {
         'facility_stats': facility_stats,
         'total_facilities': len(facility_stats),
         'configured_facilities': len([f for f in facility_stats if f.get('is_configured', False)]),
+        'advanced_facilities': len([f for f in facility_stats if f.get('system_type') == 'advanced']),
+        'legacy_facilities': len([f for f in facility_stats if f.get('system_type') == 'legacy']),
     }
     
     return render(request, 'bedupdates/dashboard.html', context)
