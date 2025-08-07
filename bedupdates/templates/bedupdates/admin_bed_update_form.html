@@ -1,0 +1,352 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Legacy Facility Management</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3498db;
+            --primary-dark: #2980b9;
+            --secondary: #2ecc71;
+            --dark: #34495e;
+            --light: #ecf0f1;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .wrapper {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 2rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .content {
+            flex: 1;
+            padding: 2rem 0;
+        }
+        
+        .content-container {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            margin-top: -1rem;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .facility-info {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .status-configured {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: var(--secondary);
+        }
+        
+        .status-not-configured {
+            background-color: rgba(243, 156, 18, 0.1);
+            color: var(--warning);
+        }
+        
+        .migration-message {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-left: 4px solid var(--primary);
+            border-radius: 10px;
+            padding: 1.5rem;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 0.375rem;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+            color: white;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            border: none;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: var(--light);
+            border-bottom: 1px solid rgba(0,0,0,0.125);
+            font-weight: 600;
+        }
+        
+        .footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 1.5rem 0;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-user-shield me-2"></i>Admin - Legacy Facility Management</h1>
+                    <p class="mb-0">Managing facility bed information</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <a href="{% url 'bedupdates:admin_dashboard' %}" class="btn btn-light">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="content">
+        <div class="container">
+            {% if facility %}
+                <!-- Facility Selected -->
+                <div class="content-container">
+                    <!-- Facility Information -->
+                    <div class="facility-info">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h4 class="mb-2">{{ facility.name }}</h4>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <strong>Credential Number:</strong> {{ facility.credential_number }}
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <strong>Official Bed Count:</strong> {{ facility.bed_count|default:"Not specified" }}
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <strong>Location:</strong> {{ facility.county }}, {{ facility.state }}
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <strong>Status:</strong> 
+                                        <span class="badge bg-{% if facility.status == 'active' %}success{% else %}warning{% endif %}">
+                                            {{ facility.get_status_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-md-end">
+                                {% if is_configured %}
+                                    <div class="status-badge status-configured">
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        Advanced System Configured
+                                    </div>
+                                {% else %}
+                                    <div class="status-badge status-not-configured">
+                                        <i class="fas fa-exclamation-circle me-1"></i>
+                                        Not Configured
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if is_configured %}
+                        <!-- Migration to Advanced System Message -->
+                        <div class="migration-message">
+                            <h5><i class="fas fa-rocket me-2"></i>Advanced System Available!</h5>
+                            <p class="mb-3">
+                                This facility has been upgraded to the advanced bed management system with visual bed matrix, 
+                                room-based management, and real-time updates.
+                            </p>
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'bedupdates:admin_facility_management' facility.id %}" 
+                                   class="btn btn-primary">
+                                    <i class="fas fa-eye me-2"></i>View Advanced Bed Matrix
+                                </a>
+                                <a href="{% url 'bedupdates:admin_dashboard' %}" 
+                                   class="btn btn-outline-secondary">
+                                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard Overview
+                                </a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- Not Configured Message -->
+                        <div class="alert alert-warning">
+                            <h5><i class="fas fa-exclamation-triangle me-2"></i>Facility Not Configured</h5>
+                            <p class="mb-3">{{ message }}</p>
+                            <p class="mb-0">
+                                <strong>Next Steps:</strong> The facility staff needs to log into their dashboard and complete 
+                                the bed configuration wizard to enable the advanced bed management system.
+                            </p>
+                        </div>
+                        
+                        <!-- Basic Info Display -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-info-circle me-2"></i>Basic Information
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-2">
+                                            <strong>Facility Type:</strong> {{ facility.facility_type|default:"Not specified" }}
+                                        </div>
+                                        <div class="mb-2">
+                                            <strong>Contact:</strong> {{ facility.contact|default:"Not provided" }}
+                                        </div>
+                                        <div class="mb-2">
+                                            <strong>Address:</strong> {{ facility.address|default:"Not provided" }}
+                                        </div>
+                                        <div class="mb-0">
+                                            <strong>Official Bed Count:</strong> 
+                                            <span class="badge bg-primary">{{ facility.bed_count|default:"0" }} beds</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-chart-line me-2"></i>Status Overview
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Configuration Status:</span>
+                                                <span class="badge bg-warning">Pending</span>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Bed System:</span>
+                                                <span class="badge bg-secondary">Legacy</span>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Real-time Updates:</span>
+                                                <span class="badge bg-danger">Disabled</span>
+                                            </div>
+                                        </div>
+                                        <hr>
+                                        <div class="text-center">
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>
+                                                Awaiting facility staff configuration
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Admin Actions -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-tools me-2"></i>Admin Actions
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <a href="{% url 'bedupdates:admin_dashboard' %}" 
+                                               class="btn btn-outline-primary w-100 mb-2">
+                                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard Overview
+                                            </a>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <a href="{% url 'search:facility_detail' facility.id %}" 
+                                               target="_blank" class="btn btn-outline-secondary w-100 mb-2">
+                                                <i class="fas fa-eye me-2"></i>View Public Profile
+                                            </a>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <a href="{% url 'bedupdates:admin_bed_update_form' %}" 
+                                               class="btn btn-outline-info w-100 mb-2">
+                                                <i class="fas fa-exchange-alt me-2"></i>Select Different Facility
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- No Facility Selected - Redirect to Selection -->
+                <div class="content-container text-center">
+                    <i class="fas fa-hospital fa-4x text-muted mb-4"></i>
+                    <h3>No Facility Selected</h3>
+                    <p class="text-muted mb-4">Please select a facility to manage bed information.</p>
+                    <a href="{% url 'bedupdates:admin_bed_update_form' %}" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Select Facility
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; BestFit Network, Admin Legacy Management</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Facility information management</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

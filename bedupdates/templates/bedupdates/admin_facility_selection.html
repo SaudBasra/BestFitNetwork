@@ -1,0 +1,528 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Select Facility</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --primary: #3498db;
+            --primary-dark: #2980b9;
+            --secondary: #2ecc71;
+            --dark: #34495e;
+            --light: #ecf0f1;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .wrapper {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .content {
+            flex: 1;
+            padding: 2rem 0;
+        }
+        
+        .selection-container {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            border: none;
+            overflow: hidden;
+        }
+        
+        .facility-icon {
+            font-size: 4rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+        }
+        
+        .select2-container--bootstrap-5 .select2-selection {
+            border: 2px solid #dee2e6;
+            border-radius: 0.375rem;
+            min-height: 48px;
+            transition: all 0.3s ease;
+        }
+        
+        .select2-container--bootstrap-5 .select2-selection:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+            height: 100%;
+            border: none;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stats-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+        
+        .stats-card h5 {
+            color: var(--dark);
+            font-weight: 600;
+        }
+        
+        .stats-card p {
+            color: #7f8c8d;
+            margin-bottom: 1rem;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            border: none;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+        }
+        
+        .facility-preview {
+            background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .facility-preview h6 {
+            color: var(--dark);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .facility-preview .text-muted {
+            color: #7f8c8d !important;
+        }
+        
+        .badge {
+            font-size: 0.8rem;
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .alert-admin {
+            background-color: rgba(52, 152, 219, 0.1);
+            border-left: 4px solid var(--primary);
+            color: var(--dark);
+            border-radius: 0.5rem;
+            padding: 1rem 1.5rem;
+        }
+        
+        .monitoring-badge {
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 1.5rem 0;
+            margin-top: auto;
+        }
+        
+        .form-text {
+            color: #7f8c8d;
+            font-size: 0.875rem;
+        }
+        
+        /* Custom Select2 styling to match design */
+        .select2-container--bootstrap-5 .select2-dropdown {
+            border: 2px solid var(--primary);
+            border-radius: 0.375rem;
+        }
+        
+        .select2-container--bootstrap-5 .select2-results__option--highlighted {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        /* Loading animation */
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-user-shield me-2"></i>Admin - Facility Selection</h1>
+                    <p class="mb-0">Select a facility to monitor bed availability</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <div class="monitoring-badge">
+                        <i class="fas fa-search"></i>
+                        Facility Search Portal
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="content">
+        <div class="container">
+            <!-- Admin Alert -->
+            <div class="alert alert-admin mb-4">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Admin Portal:</strong> Select a facility from the dropdown below to access their bed management system. 
+                You'll have read-only monitoring access to their bed matrix and statistics.
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="selection-container">
+                        <div class="text-center">
+                            <i class="fas fa-hospital-alt facility-icon"></i>
+                            <h3 class="mb-4">Choose Facility to Monitor</h3>
+                            <p class="text-muted mb-4">
+                                Search and select a healthcare facility to view their real-time bed management system.
+                                Advanced search capabilities allow you to find facilities by name, location, or credential number.
+                            </p>
+                        </div>
+                        
+                        <form id="facility-selection-form">
+                            <div class="mb-4">
+                                <label for="facility-select" class="form-label fs-5 fw-semibold">
+                                    <i class="fas fa-search me-2"></i>Search & Select Facility
+                                </label>
+                                <select id="facility-select" class="form-select form-select-lg" style="width: 100%">
+                                    <option value="">Type to search for a facility...</option>
+                                    {% for facility in facilities %}
+                                        <option value="{{ facility.id }}" 
+                                                data-bed-count="{{ facility.bed_count }}"
+                                                data-status="{{ facility.status }}"
+                                                data-county="{{ facility.county }}"
+                                                data-state="{{ facility.state }}">
+                                            {{ facility.name }} ({{ facility.county }}, {{ facility.state }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Search by facility name, location, or credential number
+                                </div>
+                            </div>
+                            
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary btn-lg" disabled id="view-facility-btn">
+                                    <span class="loading-spinner me-2"></span>
+                                    <i class="fas fa-eye me-2"></i>Monitor Facility
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <!-- Facility Info Preview -->
+                        <div id="facility-preview" class="facility-preview" style="display: none;">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h6 class="mb-1" id="preview-name"></h6>
+                                    <div class="text-muted">
+                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                        <span id="preview-location"></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-md-end">
+                                    <div class="badge bg-secondary fs-6 mb-2" id="preview-beds">
+                                        <i class="fas fa-bed me-1"></i>
+                                        <span id="preview-bed-count"></span> Beds
+                                    </div>
+                                    <div>
+                                        <span class="badge" id="preview-status"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="stats-card text-center">
+                        <i class="fas fa-tachometer-alt icon"></i>
+                        <h5>Dashboard Overview</h5>
+                        <p class="text-muted">View all facilities at a glance with comprehensive statistics</p>
+                        <a href="{% url 'bedupdates:admin_dashboard' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-1"></i> Go to Dashboard
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stats-card text-center">
+                        <i class="fas fa-search icon" style="color: var(--secondary);"></i>
+                        <h5>Public Search</h5>
+                        <p class="text-muted">Access the public search interface for bed availability</p>
+                        <a href="{% url 'search:home' %}" target="_blank" class="btn btn-outline-success">
+                            <i class="fas fa-external-link-alt me-1"></i> Open Search
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stats-card text-center">
+                        <i class="fas fa-chart-bar icon" style="color: var(--warning);"></i>
+                        <h5>Analytics</h5>
+                        <p class="text-muted">View detailed reports and analytics across all facilities</p>
+                        <a href="#" class="btn btn-outline-warning">
+                            <i class="fas fa-chart-line me-1"></i> View Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; BestFit Network, Admin Facility Management</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Real-time facility monitoring system</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize Select2 with enhanced styling
+    $('#facility-select').select2({
+        placeholder: "Type to search for a facility...",
+        allowClear: true,
+        width: '100%',
+        theme: 'bootstrap-5',
+        templateResult: function(option) {
+            if (!option.id) return option.text;
+            
+            const bedCount = $(option.element).data('bed-count') || 'N/A';
+            const status = $(option.element).data('status');
+            const county = $(option.element).data('county') || '';
+            const state = $(option.element).data('state') || '';
+            
+            const statusBadge = status === 'active' ? 
+                '<span class="badge bg-success ms-2">Active</span>' : 
+                '<span class="badge bg-warning ms-2">Inactive</span>';
+                
+            return $(`
+                <div style="padding: 0.5rem 0;">
+                    <div class="fw-semibold" style="color: #34495e;">${option.text.split(' (')[0]}</div>
+                    <div class="small text-muted mt-1">
+                        <i class="fas fa-bed me-1"></i>${bedCount} beds • 
+                        <i class="fas fa-map-marker-alt me-1"></i>${county}, ${state}
+                        ${statusBadge}
+                    </div>
+                </div>
+            `);
+        },
+        templateSelection: function(option) {
+            return option.text;
+        },
+        escapeMarkup: function(markup) {
+            return markup;
+        }
+    });
+
+    // Handle facility selection with enhanced preview
+    $('#facility-select').on('change', function() {
+        const selectedOption = $(this).find(':selected');
+        const facilityId = $(this).val();
+        
+        if (facilityId) {
+            // Enable the view button with animation
+            $('#view-facility-btn').prop('disabled', false)
+                                   .removeClass('btn-secondary')
+                                   .addClass('btn-primary');
+            
+            // Show enhanced preview
+            const name = selectedOption.text().split(' (')[0];
+            const county = selectedOption.data('county') || '';
+            const state = selectedOption.data('state') || '';
+            const location = county && state ? `${county}, ${state}` : 'Location not specified';
+            const bedCount = selectedOption.data('bed-count') || 'N/A';
+            const status = selectedOption.data('status');
+            
+            $('#preview-name').text(name);
+            $('#preview-location').text(location);
+            $('#preview-bed-count').text(bedCount);
+            
+            // Enhanced status badge
+            const statusBadge = $('#preview-status');
+            if (status === 'active') {
+                statusBadge.removeClass().addClass('badge bg-success').html('<i class="fas fa-check-circle me-1"></i>Active');
+            } else {
+                statusBadge.removeClass().addClass('badge bg-warning').html('<i class="fas fa-exclamation-circle me-1"></i>Inactive');
+            }
+            
+            // Smooth slide down animation
+            $('#facility-preview').slideDown(400);
+        } else {
+            // Disable the view button
+            $('#view-facility-btn').prop('disabled', true)
+                                   .removeClass('btn-primary')
+                                   .addClass('btn-secondary');
+            $('#facility-preview').slideUp(300);
+        }
+    });
+
+    // Enhanced form submission with loading state
+    $('#facility-selection-form').on('submit', function(e) {
+        e.preventDefault();
+        const facilityId = $('#facility-select').val();
+        
+        if (facilityId) {
+            // Show loading state
+            const btn = $('#view-facility-btn');
+            const spinner = btn.find('.loading-spinner');
+            const icon = btn.find('.fa-eye');
+            
+            spinner.show();
+            icon.hide();
+            btn.prop('disabled', true).text(' Connecting to Facility...');
+            
+            // Navigate to facility management page
+            setTimeout(() => {
+                window.location.href = `{% url 'bedupdates:admin_facility_management' 0 %}`.replace('0', facilityId);
+            }, 1000);
+        }
+    });
+    
+    // Enhanced keyboard shortcuts
+    $(document).on('keydown', function(e) {
+        // Ctrl + Enter to submit
+        if (e.ctrlKey && e.key === 'Enter') {
+            const facilityId = $('#facility-select').val();
+            if (facilityId) {
+                $('#facility-selection-form').submit();
+            }
+        }
+        
+        // Escape to clear selection
+        if (e.key === 'Escape') {
+            $('#facility-select').val(null).trigger('change');
+        }
+    });
+    
+    // Auto-focus search field with delay
+    setTimeout(() => {
+        $('.select2-search__field').focus();
+    }, 500);
+    
+    // Add hover effects to action cards
+    $('.stats-card').hover(
+        function() {
+            $(this).css('transform', 'translateY(-5px)');
+        },
+        function() {
+            $(this).css('transform', 'translateY(0)');
+        }
+    );
+    
+    // Enhanced tooltip for facility selection
+    $('#facility-select').on('select2:open', function() {
+        $('.select2-search__field').attr('placeholder', 'Start typing facility name...');
+    });
+    
+    // Add animation to preview appearance
+    $('#facility-select').on('select2:select', function() {
+        setTimeout(() => {
+            $('#facility-preview').addClass('animate__animated animate__fadeInUp');
+        }, 100);
+    });
+});
+</script>
+
+</body>
+</html>

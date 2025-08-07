@@ -1,0 +1,726 @@
+{% load tz %}
+{% load static %}
+{% load bed_tags %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - {{ facility.name }} Bed Management</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3498db;
+            --primary-dark: #2980b9;
+            --secondary: #2ecc71;
+            --dark: #34495e;
+            --light: #ecf0f1;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .wrapper {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .content {
+            flex: 1;
+            padding: 2rem 0;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+            height: 100%;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stats-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+        
+        .stats-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        
+        .stats-card .label {
+            color: #7f8c8d;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+        
+        .bed-type {
+            display: flex;
+            align-items: center;
+            margin-top: 0.75rem;
+        }
+        
+        .bed-icon {
+            margin-right: 0.5rem;
+            font-size: 1rem;
+        }
+        
+        .male-icon {
+            color: #1e40af;
+        }
+        
+        .female-icon {
+            color: #be185d;
+        }
+        
+        .bed-count {
+            font-size: 0.9rem;
+            color: #1e293b;
+        }
+        
+        .facility-info-container {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .facility-info-container h5 {
+            color: white !important;
+        }
+        
+        .facility-info-container strong {
+            color: rgba(255,255,255,0.9);
+        }
+        
+        .facility-info-container .badge {
+            background-color: rgba(255,255,255,0.2) !important;
+            color: white !important;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            border: none;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+        }
+        
+        /* Enhanced Matrix Table Styles */
+        .bed-matrix-container {
+            overflow-x: auto;
+            margin-bottom: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .legend-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid transparent;
+        }
+        
+        .color-male-occupied {
+            background-color: #1e40af;
+        }
+        
+        .color-female-occupied {
+            background-color: #be185d;
+        }
+        
+        .color-vacant {
+            background-color: white;
+            border: 2px solid #d1d5db;
+        }
+        
+        .color-private {
+            background-color: #6b7280;
+        }
+        
+        .color-shared {
+            background-color: #0ea5e9;
+        }
+        
+        .bed-matrix {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        .bed-matrix th {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 0.75rem;
+            text-align: center;
+            border: 1px solid var(--primary-dark);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+        }
+        
+        .bed-matrix td {
+            text-align: center;
+            padding: 0.5rem;
+            border: 1px solid #dee2e6;
+            vertical-align: middle;
+        }
+        
+        .room-info-cell {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            min-width: 120px;
+        }
+        
+        .room-type-cell {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            position: sticky;
+            left: 120px;
+            z-index: 5;
+            min-width: 80px;
+        }
+        
+        .bed-status-indicator {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            margin: 2px auto;
+            font-weight: bold;
+            color: white;
+            font-size: 0.8rem;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        
+        .bed-status-indicator.vacant {
+            background-color: white;
+            border: 2px solid #d1d5db;
+            color: #6b7280;
+        }
+        
+        .bed-status-indicator.male-occupied {
+            background-color: #1e40af;
+            border-color: #1e40af;
+        }
+        
+        .bed-status-indicator.female-occupied {
+            background-color: #be185d;
+            border-color: #be185d;
+        }
+        
+        .room-type-pill {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .room-type-private {
+            background-color: rgba(107, 114, 128, 0.2);
+            color: #6b7280;
+        }
+        
+        .room-type-shared {
+            background-color: rgba(14, 165, 233, 0.2);
+            color: #0ea5e9;
+        }
+        
+        .monitoring-badge {
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .alert-admin {
+            background-color: rgba(52, 152, 219, 0.1);
+            border-left: 4px solid var(--primary);
+            color: var(--dark);
+        }
+        
+        .last-updated-display {
+            background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .last-updated-time {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            font-weight: 600;
+        }
+        
+        .last-updated-label {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin-bottom: 0.25rem;
+        }
+        
+        .not-configured-message {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #7f8c8d;
+        }
+        
+        .not-configured-message i {
+            font-size: 4rem;
+            color: var(--warning);
+            margin-bottom: 1rem;
+        }
+        
+        .footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 1.5rem 0;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-user-shield me-2"></i>Admin - {{ facility.name }} Bed Monitoring</h1>
+                    <p class="mb-0">Real-time bed status monitoring (Read-only view)</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <div class="monitoring-badge">
+                        <i class="fas fa-eye"></i>
+                        Monitoring Mode
+                    </div>
+                    <div class="mt-2">
+                        <a href="{% url 'bedupdates:admin_dashboard' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="content">
+        <div class="container">
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Facility Information Display -->
+            <div class="facility-info-container">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h5 class="mb-3">
+                            <i class="fas fa-building me-2"></i>{{ facility.name }}
+                        </h5>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <strong>Credential Number:</strong> {{ facility.credential_number }}
+                            </div>
+                            <div class="col-sm-6">
+                                <strong>Official Bed Count:</strong> {{ facility.bed_count }}
+                            </div>
+                            <div class="col-sm-6">
+                                <strong>Location:</strong> {{ facility.county }}, {{ facility.state }}
+                            </div>
+                            <div class="col-sm-6">
+                                <strong>Status:</strong> 
+                                <span class="badge bg-{% if facility.status == 'active' %}success{% else %}warning{% endif %}">
+                                    {{ facility.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        {% if is_configured %}
+                            <!-- Last Updated Display -->
+                            <div class="last-updated-display">
+                                <div class="last-updated-label">LAST UPDATED</div>
+                                <div class="last-updated-time">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {% timezone "Asia/Karachi" %}{{ config.updated_at|date:"M d, Y H:i" }}{% endtimezone %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-center">
+                                <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                                <div class="mt-2">Not Configured</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Alert -->
+            <div class="alert alert-admin mb-4">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Admin Monitoring:</strong> This is a read-only view for monitoring purposes. 
+                Only facility staff can update bed statuses and configurations.
+            </div>
+
+            {% if is_configured %}
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stats-card text-center">
+                            <div class="icon">
+                                <i class="fas fa-procedures"></i>
+                            </div>
+                            <div class="value">{{ bed_stats.vacant_beds }}</div>
+                            <div class="label">Available Beds</div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="stats-card text-center">
+                            <div class="icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="value" id="shared-beds-total">0</div>
+                            <div class="label">Shared Beds</div>
+                            <div class="bed-type">
+                                <i class="fas fa-male bed-icon male-icon"></i>
+                                <span class="bed-count" id="shared-beds-male">0 Male</span>
+                            </div>
+                            <div class="bed-type">
+                                <i class="fas fa-female bed-icon female-icon"></i>
+                                <span class="bed-count" id="shared-beds-female">0 Female</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="stats-card text-center">
+                            <div class="icon">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="value" id="private-beds-total">0</div>
+                            <div class="label">Private Beds</div>
+                            <div class="bed-type">
+                                <i class="fas fa-male bed-icon male-icon"></i>
+                                <span class="bed-count" id="private-beds-male">0 Male</span>
+                            </div>
+                            <div class="bed-type">
+                                <i class="fas fa-female bed-icon female-icon"></i>
+                                <span class="bed-count" id="private-beds-female">0 Female</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="stats-card text-center">
+                            <div class="icon">
+                                <i class="fas fa-hospital"></i>
+                            </div>
+                            <div class="value">{{ bed_stats.occupied_beds }}</div>
+                            <div class="label">Occupied Beds</div>
+                            <div class="small text-muted mt-1">{{ bed_stats.occupancy_rate|floatformat:1 }}% Occupancy Rate</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Bed Matrix -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0"><i class="fas fa-th me-2"></i>Bed Matrix - Monitoring View</h4>
+                        </div>
+                        <div>
+                            <span class="badge bg-light text-dark">{{ bed_stats.occupancy_rate|floatformat:1 }}%</span> Current Occupancy
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Legend -->
+                        <div class="legend-container mb-4">
+                            <div class="fw-bold me-3">LEGEND:</div>
+                            
+                            <div class="legend-item">
+                                <div class="legend-color color-male-occupied"></div>
+                                <div>👨 Male Occupied</div>
+                            </div>
+                            
+                            <div class="legend-item">
+                                <div class="legend-color color-female-occupied"></div>
+                                <div>👩 Female Occupied</div>
+                            </div>
+                            
+                            <div class="legend-item">
+                                <div class="legend-color color-vacant"></div>
+                                <div>🛏️ Vacant</div>
+                            </div>
+                            
+                            <div class="legend-item">
+                                <div class="legend-color color-private"></div>
+                                <div>Private Room</div>
+                            </div>
+                            
+                            <div class="legend-item">
+                                <div class="legend-color color-shared"></div>
+                                <div>Shared Room</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Matrix Table -->
+                        <div class="bed-matrix-container">
+                            <table class="bed-matrix">
+                                <thead>
+                                    <tr>
+                                        <th>Room</th>
+                                        <th>Type</th>
+                                        <th>Bed 1</th>
+                                        <th>Bed 2</th>
+                                        <th>Bed 3</th>
+                                        <th>Bed 4</th>
+                                        <th>Info</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for room in rooms %}
+                                    <tr>
+                                        <td class="room-info-cell">
+                                            <div class="fw-bold">{{ room.room_name }}</div>
+                                            <div class="small text-muted">{{ room.get_vacant_beds }}/{{ room.get_total_beds }} Available</div>
+                                        </td>
+                                        <td class="room-type-cell">
+                                            <span class="room-type-pill room-type-{{ room.room_type }}">
+                                                {% if room.room_type == 'private' %}PVT{% else %}SRD{% endif %}
+                                            </span>
+                                        </td>
+                                        {% for bed in room.beds.all %}
+                                        <td>
+                                            <div class="bed-status-indicator 
+                                                        {% if bed.status == 'occupied' %}{{ bed.gender }}-occupied{% else %}vacant{% endif %}">
+                                                <div class="bed-number">{{ bed.bed_number }}</div>
+                                                {% if bed.status == 'occupied' %}
+                                                    {% if bed.gender == 'male' %}
+                                                        <div style="font-size: 1.2em;">👨</div>
+                                                    {% elif bed.gender == 'female' %}
+                                                        <div style="font-size: 1.2em;">👩</div>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <div style="font-size: 1.2em;">🛏️</div>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        {% endfor %}
+                                        
+                                        <!-- Fill empty bed columns -->
+                                        {% for i in "1234"|make_list %}
+                                            {% if forloop.counter > room.beds.count %}
+                                            <td></td>
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        <td>
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Room {{ room.room_number }}
+                                            </small>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            <div class="text-muted">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                No rooms configured yet.
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Not Configured Message -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="not-configured-message">
+                            <i class="fas fa-cog"></i>
+                            <h3>Facility Not Configured</h3>
+                            <p class="lead">This facility hasn't configured their advanced bed management system yet.</p>
+                            <p>The facility staff needs to access their dashboard and complete the bed configuration process.</p>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Official Bed Count:</strong> {{ facility.bed_count|default:"Not specified" }}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Status:</strong> Awaiting configuration
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; BestFit Network, Admin Bed Management</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Real-time facility monitoring</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    {% if is_configured %}
+    // Calculate and display bed statistics
+    updateBedStatistics();
+    
+    function updateBedStatistics() {
+        // Calculate statistics from bed indicators
+        var maleSharedVacant = 0, femaleSharedVacant = 0;
+        var malePrivateVacant = 0, femalePrivateVacant = 0;
+        
+        $('tr').each(function() {
+            var roomType = $(this).find('.room-type-pill').hasClass('room-type-private') ? 'private' : 'shared';
+            
+            $(this).find('.bed-status-indicator').each(function() {
+                if ($(this).hasClass('vacant')) {
+                    // Check the bed structure to determine gender
+                    var bedContent = $(this).html();
+                    if (bedContent.includes('👨')) {
+                        if (roomType === 'shared') maleSharedVacant++;
+                        else malePrivateVacant++;
+                    } else if (bedContent.includes('👩')) {
+                        if (roomType === 'shared') femaleSharedVacant++;
+                        else femalePrivateVacant++;
+                    } else {
+                        // For truly vacant beds, count based on position or room gender
+                        if (roomType === 'shared') {
+                            // Alternate between male and female for display purposes
+                            maleSharedVacant++;
+                        } else {
+                            malePrivateVacant++;
+                        }
+                    }
+                }
+            });
+        });
+        
+        var sharedTotal = maleSharedVacant + femaleSharedVacant;
+        var privateTotal = malePrivateVacant + femalePrivateVacant;
+        
+        $('#shared-beds-total').text(sharedTotal);
+        $('#shared-beds-male').text(maleSharedVacant + ' Male');
+        $('#shared-beds-female').text(femaleSharedVacant + ' Female');
+        $('#private-beds-total').text(privateTotal);
+        $('#private-beds-male').text(malePrivateVacant + ' Male');
+        $('#private-beds-female').text(femalePrivateVacant + ' Female');
+    }
+    {% endif %}
+    
+    // Auto-refresh every 2 minutes for live monitoring
+    setInterval(function() {
+        location.reload();
+    }, 120000);
+    
+    // Add tooltip to beds
+    $('.bed-status-indicator').hover(function() {
+        var bedNumber = $(this).find('.bed-number').text();
+        var isOccupied = $(this).hasClass('male-occupied') || $(this).hasClass('female-occupied');
+        var gender = $(this).hasClass('male-occupied') ? 'Male' : $(this).hasClass('female-occupied') ? 'Female' : 'Neutral';
+        var status = isOccupied ? 'Occupied' : 'Vacant';
+        
+        $(this).attr('title', 'Bed ' + bedNumber + ' - ' + status + ' (' + gender + ')');
+    });
+});
+</script>
+
+</body>
+</html>

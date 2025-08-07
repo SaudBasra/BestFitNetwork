@@ -658,14 +658,13 @@
                         <hr class="text-white-50 my-2">
 <!-- Bed Management Section -->
 <small class="text-white-50 px-3 mb-2 text-uppercase fw-bold" style="font-size: 0.7rem;">Bed Management</small>
-                        
-<a class="nav-link bed-management" href="#">
+<a class="nav-link bed-management" href="{% url 'bedupdates:admin_dashboard' %}">
     <i class="fas fa-bed me-2"></i> Bed Dashboard
     <small class="d-block text-white-75" style="font-size: 0.7rem; margin-top: 2px;">
         System-wide bed monitoring
     </small>
 </a>
-<a class="nav-link" href="#">
+<a class="nav-link" href="{% url 'bedupdates:admin_bed_update_form' %}">
     <i class="fas fa-edit me-2"></i> Update Facilities
     <small class="d-block text-white-75" style="font-size: 0.7rem; margin-top: 2px;">
         Manage facility bed counts
@@ -673,7 +672,6 @@
 </a>
 
 <hr class="text-white-50 my-2">                        
-                        
                         <!-- Analytics & Search Section -->
                         <small class="text-white-50 px-3 mb-2 text-uppercase fw-bold" style="font-size: 0.7rem;">Analytics & Search</small>
                         
